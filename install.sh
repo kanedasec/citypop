@@ -39,6 +39,7 @@ if [ "$(id -u)" = 0 ]; then
     python3-lgpio python3-spidev python3-smbus gpiod
     python3-soapysdr build-essential pkg-config
     python3-numpy python3-scipy python3-sklearn python3-opencv python3-pil
+    python3-turbojpeg
     python3-cryptography python3-serial python3-requests python3-scapy
     python3-bleak python3-pyudev python3-pyzbar python3-qrcode python3-evdev
     libbluetooth-dev libffi-dev libglib2.0-dev libnfc-dev libusb-1.0-0-dev
@@ -103,7 +104,7 @@ if $IS_ARM; then
   "$VENV_PYTHON" -m pip uninstall -y numpy opencv-python opencv-python-headless ai-edge-litert >/dev/null 2>&1 || true
   awk '
     BEGIN { IGNORECASE=1 }
-    /^[[:space:]]*(Pillow|ai-edge-litert|cryptography|numpy|opencv-python-headless|pyserial|pyudev|pyzbar|qrcode|requests|scapy|scikit-learn|evdev)([<>=;[:space:]\[]|$)/ { next }
+    /^[[:space:]]*(Pillow|PyTurboJPEG|ai-edge-litert|cryptography|numpy|opencv-python-headless|pyserial|pyudev|pyzbar|qrcode|requests|scapy|scikit-learn|evdev)([<>=;[:space:]\[]|$)/ { next }
     { print }
   ' "$INSTALL_DIR/requirements.txt" > "$PI_REQUIREMENTS"
   if [ "$ARCH" = "armhf" ] || [ "$ARCH" = "armv7l" ]; then
@@ -116,6 +117,13 @@ if $IS_ARM; then
       -c "$INSTALL_DIR/constraints-arm.txt" -r "$PI_REQUIREMENTS"; then
     echo "WARNING: One or more optional payload packages were unavailable for $ARCH." >&2
     echo "The City Pop web core is installed; affected payloads will report their missing dependency." >&2
+  fi
+  # PyTurboJPEG is pure Python, but its package metadata asks pip to resolve
+  # NumPy. On armhf/Python 3.13 that resolution downloads the NumPy source and
+  # starts a multi-hour local compile. Kali's binary python3-numpy is already
+  # visible through --system-site-packages, so install only this package.
+  if ! "$VENV_PYTHON" -m pip install --no-deps --prefer-binary --no-cache-dir PyTurboJPEG; then
+    echo "WARNING: PyTurboJPEG is unavailable; camera payloads can still use Kali's OpenCV package." >&2
   fi
 else
   "$VENV_PYTHON" -m pip install --prefer-binary --no-cache-dir -r "$INSTALL_DIR/requirements.txt"
