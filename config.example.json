@@ -1,0 +1,20 @@
+{
+  "bind": "0.0.0.0",
+  "port": 8080,
+  "auth_token": "CHANGE_ME_ON_INSTALL",
+  "acknowledged": false,
+  "category_order": [
+    "reconnaissance",
+    "wifi",
+    "network",
+    "bluetooth",
+    "hid",
+    "bug_bounty",
+    "utilities",
+    "credentials",
+    "usb",
+    "exfiltration",
+    "remote_access"
+  ],
+  "accent_overrides": {}
+}

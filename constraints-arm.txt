@@ -1,0 +1,2 @@
+# Keep pip-installed ARM extensions compatible with Kali's NumPy 1.x stack.
+numpy<2

@@ -1,0 +1,60 @@
+# Local Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local City Pop state, secrets, and collected data
+config.json
+.env
+.env.*
+!.env.example
+loot/
+logs/
+*.log
+*.pid
+*.sock
+*.pcap
+*.pcapng
+*.cap
+*.hc22000
+*.hccapx
+*.pot
+*.potfile
+.wigle_credentials.json
+*_credentials.json
+*_secrets.json
+*_token.json
+
+# Build and packaging output
+build/
+dist/
+*.egg-info/
+*.whl
+
+# Editors and operating-system metadata
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Development-only migration material (not installed on the Pi)
+tools/*
+misc/b4scripts/
+misc/*
+misc/
+omitted-raspyjack-payloads.txt
+
+# Stray local payload-editor scratch file
+payloads/Untitled
