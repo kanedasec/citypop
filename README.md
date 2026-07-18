@@ -1,4 +1,20 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Kali%20Pi--Tail-557C94?style=flat-square&logo=kali-linux&logoColor=white" alt="Platform: Kali Pi-Tail">
+  <img src="https://img.shields.io/badge/hardware-Raspberry%20Pi%20Zero%202%20W-C51A4A?style=flat-square&logo=raspberry-pi&logoColor=white" alt="Hardware: Raspberry Pi Zero 2 W">
+  <img src="https://img.shields.io/badge/code-Python%203-FFD43B?style=flat-square&logo=python&logoColor=3776AB" alt="Code: Python 3">
+  <img src="https://img.shields.io/badge/interface-phone--first%20web-21E6FF?style=flat-square" alt="Interface: phone-first web">
+  <img src="https://img.shields.io/badge/payloads-161-FF2E88?style=flat-square" alt="Payloads: 161">
+  <img src="https://img.shields.io/badge/license-MIT-3DFFB0?style=flat-square" alt="License: MIT">
+  <img src="https://img.shields.io/badge/usage-authorized%20testing%20only-3DFFB0?style=flat-square" alt="Usage: authorized testing only">
+</p>
+
+<p align="center">
+  <img src="static/citypop-icon.png" alt="City Pop icon" width="700">
+</p>
+
 # CITY POP // Pi-Tail Deck
+
+
 
 > A phone-first field interface for Kali Pi-Tail—inspired by RaspyJack, rebuilt for a Raspberry Pi Zero 2 W that lives in your pocket instead of behind an LCD HAT.
 
@@ -154,17 +170,6 @@ Do not place the phone-tether interface into monitor mode, disable it, bridge it
 
 Use a separate USB Wi-Fi or Ethernet adapter for assessment traffic whenever possible.
 
-### Respect the phone's power budget
-
-A phone may not reliably power the Pi Zero 2 W plus a high-power Wi-Fi adapter, SDR, GPS, NFC reader, and storage device. Brownouts can corrupt captures or the microSD card and may leave radios in an unexpected state.
-
-Use a powered hub for demanding peripherals. Stop the service and shut Kali down cleanly before unplugging power:
-
-```bash
-sudo systemctl stop city-pop
-sudo poweroff
-```
-
 ### Radio and physical safety
 
 - Monitor mode, injection, beaconing, jamming-like traffic, and rogue services can affect nearby systems beyond the intended target.
@@ -236,13 +241,19 @@ misc/                   development documentation (not installed)
 tools/                  local migration tooling (not installed or committed)
 ```
 
+## License
+
+City Pop is released under the [MIT License](LICENSE).
+
+The MIT License applies to this project's original code and contributions. Adapted, bundled, or externally invoked components remain subject to their respective licenses and notices. When redistributing the project, retain the City Pop license, applicable upstream attribution, and any third-party license material required by those components.
+
 ## Credits and provenance
 
 - [RaspyJack](https://github.com/7h30th3r0n3/Raspyjack) by `7h30th3r0n3`—the upstream project and payload inspiration. RaspyJack describes itself as a portable Raspberry Pi offensive toolkit with LCD control, a payload launcher, WebUI, and payload IDE.
 - [Kali Linux Raspberry Pi-Tail](https://www.kali.org/docs/arm/raspberry-pi-zero-2-w-pi-tail/)—the phone-powered and phone-controlled platform this adaptation targets.
 - The maintainers and authors of the individual tools invoked by the payload catalog.
 
-RaspyJack is published with an MIT license. This repository should retain all applicable upstream notices and comply with the licenses of copied, adapted, bundled, and externally invoked components. Review repository licensing before redistribution.
+RaspyJack is also published under the MIT License. This repository retains its upstream attribution, and redistribution must continue to comply with the licenses of copied, adapted, bundled, and externally invoked components.
 
 ---
 

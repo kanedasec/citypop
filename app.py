@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import shutil
 from functools import wraps
 from pathlib import Path
 
@@ -138,6 +139,39 @@ def loot_preview(name):
     if path.stat().st_size > 512_000:
         return jsonify(error="file too large to preview"), 413
     return jsonify(content=path.read_text(encoding="utf-8", errors="replace"))
+
+
+@app.delete("/api/loot/<path:name>")
+@require_auth
+def loot_delete(name):
+    path = safe_loot_path(name)
+    path.unlink()
+    # Clean up empty artifact directories while never removing loot itself.
+    parent = path.parent
+    while parent != LOOT and LOOT.resolve() in parent.resolve().parents:
+        try:
+            parent.rmdir()
+        except OSError:
+            break
+        parent = parent.parent
+    return jsonify(ok=True, deleted=name)
+
+
+@app.delete("/api/loot")
+@require_auth
+def loot_delete_all():
+    if (request.get_json(silent=True) or {}).get("confirm") != "DELETE ALL":
+        return jsonify(error="confirmation required"), 400
+    deleted = 0
+    LOOT.mkdir(parents=True, exist_ok=True)
+    for child in list(LOOT.iterdir()):
+        if child.is_symlink() or child.is_file():
+            child.unlink()
+            deleted += 1
+        elif child.is_dir():
+            deleted += sum(1 for path in child.rglob("*") if path.is_file() or path.is_symlink())
+            shutil.rmtree(child)
+    return jsonify(ok=True, deleted=deleted)
 
 
 def socket_authorized(auth):
