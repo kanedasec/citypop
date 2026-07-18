@@ -91,7 +91,7 @@ From an SSH session on the Pi:
 ```bash
 sudo apt update
 sudo apt install -y git
-git clone <your-github-repository-url> city-pop
+git clone https://github.com/kanedasec/citypop.git
 cd city-pop
 chmod +x install.sh
 sudo ./install.sh
