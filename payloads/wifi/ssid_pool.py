@@ -415,7 +415,9 @@ def main():
     extra=sys.argv[2:] 
     for name in extra: _add_ssid(name)
     try:
-        _start_broadcast(); print(f"Broadcasting {len(ssid_list)} SSIDs for {duration}s",flush=True)
+        _start_broadcast()
+        print(f"Broadcasting {len(ssid_list)} SSIDs on {_selected_iface} for {duration}s",flush=True)
+        print(f"SSID pool configuration: {CONFIG_FILE}",flush=True)
         end=time.time()+duration
         while time.time()<end: time.sleep(1)
         return 0

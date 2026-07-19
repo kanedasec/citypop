@@ -296,6 +296,9 @@ def _print_status():
     state = "ACTIVE" if active else "stopped"
     print(f"Portal: {state} | Whitelist: {len(wl)} | "
           f"Redirected clients: {redir} | {msg}", flush=True)
+    if active:
+        print(f"Portal address after joining the AP: http://{PORTAL_IP}:{REDIRECT_PORT}/", flush=True)
+        print(f"Interface: {PORTAL_IFACE} · Subnet: {PORTAL_SUBNET}", flush=True)
 
 
 def _print_whitelist():
@@ -333,15 +336,17 @@ def _print_help():
 # Main
 # ---------------------------------------------------------------------------
 def main():
-    global app_running, whitelist, status_msg
+    global app_running, whitelist, status_msg, PORTAL_IFACE
 
     selected_iface = _select_interface(iface_type="wifi")
     if not selected_iface:
         return
+    PORTAL_IFACE = selected_iface
 
     whitelist = _load_whitelist()
 
-    print("GoodPortal ready.", flush=True)
+    print(f"GoodPortal ready on {PORTAL_IFACE}.", flush=True)
+    print(f"Whitelist file: {WHITELIST_PATH}", flush=True)
     _print_status()
     _print_help()
 

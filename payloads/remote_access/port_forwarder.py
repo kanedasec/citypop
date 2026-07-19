@@ -28,6 +28,7 @@ import socket
 import select
 import time
 import threading
+from payloads._dashboard import primary_ip
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
@@ -250,13 +251,14 @@ def main():
         return 1
 
     print("TCP Port Forwarder", flush=True)
+    listen_ip = primary_ip()
     for rule in rules:
         rule["active"] = True
         threading.Thread(
             target=_server_thread, args=(rule,), daemon=True,
         ).start()
         print(
-            f"[*] Forwarding :{rule['local_port']} -> "
+            f"[*] Endpoint: tcp://{listen_ip}:{rule['local_port']} -> "
             f"{rule['remote_host']}:{rule['remote_port']}", flush=True,
         )
     print("[*] Press Ctrl-C to stop", flush=True)

@@ -414,8 +414,10 @@ def _save_results():
         with open(path, "w") as fh:
             json.dump(report, fh, indent=2)
         _set_status(f"Saved {os.path.basename(path)}")
+        print(f"[*] Results saved to {path}", flush=True)
     except Exception as e:
         _set_status(f"Save err: {e}")
+        print(f"[!] Could not save results: {e}", flush=True)
 
 # ---------------------------------------------------------------------------
 # Main

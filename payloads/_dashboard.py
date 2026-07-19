@@ -22,7 +22,7 @@ const label=s=>s.replaceAll('_',' ');function cell(value){if(value===null||value
 async function update(){try{const response=await fetch('/api/status?token='+encodeURIComponent(token),{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();state.textContent='updated '+new Date().toLocaleTimeString();cards.textContent='';tables.textContent='';for(const [key,value] of Object.entries(data)){if(Array.isArray(value)){const section=document.createElement('section'),heading=document.createElement('h2');heading.textContent=label(key);section.append(heading);if(value.length){const table=document.createElement('table'),head=document.createElement('tr'),keys=[...new Set(value.flatMap(row=>Object.keys(row||{})))];for(const key of keys){const th=document.createElement('th');th.textContent=label(key);head.append(th)}table.append(head);for(const row of value){const tr=document.createElement('tr');for(const key of keys){const td=document.createElement('td');td.textContent=cell(row[key]);tr.append(td)}table.append(tr)}section.append(table)}else section.append('No entries yet.');tables.append(section)}else{const card=document.createElement('div');card.className='card';const name=document.createElement('b'),val=document.createElement('span');name.textContent=label(key);val.textContent=cell(value);card.append(name,val);cards.append(card)}}}catch(error){state.className='error';state.textContent='dashboard unavailable · '+error.message}}update();setInterval(update,2000)</script></body></html>"""
 
 
-def _primary_ip() -> str:
+def primary_ip() -> str:
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.connect(("1.1.1.1", 53))
@@ -40,6 +40,9 @@ def _primary_ip() -> str:
         except (OSError, subprocess.SubprocessError, IndexError):
             pass
         return "127.0.0.1"
+
+
+_primary_ip = primary_ip
 
 
 class DashboardServer:
@@ -85,7 +88,7 @@ class DashboardServer:
         self.httpd = ThreadingHTTPServer(("0.0.0.0", self.port), Handler)
         self.httpd.daemon_threads = True
         threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
-        return f"http://{_primary_ip()}:{self.port}/?token={self.token}"
+        return f"http://{primary_ip()}:{self.port}/?token={self.token}"
 
     def stop(self):
         if self.httpd:

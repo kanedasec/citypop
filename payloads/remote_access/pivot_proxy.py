@@ -31,6 +31,7 @@ import select
 import time
 import threading
 import subprocess
+from payloads._dashboard import primary_ip
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
@@ -326,7 +327,8 @@ def main():
         print(f"[!] Failed to bind port {listen_port}", flush=True)
         return 1
 
-    print(f"[*] Listening on 0.0.0.0:{listen_port} (SOCKS5, CONNECT only)", flush=True)
+    print(f"[*] SOCKS5 endpoint: socks5://{primary_ip()}:{listen_port}", flush=True)
+    print("[*] Mode: unauthenticated CONNECT proxy", flush=True)
     print("[*] Press Ctrl-C to stop", flush=True)
 
     start = time.time()

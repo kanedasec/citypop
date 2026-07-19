@@ -185,6 +185,7 @@ def main():
                 cfg = {**cfg, "apn": new_apn}
                 _save_config(cfg)
                 status_msg = f"APN set: {new_apn}"
+                print(f"LTE configuration saved to {CONFIG_PATH}", flush=True)
             else:
                 status_msg = "APN unchanged"
 

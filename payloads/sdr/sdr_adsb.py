@@ -38,6 +38,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads.sdr._sdr_core import detect_sdr
+from payloads._dashboard import primary_ip
 
 CITYPOP_ROOT = os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 LOOT_DIR = os.path.join(CITYPOP_ROOT, "loot", "SDR", "adsb")
@@ -468,7 +469,7 @@ def main():
         webui_thread.start()
         time.sleep(0.5)
         if _webui_running:
-            print(f"WebUI map available at http://0.0.0.0:{WEBUI_PORT}/adsb", flush=True)
+            print(f"ADS-B map: http://{primary_ip()}:{WEBUI_PORT}/adsb", flush=True)
         else:
             print("WebUI failed to start.", flush=True)
 

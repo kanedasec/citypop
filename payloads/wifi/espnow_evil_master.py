@@ -477,10 +477,15 @@ def main():
     if not ok: print(f"Monitor mode failed: {err}",flush=True); return 1
     gps=GpsReader(); sniffer=EspNowSniffer(iface,gps)
     try:
-        gps.start(); sniffer.start(); print(f"Monitoring ESP-NOW for {duration}s",flush=True); end=time.time()+duration
+        gps.start(); sniffer.start()
+        print(f"Monitoring ESP-NOW on {iface} for {duration}s",flush=True)
+        print(f"Wardriving CSV: {sniffer.ward_logger.csv_path}",flush=True)
+        print(f"Packet capture: {sniffer.pcap.path}",flush=True); end=time.time()+duration
         while time.time()<end: print(f"frames={sniffer.packets_total} devices={len(sniffer.ward_aps)}",flush=True); time.sleep(5)
         return 0
-    finally: _running=False; sniffer.stop(); gps.stop(); restore_managed_mode(iface)
+    finally:
+        _running=False; sniffer.stop(); gps.stop(); restore_managed_mode(iface)
+        print(f"Stopped · frames={sniffer.packets_total} devices={len(sniffer.ward_aps)}",flush=True)
 
 if __name__ == "__main__":
     raise SystemExit(main())

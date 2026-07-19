@@ -9,13 +9,16 @@
 import os, socket, sys, time
 from datetime import datetime,timezone
 from pathlib import Path
+from payloads._dashboard import primary_ip
 def main():
     try: port=int(sys.argv[1]); seconds=max(1,min(int(sys.argv[2]),3600)); assert 0<port<65536
     except (IndexError,ValueError,AssertionError): return 2
     banner=(sys.argv[3] if len(sys.argv)>3 else '')[:512].encode(); root=Path(os.environ.get('CITYPOP_ROOT',Path(__file__).resolve().parents[2])); out=root/'loot'/'Honeypot'; out.mkdir(parents=True,exist_ok=True); log=out/f"tcp_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.log"
     deadline=time.monotonic()+seconds
     with socket.socket() as server,log.open('a') as fh:
-        server.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1); server.bind(('0.0.0.0',port)); server.listen(); server.settimeout(1); print(f'Listening on TCP {port} for {seconds}s…',flush=True)
+        server.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1); server.bind(('0.0.0.0',port)); server.listen(); server.settimeout(1)
+        print(f'Honeypot endpoint: tcp://{primary_ip()}:{port}',flush=True)
+        print(f'Listening for {seconds}s · Log: {log.relative_to(root)}',flush=True)
         while time.monotonic()<deadline:
             try: client,address=server.accept()
             except socket.timeout: continue

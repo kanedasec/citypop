@@ -38,7 +38,8 @@ def main() -> int:
             subprocess.Popen(["arpspoof", "-i", interface, "-t", client, gateway], start_new_session=True),
             subprocess.Popen(["arpspoof", "-i", interface, "-t", gateway, client], start_new_session=True),
         ]
-        print(f"Redirecting {client} ↔ {gateway} for {seconds} seconds…", flush=True)
+        print(f"Interface: {interface} · Client: {client} · Gateway: {gateway}", flush=True)
+        print(f"ARP redirection active for {seconds} seconds; IPv4 forwarding enabled.", flush=True)
         time.sleep(seconds)
         return 0
     finally:
@@ -46,6 +47,7 @@ def main() -> int:
             if process.poll() is None:
                 os.killpg(process.pid, signal.SIGTERM)
         forwarding.write_text(previous + "\n")
+        print(f"ARP redirection stopped; IPv4 forwarding restored to {previous}.", flush=True)
 
 
 if __name__ == "__main__":

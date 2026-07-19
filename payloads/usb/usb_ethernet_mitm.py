@@ -569,6 +569,9 @@ def main():
         + ". Press Ctrl-C to stop.",
         flush=True,
     )
+    print(f"USB interface: {USB_IFACE} · Pi gateway: {GATEWAY_IP}", flush=True)
+    print(f"DHCP range for the connected host: {DHCP_RANGE_START}–{DHCP_RANGE_END}", flush=True)
+    print(f"Loot directory: {LOOT_DIR}", flush=True)
 
     start = time.time()
     last_status = 0.0

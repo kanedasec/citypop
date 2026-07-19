@@ -713,7 +713,9 @@ def main():
             print("AP failed to start.", flush=True)
             return 1
 
-        print("AP is live. Press Ctrl-C to stop.", flush=True)
+        print(f"Access point: {target_ssid} · Interface: {_iface}", flush=True)
+        print(f"Portal address after joining the AP: http://{GATEWAY_IP}:{PORTAL_PORT}/", flush=True)
+        print(f"Loot directory: {LOOT_DIR} · Press Stop to end.", flush=True)
         last_cred_count = 0
         while True:
             time.sleep(3)

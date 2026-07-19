@@ -731,8 +731,10 @@ def main():
         _stop_services()
         return 1
     active = True
-    print(f"Portal live at http://{GATEWAY_IP}/  (SSID: {ssid})", flush=True)
-    print(f"Dead Drop will run for {duration} seconds. Press Stop to end it early.", flush=True)
+    print(f"Access point: {ssid} · Interface: {iface} · Channel: {channel}", flush=True)
+    print(f"Portal address after joining the AP: http://{GATEWAY_IP}:{PORTAL_PORT}/", flush=True)
+    print(f"Uploaded-file directory: {DROP_DIR}", flush=True)
+    print(f"Duration: {duration}s · Press Stop to end it early.", flush=True)
 
     start_time = time.time()
     dashboard = DashboardServer("Wi-Fi Dead Drop", lambda: {
