@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @inputs: [{"name":"seconds","label":"Dashboard duration","type":"number","default":"60"},{"name":"sort","label":"Device sorting","type":"select","choices":["rssi","name","count"],"default":"rssi"}]
 """
 RaspyJack Payload -- Continuous BLE Scanner Dashboard
 =====================================================
@@ -54,6 +55,7 @@ from pathlib import Path
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads._iface_helper import list_bt_interfaces
+from payloads._dashboard import DashboardServer
 
 # ── Constants ────────────────────────────────────────────────────────────────
 HCI_DEV = None  # set in main() via _select_bt_interface
@@ -277,7 +279,7 @@ def main():
         _usage()
         return 0
 
-    duration = None
+    duration = 60.0
     sort_mode = "rssi"
 
     if args:
@@ -286,6 +288,9 @@ def main():
             args = args[1:]
         except ValueError:
             pass
+    if not 1 <= duration <= 3600:
+        print("duration must be between 1 and 3600 seconds", flush=True)
+        return 2
 
     if args:
         if args[0] not in SORT_MODES:
@@ -304,6 +309,17 @@ def main():
 
     _start_scan()
     start_time = time.time()
+    dashboard = DashboardServer("Continuous BLE Scanner", lambda: {
+        "status": status_msg,
+        "adapter": HCI_DEV,
+        "elapsed_seconds": round(time.time() - start_time, 1),
+        "devices_seen": len(devices),
+        "devices": _sorted_devices(sort_mode),
+    })
+    try:
+        print(f"Dashboard: {dashboard.start()}", flush=True)
+    except OSError as exc:
+        print(f"Dashboard unavailable: {exc}", flush=True)
 
     try:
         while True:
@@ -339,6 +355,8 @@ def main():
             print(f"\nEnumerating services for {addr} ...", flush=True)
             for line in _enumerate_services(addr):
                 print(line, flush=True)
+
+    dashboard.stop()
 
     return 0
 

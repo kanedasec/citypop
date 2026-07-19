@@ -4,6 +4,7 @@
 # @desc: Live WiFi reconnaissance dashboard inspired by PineAP Recon.
 # @category: wifi
 # @danger: false
+# @web: true
 # @inputs: [{"name":"seconds","label":"Survey duration","type":"number","default":"60"}]
 
 import os
@@ -19,6 +20,7 @@ from collections import defaultdict
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads._iface_helper import list_interfaces, supports_monitor
+from payloads._dashboard import DashboardServer
 from payloads._web_input import request_input
 
 try:
@@ -390,8 +392,41 @@ def main():
         print("scapy is required", flush=True)
         return 127
     print(f"Surveying on {_selected_iface} for {duration:g}s", flush=True)
+    started = time.monotonic()
+
+    def snapshot():
+        ap_items = _sorted_aps()
+        client_items = _sorted_clients()
+        with lock:
+            aps = [{
+                "ssid": item["ssid"] or "(hidden)", "bssid": item["bssid"],
+                "channel": item["channel"], "encryption": item["enc"],
+                "signal": item["signal"], "clients": len(item["clients"]),
+                "last_seen": item["last_seen"],
+            } for item in ap_items]
+            clients = [{
+                "mac": item["mac"], "ap_bssid": item["ap_bssid"] or "unassociated",
+                "probed_ssids": sorted(item["probed"]), "last_seen": item["last_seen"],
+            } for item in client_items]
+            channels = [{"channel": channel, "frames": frames} for channel, frames in sorted(channel_usage.items())]
+            return {
+                "status": status_msg,
+                "interface": mon_iface or _selected_iface,
+                "elapsed_seconds": round(time.monotonic() - started, 1),
+                "access_points_seen": len(ap_db),
+                "clients_seen": len(client_db),
+                "access_points": aps,
+                "clients": clients,
+                "channels": channels,
+            }
+
+    dashboard = DashboardServer("Wi-Fi Recon Survey", snapshot)
     try:
         _start_survey()
+        try:
+            print(f"Dashboard: {dashboard.start()}", flush=True)
+        except OSError as exc:
+            print(f"Dashboard unavailable: {exc}", flush=True)
         deadline = time.monotonic() + duration
         while time.monotonic() < deadline:
             time.sleep(min(5, deadline - time.monotonic()))
@@ -401,6 +436,7 @@ def main():
         print("Stopping survey", flush=True)
     finally:
         _stop_survey()
+        dashboard.stop()
     path = _export_json()
     print(f"Saved survey to {path}", flush=True)
     return 0

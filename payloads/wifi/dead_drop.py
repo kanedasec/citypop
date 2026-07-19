@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @inputs: [{"name":"ssid","label":"Dead Drop SSID","type":"text","default":"DeadDrop"},{"name":"channel","label":"Wi-Fi channel","type":"number","default":"6"},{"name":"seconds","label":"Dashboard duration","type":"number","default":"300"}]
 """
 RaspyJack Payload -- WiFi Dead Drop
 =====================================
@@ -52,6 +53,7 @@ from socketserver import ThreadingMixIn
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads._iface_helper import list_interfaces
+from payloads._dashboard import DashboardServer
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -98,6 +100,7 @@ _dnsmasq_proc = None
 _http_server = None
 
 ssid = "DeadDrop"
+channel = 6
 iface = None
 
 
@@ -172,7 +175,7 @@ def _start_services(ifc):
     with open(HOSTAPD_CONF, "w") as f:
         f.write(
             f"interface={ifc}\ndriver=nl80211\nssid={ssid}\n"
-            f"hw_mode=g\nchannel=6\nwmm_enabled=0\n"
+            f"hw_mode=g\nchannel={channel}\nwmm_enabled=0\n"
             f"auth_algs=1\nwpa=0\nignore_broadcast_ssid=0\n"
         )
 
@@ -621,7 +624,9 @@ def _select_wifi_interface():
         print(f"  [{i}] {ifc['name']}  {tag}  {state}", flush=True)
 
     while True:
-        choice = request_input(f"Select interface [0-{len(ifaces) - 1}]: ").strip()
+        choice = str(request_input("Select AP-capable Wi-Fi interface", input_type="select", choices=[
+            {"value": str(i), "label": f"{item['name']} · {'onboard' if item.get('is_onboard') else item.get('bus') or 'external'} · {'AP' if item.get('supports_ap') else 'AP support unknown'} · {'UP' if item.get('is_up') else 'DOWN'}"}
+            for i, item in enumerate(ifaces)]))
         if choice.isdigit() and 0 <= int(choice) < len(ifaces):
             return ifaces[int(choice)]["name"]
         print("Invalid selection, try again.", flush=True)
@@ -637,7 +642,7 @@ def _usage():
 
 
 def main():
-    global _running, active, status_msg, iface, ssid
+    global _running, active, status_msg, iface, ssid, channel
 
     args = sys.argv[1:]
     if args and args[0] in ("-h", "--help"):
@@ -647,6 +652,12 @@ def main():
     _load_config()
     if args:
         ssid = args[0]
+    try:
+        channel = max(1, min(int(args[1] if len(args) > 1 else "6"), 13))
+        duration = max(10, min(int(args[2] if len(args) > 2 else "300"), 3600))
+    except ValueError:
+        print("Channel and duration must be whole numbers.", flush=True)
+        return 2
 
     os.makedirs(DROP_DIR, exist_ok=True)
     os.chmod(DROP_DIR, 0o700)
@@ -664,11 +675,30 @@ def main():
     _start_services(iface)
     active = True
     print(f"Portal live at http://{GATEWAY_IP}/  (SSID: {ssid})", flush=True)
-    print("Press Ctrl-C to stop.", flush=True)
+    print(f"Dead Drop will run for {duration} seconds. Press Stop to end it early.", flush=True)
 
     start_time = time.time()
+    dashboard = DashboardServer("Wi-Fi Dead Drop", lambda: {
+        "status": status_msg,
+        "ssid": ssid,
+        "interface": iface,
+        "channel": channel,
+        "portal": f"http://{GATEWAY_IP}/",
+        "elapsed_seconds": round(time.time() - start_time, 1),
+        "connected_clients": _count_clients(),
+        "uploads": upload_count,
+        "downloads": download_count,
+        "uploaded_bytes": total_bytes_up,
+        "downloaded_bytes": total_bytes_down,
+        "last_event": _last_event or "none",
+        "files": [{"name": name, "bytes": size} for name, size in _list_files()],
+    })
     try:
-        while _running:
+        print(f"Dashboard: {dashboard.start()}", flush=True)
+    except OSError as exc:
+        print(f"Dashboard unavailable: {exc}", flush=True)
+    try:
+        while _running and time.time() - start_time < duration:
             time.sleep(5.0)
             with lock:
                 ul = upload_count
@@ -690,6 +720,7 @@ def main():
 
     _running = False
     _stop_services()
+    dashboard.stop()
     active = False
 
     files = _list_files()
