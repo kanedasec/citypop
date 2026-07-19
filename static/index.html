@@ -31,17 +31,29 @@
       <button id="history">ENGAGEMENTS</button>
       <button id="endEngage">END</button>
       <button id="lootBtn">LOOT</button>
+      <button id="hardwareBtn">HARDWARE</button>
+      <button id="executionsBtn">RUNS</button>
+      <button id="reportBtn">REPORT</button>
     </div>
 
     <div class="workspace">
       <section class="catalog" aria-label="Payload catalog">
+        <div class="catalog-tools">
+          <label class="search-field"><span>Find payload</span><input id="payloadSearch" type="search" placeholder="name, capability, dependency…" autocomplete="off"></label>
+          <label><span>Impact</span><select id="impactFilter"><option value="all">All impact</option><option value="passive">Passive / normal</option><option value="active">Active / high-impact</option></select></label>
+          <label><span>Capability</span><select id="capabilityFilter"><option value="all">All capabilities</option><option value="monitor">Monitor mode</option><option value="hardware">External hardware</option><option value="dashboard">Dashboard / portal</option><option value="loot">Produces loot</option><option value="favorites">Favorites</option></select></label>
+        </div>
+        <div class="workflow-rail"><label><span>Guide category</span><select id="workflowCategory"><option value="all">All categories</option></select></label><label><span>Payload workflow</span><select id="workflowSelect"></select></label><button id="workflowStart" class="primary">START GUIDE</button></div>
         <nav id="tabs" aria-label="Payload categories"></nav>
         <section id="grid" class="grid" aria-live="polite"></section>
       </section>
 
       <section class="console-stack" aria-label="Operation console">
+        <section id="runningPanel" class="running-panel" hidden aria-live="polite"></section>
+        <section id="runtimeLinks" class="runtime-links" hidden aria-label="Runtime links and artifacts"></section>
         <section class="terminal">
           <div class="termhead">● ● ● <span>TTY · CITY POP</span><time id="clock"></time></div>
+          <div class="termtools"><input id="termSearch" type="search" aria-label="Search terminal output" placeholder="search output"><button id="pauseTerm" type="button">PAUSE</button><button id="timestampTerm" type="button">TIME</button><button id="copyTerm" type="button">COPY</button></div>
           <pre id="term" role="log" aria-live="polite" aria-relevant="additions"></pre>
         </section>
         <form id="command" aria-label="Authorized command bar">
@@ -61,8 +73,13 @@
   <dialog id="historyDialog"><form method="dialog"><h2>ENGAGEMENT HISTORY</h2><div id="historyList">No engagements yet.</div><button>CLOSE</button></form></dialog>
   <dialog id="engagementDialog"><form method="dialog"><h2>CREATE ENGAGEMENT</h2><label>Name <span class="required" aria-hidden="true">*</span><input id="engName" required aria-required="true" maxlength="80" placeholder="Q3 external assessment"></label><label>Date <span class="required" aria-hidden="true">*</span><input id="engDate" type="date" required aria-required="true"></label><label>Authorized scope <span class="required" aria-hidden="true">*</span><textarea id="engScope" required aria-required="true" maxlength="500" placeholder="IPs, domains, lab devices…"></textarea></label><div class="actions"><button type="button" id="engCancel">CANCEL</button><button id="engConfirm" class="primary" value="ok">START ENGAGEMENT</button></div></form></dialog>
   <dialog id="ack"><form method="dialog"><h2>AUTHORIZED USE</h2><p>Use City Pop only on systems, devices, and networks you own or are explicitly permitted to test. You are responsible for scope, safety, and applicable law.</p><button id="ackBtn" class="primary" value="ok">I UNDERSTAND</button></form></dialog>
-  <dialog id="loot"><form method="dialog"><h2>LOOT</h2><div id="lootList">Loading…</div><div class="actions"><button type="button" id="deleteAllLoot" class="danger">DELETE ALL</button><button>CLOSE</button></div></form></dialog>
+  <dialog id="loot"><form method="dialog"><h2>LOOT</h2><label>Show<select id="lootScope"><option value="current">Current engagement</option><option value="all">All engagements</option></select></label><div id="lootList">Loading…</div><div class="actions"><button type="button" id="deleteAllLoot" class="danger">DELETE ALL</button><button>CLOSE</button></div></form></dialog>
   <dialog id="inputDialog"><form id="inputForm"><h2>INPUT REQUIRED</h2><label id="inputLabel"></label><div id="inputControl"></div><div class="actions"><button type="button" id="inputCancel">STOP</button><button class="primary">SUBMIT</button></div></form></dialog>
+  <dialog id="preflightDialog"><form method="dialog"><h2 id="preflightTitle">PAYLOAD PREFLIGHT</h2><div id="preflightBody"></div><div class="actions"><button value="cancel">CANCEL</button><button type="button" id="preflightRun" class="primary">CONTINUE</button></div></form></dialog>
+  <dialog id="hardwareDialog"><form method="dialog"><h2>PI-TAIL HARDWARE</h2><div id="hardwareBody">Loading…</div><button>CLOSE</button></form></dialog>
+  <dialog id="executionsDialog"><form method="dialog"><h2>EXECUTION HISTORY</h2><div id="executionsList">Loading…</div><button>CLOSE</button></form></dialog>
+  <dialog id="reportDialog"><form id="reportForm"><h2>ENGAGEMENT REPORT</h2><p>Generate a Markdown timeline with artifact hashes.</p><label>Operator notes<textarea id="reportNotes" placeholder="Findings, context, limitations…"></textarea></label><div id="reportResult"></div><div class="actions"><button type="button" id="reportCancel">CANCEL</button><button class="primary">GENERATE</button></div></form></dialog>
+  <dialog id="workflowDialog"><form method="dialog"><h2>GUIDED WORKFLOW</h2><div id="workflowBody"></div><div class="actions"><button value="cancel">CLOSE</button><button type="button" id="workflowNext" class="primary">NEXT STEP</button></div></form></dialog>
 
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
   <script src="/app.js"></script>

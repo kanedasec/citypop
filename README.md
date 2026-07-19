@@ -3,7 +3,7 @@
   <img src="https://img.shields.io/badge/hardware-Raspberry%20Pi%20Zero%202%20W-C51A4A?style=flat-square&logo=raspberry-pi&logoColor=white" alt="Hardware: Raspberry Pi Zero 2 W">
   <img src="https://img.shields.io/badge/code-Python%203-FFD43B?style=flat-square&logo=python&logoColor=3776AB" alt="Code: Python 3">
   <img src="https://img.shields.io/badge/interface-phone--first%20web-21E6FF?style=flat-square" alt="Interface: phone-first web">
-  <img src="https://img.shields.io/badge/payloads-160-FF2E88?style=flat-square" alt="Payloads: 160">
+  <img src="https://img.shields.io/badge/payloads-153-FF2E88?style=flat-square" alt="Payloads: 153">
   <img src="https://img.shields.io/badge/license-MIT-3DFFB0?style=flat-square" alt="License: MIT">
   <img src="https://img.shields.io/badge/usage-authorized%20testing%20only-3DFFB0?style=flat-square" alt="Usage: authorized testing only">
 </p>
@@ -22,7 +22,7 @@
        ┌──────────────────────────────┐
        │  CITY POP // PI-TAIL DECK   │
        │  PHONE ── USB ── ZERO 2 W   │
-       │  160 WEB-NATIVE PAYLOADS    │
+       │  153 WEB-NATIVE PAYLOADS    │
        └──────────────────────────────┘
 ```
 
@@ -40,11 +40,14 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 
 - Phone-first, responsive web interface
 - Token-authenticated HTTP and WebSocket control
-- 160 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
+- 153 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
 - Structured launch forms and dynamic adapter/target selectors
-- Live output, cancellation, and runtime input prompts
-- Engagement name, date, and authorized-scope tracking in the browser
-- Central loot browser with preview and download support
+- Payload preflight checks, protected-route warnings, and live hardware/interface status
+- All-payload catalog with toggleable categories, search, impact/capability filters, and favorites
+- Category-filtered guided launch workflow for every payload
+- Recoverable live output, cancellation, runtime prompts, and endpoint/artifact cards
+- Engagement-scoped run history, logs, loot, and Markdown reports with artifact hashes
+- Installable phone app shell with offline UI fallback
 - Isolated Python environment at `/opt/city-pop/.venv`
 - Hardware bindings inherited from Kali through `--system-site-packages`
 - Root systemd service for payloads that require radio, packet, GPIO, or device access
@@ -139,7 +142,7 @@ sudo python3 -c 'import json; print(json.load(open("/opt/city-pop/config.json"))
 9. Open **Loot** to preview or download generated artifacts.
 10. End the engagement when testing is finished.
 
-Only one payload or command runs at a time. Disconnecting the controlling browser stops its current process.
+Only one payload or command runs at a time. A temporary phone or radio disconnect does not stop it: reconnecting restores the running-operation state, buffered terminal output, and any pending prompt. Use **Stop** explicitly when an operation should end.
 
 ### Service management
 
@@ -228,9 +231,10 @@ The maintainers and upstream authors are not responsible for misuse, damage, dat
 
 ```text
 app.py                  Flask + Socket.IO web application
-payload_runner.py       payload discovery, execution, prompts, logs, stopping
+payload_runner.py       payload discovery, persistent execution, prompts, history
 payloads/               web-native payload catalog and shared helpers
-static/                 phone UI, styles, PWA manifest, client logic
+static/                 phone UI, styles, service worker, manifest, client logic
+state/                  local execution history (generated, excluded from Git)
 install.sh              Kali/ARM-aware installer
 city-pop.service        systemd service template
 requirements-core.txt   required web runtime
