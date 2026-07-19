@@ -4,6 +4,8 @@
 # @category: sdr
 # @danger: false
 # @active: true
+# @web: true
+# @inputs: [{"name":"seconds","label":"Tracking duration","type":"number","default":"300"}]
 """
 RaspyJack Payload -- ADS-B Aircraft Tracker
 =============================================
@@ -37,7 +39,8 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads.sdr._sdr_core import detect_sdr
 
-LOOT_DIR = "/root/Raspyjack/loot/SDR/adsb"
+CITYPOP_ROOT = os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+LOOT_DIR = os.path.join(CITYPOP_ROOT, "loot", "SDR", "adsb")
 WEBUI_PORT = 8081
 
 # ADS-B constants
@@ -370,7 +373,7 @@ setInterval(refresh,1500);refresh();
 
 class ADSBHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory="/root/Raspyjack/web", **kwargs)
+        super().__init__(*args, directory=os.path.join(CITYPOP_ROOT, "web"), **kwargs)
 
     def do_GET(self):
         if self.path == "/adsb" or self.path == "/adsb/":

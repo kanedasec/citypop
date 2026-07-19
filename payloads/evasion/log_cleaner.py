@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 # @name: Engagement Log Cleaner
-# @desc: Selective cleanup of forensic artifacts after an engagement.
+# @desc: Present explicit web confirmations for selected system log, history, cache, temporary-file, and tool-artifact cleanup while preserving City Pop loot.
 # @category: evasion
 # @danger: true
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- Engagement Log Cleaner
 --------------------------------------------
 Author: 7h30th3r0n3
 
 Selective cleanup of forensic artifacts after an engagement.
-Protects /root/Raspyjack/loot/ (operator data).
+Protects the City Pop loot directory (operator data).
 
 Usage
 -----

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Shared on-screen keyboard for RaspyJack payloads
-# @desc: Returns the entered string, or None if cancelled (KEY3).
+# @desc: Shared text-entry compatibility helper for payload prompts and cancellation.
 # @category: utilities
 # @danger: false
 """

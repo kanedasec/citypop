@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: DHCP Snoop
-# @desc: Passive DHCP snooping for network reconnaissance.
+# @desc: Passively observe DHCP exchanges, track discovered clients and offered network configuration, and save the session results to loot.
 # @category: network
 # @danger: false
 # @active: true

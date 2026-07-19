@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: DNS Lookup
 # @desc: Resolve a scoped hostname using the local resolver
 # @category: reconnaissance

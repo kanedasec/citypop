@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: SNMP Community Brute-Force + MIB Walk
-# @desc: Discovers SNMP hosts on the local network (UDP 161), brute-forces community strings, and walks common MIB OIDs using raw SNMPv1/v2c packe...
+# @desc: Probe an authorized host or CIDR for SNMPv1/v2c, test common community strings, query common MIB OIDs, and save discovered data to loot.
 # @category: credentials
 # @danger: false
 # @active: true

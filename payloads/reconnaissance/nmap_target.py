@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: Nmap Target Scan
 # @desc: Run a service/version scan against an engagement target
 # @category: reconnaissance

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Reverse-Shell DuckyScript Generator
-# @desc: Generate DuckyScript payloads that establish reverse shells on targets.
+# @desc: Generate an authorized Linux or Windows reverse-shell DuckyScript with the supplied callback endpoint and save it to loot for review.
 # @category: exfiltration
 # @danger: true
 # @active: true

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Shared input helper for RaspyJack payloads
-# @desc: Checks WebUI virtual input first, then falls back to GPIO.
+# @desc: Shared compatibility input helper that prioritizes web input and can fall back to available GPIO controls.
 # @category: utilities
 # @danger: false
 """

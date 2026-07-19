@@ -4,6 +4,7 @@
 # @category: sdr
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- Sub-GHz Analyzer
 =======================================
@@ -42,7 +43,7 @@ from collections import defaultdict
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-LOOT_DIR = "/root/Raspyjack/loot/SDR/subghz"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "SDR", "subghz")
 BANDS = [
     {"name": "433 MHz", "freq": 433920000, "desc": "EU ISM / Remotes"},
     {"name": "315 MHz", "freq": 315000000, "desc": "US Remotes / TPMS"},

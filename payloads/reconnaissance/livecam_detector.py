@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: LiveCam Detector
-# @desc: Standalone camera detection + live‑view monitoring.
+# @desc: Discover likely IP cameras, inspect their services and streams, and manage live-view checks through web prompts with results saved to loot.
 # @category: reconnaissance
 # @danger: false
 # @active: true

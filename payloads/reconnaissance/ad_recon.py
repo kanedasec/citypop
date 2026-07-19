@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Active Directory Reconnaissance
-# @desc: Active Directory reconnaissance via LDAP.
+# @desc: Discover an authorized Active Directory environment and query LDAP for domain, user, group, computer, policy, and trust information, saving results to loot.
 # @category: reconnaissance
 # @danger: false
 # @active: true

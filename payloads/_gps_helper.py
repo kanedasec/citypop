@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: GPS helper
-# @desc: Auto-detect and start gpsd for any GPS device.
+# @desc: Shared serial GPS discovery and gpsd startup support for hardware payloads.
 # @category: utilities
 # @danger: false
 """

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # @name: SOCKS5 Pivot Proxy
-# @desc: Starts a SOCKS5 proxy server for network pivoting.
+# @desc: Start an unauthenticated SOCKS5 CONNECT proxy on the Pi for a bounded authorized pivoting session and log proxy activity to loot.
 # @category: remote_access
 # @danger: true
 # @active: true
 # @web: true
+# @inputs: [{"name":"port","label":"SOCKS5 listen port","type":"number","default":"1080"},{"name":"seconds","label":"Run duration","type":"number","default":"300"}]
 """
 RaspyJack Payload -- SOCKS5 Pivot Proxy
 ========================================

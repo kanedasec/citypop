@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Iface Helper
-# @desc: Shared network interface detection and LCD selection helper.
+# @desc: Shared network-interface detection and web-prompt selection helper.
 # @category: utilities
 # @danger: false
 """

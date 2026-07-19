@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Bounded Loot FTP Server
-# @desc: Lightweight FTP server serving /root/Raspyjack/loot/ read-only.
+# @desc: Temporarily serve City Pop's loot directory read-only over authenticated FTP and print the reachable endpoint in the web terminal.
 # @category: exfiltration
 # @danger: true
 # @active: true

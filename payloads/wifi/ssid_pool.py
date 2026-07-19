@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: SSID Pool (Beacon Flood)
 # @desc: Broadcast multiple SSIDs simultaneously using scapy beacon injection.
 # @category: wifi

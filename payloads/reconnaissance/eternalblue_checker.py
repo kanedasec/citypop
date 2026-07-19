@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: EternalBlue (MS17-010) Checker
-# @desc: DETECTION ONLY -- no exploitation code.
+# @desc: Discover SMB hosts and perform non-exploitative MS17-010/EternalBlue exposure checks; no exploitation code is executed.
 # @category: reconnaissance
 # @danger: true
 # @active: true

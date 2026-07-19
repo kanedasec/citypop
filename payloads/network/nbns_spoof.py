@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Bounded NBNS Response Test
-# @desc: NetBIOS Name Service (NBNS) spoofing.
+# @desc: Listen for one exact authorized NetBIOS name and send bounded NBNS responses pointing it to the supplied IPv4 address.
 # @category: network
 # @danger: true
 # @active: true

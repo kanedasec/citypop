@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: ESP-NOW Receiver (Monitor Mode)
 # @desc: Captures ESP-NOW frames over the air using a WiFi adapter in monitor mode.
 # @category: wifi

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: WPS Pixie Dust + Brute-Force
 # @desc: Attack WPS-enabled access points using Pixie Dust (offline) and online brute-force via reaver/wash.
 # @category: wifi

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: GPS Configuration
-# @desc: Configure u-blox GPS modules directly from the device.
+# @desc: Inspect and change supported u-blox GPS rate, baud, dynamic model, and NMEA settings through web prompts, with explicit save/restart actions.
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- GPS Configuration
 =========================================

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: SMB Probe
-# @desc: SMB Probe (port 445) payload.
+# @desc: Run scoped SMB discovery and security scripts against one authorized host with nmap, reporting dialect, signing, OS, and exposure details.
 # @category: reconnaissance
 # @danger: false
 # @active: true

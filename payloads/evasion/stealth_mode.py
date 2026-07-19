@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: Stealth Mode Toggle
-# @desc: One-click toggle to minimize the Pi's visible footprint:.
+# @desc: Interactively toggle LEDs, Wi-Fi TX power, MAC randomization, hostname, history/log cleanup, and syslog state, restoring reversible changes on exit.
 # @category: evasion
 # @danger: true
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- Stealth Mode Toggle
 ==========================================

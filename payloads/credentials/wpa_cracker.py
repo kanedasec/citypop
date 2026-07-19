@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: WPA/WPA2 Cracker
-# @desc: Cracks WPA handshakes (.cap) using aircrack-ng and PMKID hashes using John the Ripper.
+# @desc: Locate WPA capture or PMKID material in loot and attempt wordlist recovery with aircrack-ng or John the Ripper.
 # @category: credentials
 # @danger: true
 # @active: true

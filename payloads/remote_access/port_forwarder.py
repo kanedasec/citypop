@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # @name: TCP Port Forwarder
-# @desc: Forward a local port to a remote host:port.
+# @desc: Forward TCP connections from a chosen local listening port to an authorized remote host and port for a bounded session.
 # @category: remote_access
 # @danger: true
 # @active: true
 # @web: true
+# @inputs: [{"name":"rule","label":"Forwarding rule","type":"text","placeholder":"8080:10.0.0.5:80","required":true},{"name":"seconds","label":"Run duration","type":"number","default":"300"}]
 """
 RaspyJack Payload -- TCP Port Forwarder
 ========================================
@@ -213,6 +214,10 @@ def main():
     global running
 
     args = sys.argv[1:]
+    # The web form supplies one rule followed by a plain duration. Preserve
+    # the original multi-rule CLI while accepting that web-native shape.
+    if len(args) == 2 and args[1].replace(".", "", 1).isdigit():
+        args = [args[0], "--duration", args[1]]
     duration = None
     rule_specs = []
 

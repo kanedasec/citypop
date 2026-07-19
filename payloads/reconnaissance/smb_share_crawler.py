@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: SMB Share Enumerator
-# @desc: Discovers hosts with SMB (port 445) open on the local network, enumerates accessible shares via null/guest sessions, crawls files recursi...
+# @desc: Connect to one authorized SMB host, enumerate accessible shares with supplied or guest credentials, recursively list files, and save results to loot.
 # @category: reconnaissance
 # @danger: true
 # @active: true

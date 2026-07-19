@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: SDR Radio Suite
-# @desc: Presets and Configuration.
+# @desc: Shared SDR band, station, channel, and settings definitions; launching it directly only loads the definitions.
 # @category: sdr
 # @danger: false
 # @active: true
+# @web: true
 """
 SDR Radio Suite – Presets and Configuration
 """
@@ -56,7 +57,7 @@ DEFAULT_SETTINGS = {
     "last_preset": 0,
 }
 
-SETTINGS_PATH = "/root/Raspyjack/loot/SDR/sdr_settings.json"
+SETTINGS_PATH = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "SDR", "sdr_settings.json")
 
 
 def load_settings():

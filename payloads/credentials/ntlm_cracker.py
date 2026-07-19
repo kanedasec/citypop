@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: NTLM Hash Cracker
-# @desc: Cracks captured NTLM hashes using John the Ripper.
+# @desc: Locate captured NTLM hash files in loot, run John the Ripper with available wordlists, and report recovered credentials.
 # @category: credentials
 # @danger: true
 # @active: true

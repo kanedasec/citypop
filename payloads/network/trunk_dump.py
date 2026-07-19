@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: VLAN Trunk Capture
-# @desc: 802.1Q trunk negotiation + multi-VLAN traffic dump.
+# @desc: Send 802.1Q/DTP negotiation probes on a selected interface, capture bounded VLAN-tagged traffic, and save the resulting PCAP to loot.
 # @category: network
 # @danger: false
 # @active: true

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Live Traffic Analyzer
-# @desc: Real-time network traffic analyzer dashboard.
+# @desc: Capture a selected interface and publish a temporary web dashboard of protocol, endpoint, conversation, rate, and packet statistics; print its endpoint in the terminal.
 # @category: network
 # @danger: false
 # @active: true

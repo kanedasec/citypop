@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: Captive Portal
-# @desc: Full captive portal with menu-driven management: start/stop/restart the AP, select portal page from DNSSpoof/sites/ or built-in templates...
+# @desc: Start a bounded access point and DNS-redirect captive portal on a selected adapter, serve a built-in page, and store submitted form data in loot.
 # @category: wifi
 # @danger: true
 # @inputs: [{"name":"ssid","label":"Access point SSID","type":"text","default":"FreeWiFi"},{"name":"channel","label":"Channel","type":"number","default":"6"},{"name":"seconds","label":"Run duration","type":"number","default":"300"}]

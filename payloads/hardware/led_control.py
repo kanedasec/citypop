@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: LED Controller
-# @desc: Pi LED controller for operational feedback.
+# @desc: Inspect and control available Raspberry Pi sysfs LEDs with on, off, blink, heartbeat, timer, and restore actions through web prompts.
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- LED Controller
 =====================================

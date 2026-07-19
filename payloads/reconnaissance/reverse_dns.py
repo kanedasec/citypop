@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: Reverse DNS
 # @desc: Look up a scoped IP address hostname
 # @category: reconnaissance

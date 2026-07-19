@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: DHCP Starvation
-# @desc: DHCP starvation attack.
+# @desc: Send randomized DHCP discovery/request traffic on a selected interface at a chosen rate and report offered leases during an authorized resilience test.
 # @category: network
 # @danger: true
 # @active: true

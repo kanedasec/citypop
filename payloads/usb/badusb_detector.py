@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # @name: BadUSB detector payload
-# @desc: Watches for USB insertion events and raises a RED alert if:.
+# @desc: Watch USB events and alert in the terminal when a new keyboard sends input or removable storage becomes mounted.
 # @category: usb
 # @danger: false
 # @active: true
 # @web: true
+# @inputs: [{"name":"seconds","label":"Watch duration","type":"number","default":"300"}]
 """
 BadUSB detector payload
 -----------------------

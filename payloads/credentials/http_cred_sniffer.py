@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Passive HTTP Credential Extractor
-# @desc: Runs during active MITM.
+# @desc: Passively inspect HTTP traffic on a selected path for Basic Auth, credential-like POST fields, and response cookies, then export findings to loot.
 # @category: credentials
 # @danger: true
 # @active: true

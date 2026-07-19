@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Continuous BLE Scanner Dashboard
-# @desc: Scans for BLE devices using hcitool lescan and tracks addresses, names, RSSI, first/last seen timestamps and seen count.
+# @desc: Scan BLE advertisements, track address, name, RSSI, timestamps and sighting counts, and publish a temporary sortable dashboard whose endpoint is printed in the terminal.
 # @category: bluetooth
 # @danger: false
 # @active: true

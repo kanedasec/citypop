@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: IMU Monitor (LSM6DS3TR)
-# @desc: Real-time 6-axis IMU visualisation for the LSM6DS3TR accelerometer + gyroscope.
+# @desc: Stream LSM6DS3TR accelerometer, gyroscope, orientation, motion, and temperature data through IIO or SMBus, with optional history export.
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- IMU Monitor (LSM6DS3TR)
 ==============================================
@@ -36,7 +37,7 @@ Controls
   pitch/roll. Press Ctrl-C to stop; you will then be asked whether to
   export the snapshot + recent sample history to loot.
 
-Loot: /root/Raspyjack/loot/IMU/imu_YYYYMMDD_HHMMSS.json
+Loot: $CITYPOP_ROOT/loot/IMU/imu_YYYYMMDD_HHMMSS.json
 """
 
 from payloads._web_input import request_input
@@ -56,7 +57,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-LOOT_DIR = "/root/Raspyjack/loot/IMU"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "IMU")
 SAMPLE_RATE_HZ = 50
 HISTORY_LEN = 300
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: IGMP Observer
-# @desc: IGMP snooping for multicast group discovery.
+# @desc: Capture IGMP traffic on a selected interface for a bounded period and report observed multicast memberships and message types.
 # @category: network
 # @danger: false
 # @active: true

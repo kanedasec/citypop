@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: LLMNR/NBT-NS Query Injector
-# @desc: Active LLMNR and NBT-NS query injector.
+# @desc: Generate decoy LLMNR or NBT-NS name queries on a selected interface at a bounded rate while reporting sent traffic and observed responses.
 # @category: network
 # @danger: true
 # @active: true

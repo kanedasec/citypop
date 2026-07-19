@@ -4,6 +4,7 @@
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- GPIO Tripwire (Physical Intrusion Detection)
 =================================================================
@@ -32,7 +33,7 @@ Controls:
   checks). Press Ctrl-C to disarm and exit; a final event summary is
   printed.
 
-Config: /root/Raspyjack/config/tripwire.json
+Config: $CITYPOP_ROOT/config/tripwire.json
 """
 
 from payloads._web_input import request_input
@@ -52,7 +53,7 @@ import RPi.GPIO as GPIO
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-CONFIG_PATH = "/root/Raspyjack/config/tripwire.json"
+CONFIG_PATH = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "config", "tripwire.json")
 
 # Preset pin configurations
 PIN_PRESETS = [

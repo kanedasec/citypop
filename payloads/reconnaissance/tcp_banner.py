@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: TCP Banner Check
 # @desc: Read a banner from a scoped TCP service
 # @category: reconnaissance

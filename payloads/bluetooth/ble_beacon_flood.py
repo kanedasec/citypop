@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: BLE Flood
-# @desc: Flood nearby Bluetooth scans with fake devices.
+# @desc: Continuously broadcast randomized BLE advertisement identities through a selected adapter for an authorized resilience test.
 # @category: bluetooth
 # @danger: true
 # @active: true

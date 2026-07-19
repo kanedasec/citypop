@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Multi-Protocol Credential Sniffer
-# @desc: Passive credential sniffer using Scapy.
+# @desc: Passively inspect live TCP traffic with Scapy for cleartext HTTP, FTP, SMTP, POP3, IMAP, Telnet, and Basic-Auth credentials, then save findings to loot.
 # @category: credentials
 # @danger: true
 # @active: true

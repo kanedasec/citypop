@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: MITM Traffic Shaper
-# @desc: Uses Linux tc (traffic control) to limit and shape traffic on the bridge interface during MITM operations, keeping latency under suspicio...
+# @desc: Apply an HTB/SFQ bandwidth limit to a selected interface, stream latency and queue statistics, and remove the tc rules when stopped.
 # @category: evasion
 # @danger: true
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- MITM Traffic Shaper
 =========================================

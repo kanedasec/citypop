@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: NFC/RFID Reader & Cloner
-# @desc: Read and identify NFC cards.
+# @desc: Detect supported PN532 or nfcpy readers, read and save NFC cards, clone saved dumps where writing is supported, and manage saved card data.
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- NFC/RFID Reader & Cloner
 ===============================================
@@ -73,7 +74,7 @@ CMD_INLISTPASSIVETARGET = 0x4A
 CMD_INDATAEXCHANGE = 0x40
 CMD_GETFIRMWAREVERSION = 0x02
 
-LOOT_DIR = "/root/Raspyjack/loot/NFC"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "NFC")
 
 DEFAULT_KEYS = [
     bytes.fromhex("FFFFFFFFFFFF"),

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: WPA-Enterprise Evil Twin + Fake RADIUS
-# @desc: Clone a WPA-Enterprise AP and run a fake RADIUS server that accepts all authentications while capturing EAP identities, MSCHAPv2 challeng...
+# @desc: Clone an authorized WPA-Enterprise target, run a test RADIUS/AP configuration, and save observed EAP identities and MSCHAPv2 challenge-response material to loot.
 # @category: wifi
 # @danger: true
 # @inputs: [{"name":"seconds","label":"Run duration","type":"number","default":"300"}]

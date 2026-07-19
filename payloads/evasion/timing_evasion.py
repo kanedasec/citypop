@@ -4,6 +4,7 @@
 # @category: evasion
 # @danger: true
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- Network Timing Randomizer
 ================================================

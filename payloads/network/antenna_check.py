@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Wi-Fi Antenna Diagnostics
-# @desc: Inspect WiFi interfaces: driver, chipset, supported bands, channels, TX power, signal level, and supported modes (managed, monitor, AP, m...
+# @desc: Select a Wi-Fi adapter and report its driver, chipset, bands, channels, TX power, signal, interface state, and advertised wireless modes.
 # @category: network
 # @danger: false
 # @active: true

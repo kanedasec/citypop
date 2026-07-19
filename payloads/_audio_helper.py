@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Audio helper
-# @desc: auto-detect ES8389 card number.
+# @desc: Shared ALSA sound-card and capture-device detection for audio payloads.
 # @category: utilities
 # @danger: false
 """

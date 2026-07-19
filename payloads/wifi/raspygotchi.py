@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Pwnagotchi
-# @desc: Automated WiFi handshake and PMKID hunter with pixel-art face UI.
+# @desc: Automate channel hopping, passive or deauth-assisted WPA handshake and PMKID capture, stream status in the terminal, and save captures and statistics to loot.
 # @category: wifi
 # @danger: false
 # @active: true

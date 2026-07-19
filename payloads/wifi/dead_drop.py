@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: WiFi Dead Drop
-# @desc: Secure anonymous file sharing via WiFi captive portal.
+# @desc: Start a temporary Wi-Fi file-drop portal, accept uploads into loot, and publish a live transfer dashboard whose endpoints are printed in the terminal.
 # @category: wifi
 # @danger: false
 # @active: true

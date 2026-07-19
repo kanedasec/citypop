@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Dropbox Loot Upload
-# @desc: Upload loot files to Dropbox via the v2 API (urllib only, no external deps).
+# @desc: Select a City Pop loot file and upload it to Dropbox through the v2 API using the supplied access token.
 # @category: exfiltration
 # @danger: true
 # @active: true

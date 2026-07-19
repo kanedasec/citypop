@@ -4,6 +4,7 @@
 # @category: sdr
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- POCSAG/FLEX Pager Decoder
 ================================================
@@ -42,7 +43,7 @@ from collections import defaultdict
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-LOOT_DIR = "/root/Raspyjack/loot/SDR/pocsag"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "SDR", "pocsag")
 MAX_MESSAGES = 500
 
 FREQUENCIES = [

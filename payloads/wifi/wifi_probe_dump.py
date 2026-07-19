@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: WiFi Probe Request Dump
-# @desc: Passive WiFi probe request logger.
+# @desc: Passively capture Wi-Fi probe requests on a selected monitor interface for a bounded period and save unique client/SSID observations to loot.
 # @category: wifi
 # @danger: false
 # @inputs: [{"name":"seconds","label":"Capture duration","type":"number","default":"30"}]

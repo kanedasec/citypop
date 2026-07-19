@@ -4,6 +4,7 @@
 # @category: sdr
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- SDR Capture & Replay
 ==========================================
@@ -48,7 +49,7 @@ from payloads.sdr._sdr_core import SDRDevice, detect_sdr
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-LOOT_DIR = "/root/Raspyjack/loot/SDR/replay"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "SDR", "replay")
 SAMPLE_RATE = 2_048_000
 SIGNAL_THRESHOLD_DB = -30.0
 SUBCOMMANDS = ["capture", "library", "replay", "delete"]

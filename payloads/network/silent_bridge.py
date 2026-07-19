@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Stealth Bridge MITM
-# @desc: Stealth Bridge MITM payload.
+# @desc: Configure a transparent two-interface Linux bridge, capture traversing traffic to loot with tcpdump, stream status, and restore networking on exit.
 # @category: network
 # @danger: false
 # @active: true

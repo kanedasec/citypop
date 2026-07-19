@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: WiFi Deauth
-# @desc: Multi-Target with Handshake Capture.
+# @desc: Select an authorized Wi-Fi target, transmit bounded deauthentication frames, and optionally capture WPA handshake traffic to loot.
 # @category: wifi
 # @danger: true
 # @inputs: [{"name":"seconds","label":"Run duration","type":"number","default":"30"},{"name":"capture","label":"Capture WPA handshakes","type":"select","choices":["false","true"],"default":"false"}]

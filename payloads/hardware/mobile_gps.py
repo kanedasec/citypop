@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # @name: Mobile GPS Receiver
-# @desc: Starts an HTTP server that serves a page using the Geolocation API.
+# @desc: Serve a temporary phone geolocation page, print its endpoint, receive browser location updates, and export collected points as CSV.
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
+# @inputs: [{"name":"seconds","label":"Location page duration","type":"number","default":"300"}]
 """
 RaspyJack Payload -- Mobile GPS Receiver
 ==========================================
@@ -30,7 +32,7 @@ Controls
   printed to stdout. Press Ctrl-C to stop the server; any collected
   track points are exported to a CSV file automatically.
 
-Loot: /root/Raspyjack/loot/GPS/
+Loot: $CITYPOP_ROOT/loot/GPS/
 """
 
 import os
@@ -47,7 +49,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-LOOT_DIR = "/root/Raspyjack/loot/GPS"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "GPS")
 os.makedirs(LOOT_DIR, exist_ok=True)
 HTTPS_PORT = 4443
 _CERT_DIR = os.path.join(LOOT_DIR, ".certs")

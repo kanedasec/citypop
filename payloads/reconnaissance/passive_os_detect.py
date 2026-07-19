@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Passive OS Signal Collector
-# @desc: p0f-style passive OS detection from network traffic.
+# @desc: Passively inspect TCP/IP fingerprints on a selected interface for a bounded period and report inferred operating-system families without probing hosts.
 # @category: reconnaissance
 # @danger: false
 # @active: true

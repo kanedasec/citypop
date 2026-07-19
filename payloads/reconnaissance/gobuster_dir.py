@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Gobuster Directory Scan
-# @desc: Runs gobuster dir against a URL.
+# @desc: Run a bounded gobuster directory enumeration against an authorized URL with a selected wordlist and capped thread count.
 # @category: reconnaissance
 # @danger: true
 # @active: true

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Upload Loot to Discord
-# @desc: This script gathers:.
+# @desc: Archive City Pop loot and available Responder logs, then upload the ZIP to the configured Discord webhook subject to Discord's size limit.
 # @category: exfiltration
 # @danger: true
 # @active: true
@@ -176,4 +176,3 @@ def main() -> None:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     main()
-

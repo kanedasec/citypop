@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: HTTP Loot Upload
-# @desc: Reads files from /root/Raspyjack/loot/, encodes in base64, and sends as POST chunks to a configurable URL.
+# @desc: Select a City Pop loot file, encode it as base64 chunks, and POST the chunks to an authorized upload endpoint with an optional bearer token.
 # @category: exfiltration
 # @danger: true
 # @active: true

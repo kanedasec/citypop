@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # @name: Object Detector
-# @desc: Real-time object detection using MobileNet SSD TFLite.
+# @desc: Run MobileNet SSD TFLite detection from the Pi camera, stream labeled detections, and optionally save annotated screenshots to loot.
 # @category: ai
 # @danger: false
 # @active: true
+# @web: true
+# @inputs: [{"name":"seconds","label":"Detection duration","type":"number","default":"60"},{"name":"confidence","label":"Confidence threshold","type":"number","default":"0.5"}]
 """
 RaspyJack Payload -- Object Detector
 =======================================
@@ -40,11 +42,12 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 import numpy as np
 from PIL import Image
 
-MODEL_DIR = "/root/Raspyjack/models/mobilenet"
+CITYPOP_ROOT = os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+MODEL_DIR = os.path.join(CITYPOP_ROOT, "models", "mobilenet")
 MODEL_PATH = os.path.join(MODEL_DIR, "detect.tflite")
 LABELS_PATH = os.path.join(MODEL_DIR, "labelmap.txt")
 MODEL_URL = "https://storage.googleapis.com/download.tensorflow.org/models/tflite/coco_ssd_mobilenet_v1_1.0_quant_2018_06_29.zip"
-LOOT_DIR = "/root/Raspyjack/loot/Camera/Detections"
+LOOT_DIR = os.path.join(CITYPOP_ROOT, "loot", "Camera", "Detections")
 INPUT_SIZE = 300
 # Camera capture resolution used while detection is running.
 CAP_W, CAP_H = 128, 128

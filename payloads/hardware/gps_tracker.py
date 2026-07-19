@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: GPS Tracker
-# @desc: GPS tracking and logging via serial GPS module.
+# @desc: Track fixes from a detected serial GPS receiver, stream position data, and optionally export the session as CSV and GPX in loot.
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- GPS Tracker
 ==================================
@@ -31,7 +32,7 @@ Controls
   tracking; a CSV of any logged points is written automatically and you
   will be asked whether to also export a GPX track.
 
-Loot: /root/Raspyjack/loot/GPS/
+Loot: $CITYPOP_ROOT/loot/GPS/
 """
 
 from payloads._web_input import request_input
@@ -51,7 +52,7 @@ except ImportError:
     gpsd_mod = None
     GPSD_OK = False
 
-LOOT_DIR = "/root/Raspyjack/loot/GPS"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "GPS")
 
 lock = threading.Lock()
 _running = True

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: I2C Bus Scanner
-# @desc: Probes all 127 I2C addresses on bus 1 using smbus2.
+# @desc: Probe a selected I2C bus for responding addresses, optionally read initial registers from one device, and export the scan to loot.
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- I2C Bus Scanner
 =====================================
@@ -27,7 +28,7 @@ Controls:
   to read the first 16 register bytes from one of them, and whether to
   export the results to loot. Press Ctrl-C at any time to stop.
 
-Loot: /root/Raspyjack/loot/I2CScan/scan_YYYYMMDD_HHMMSS.json
+Loot: $CITYPOP_ROOT/loot/I2CScan/scan_YYYYMMDD_HHMMSS.json
 Requires: smbus2
 """
 
@@ -49,7 +50,7 @@ except ImportError:
 # Constants
 # ---------------------------------------------------------------------------
 I2C_BUS = 1
-LOOT_DIR = "/root/Raspyjack/loot/I2CScan"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "I2CScan")
 
 # Built-in I2C address database (hex address -> description)
 I2C_DEVICES = {

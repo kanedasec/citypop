@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: WhisperPair Safety Test (CVE-2025-36911)
-# @desc: Demonstrates the Fast Pair pairing mode bypass vulnerability.
+# @desc: Scan for an authorized Google Fast Pair target and exercise the pairing-mode bypass proof of concept while reporting protocol responses.
 # @category: bluetooth
 # @danger: true
 # @active: true

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Kerberoast & AS-REP Roast
-# @desc: Kerberoasting / AS-REP Roasting via impacket (GetUserSPNs.py, GetNPUsers.py).
+# @desc: Prompt for an authorized Active Directory domain account, run Impacket Kerberoasting and AS-REP roasting queries, and save returned hashes to loot.
 # @category: credentials
 # @danger: true
 # @active: true

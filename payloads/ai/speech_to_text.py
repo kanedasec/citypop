@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # @name: Speech to Text
-# @desc: Offline speech recognition using Vosk.
+# @desc: Record from the detected ALSA input, perform offline Vosk speech recognition, stream transcribed text, and save transcripts to loot.
 # @category: ai
 # @danger: false
 # @active: true
+# @web: true
+# @inputs: [{"name":"seconds","label":"Transcription duration","type":"number","default":"60"},{"name":"language","label":"Vosk language","type":"text","default":"en"}]
 """
 RaspyJack Payload -- Speech to Text
 =====================================
@@ -40,8 +42,9 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads._audio_helper import get_audio_card, get_alsa_dev
 
-MODEL_DIR = "/root/Raspyjack/models/vosk"
-LOOT_DIR = "/root/Raspyjack/loot/AI/transcripts"
+CITYPOP_ROOT = os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+MODEL_DIR = os.path.join(CITYPOP_ROOT, "models", "vosk")
+LOOT_DIR = os.path.join(CITYPOP_ROOT, "loot", "AI", "transcripts")
 SAMPLE_RATE = 16000
 
 LANGUAGES = {

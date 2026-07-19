@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: LTE/4G Modem Configuration
-# @desc: Detects and configures LTE/4G modems via ModemManager (mmcli).
+# @desc: Detect ModemManager LTE devices, inspect signal and registration, configure APN settings, connect or disconnect, and save configuration to loot.
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- LTE/4G Modem Configuration
 =================================================
@@ -32,7 +33,7 @@ Controls
   APN asks for the text value directly. Press Ctrl-C at any time to
   exit.
 
-Loot: /root/Raspyjack/loot/LTE/
+Loot: $CITYPOP_ROOT/loot/LTE/
 """
 
 from payloads._web_input import request_input
@@ -43,7 +44,7 @@ import subprocess
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..")))
 
-LOOT_DIR = "/root/Raspyjack/loot/LTE"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "LTE")
 CONFIG_PATH = os.path.join(LOOT_DIR, "config.json")
 
 MENU_ITEMS = ["Show Status", "Set APN", "Connect", "Disconnect"]

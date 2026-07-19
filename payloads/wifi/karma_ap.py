@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: KARMA AP
-# @desc: Monitor WiFi probe requests to discover SSIDs that nearby devices are searching for, then create a rogue AP using the most-probed SSID to...
+# @desc: Observe probe-request SSIDs, let the operator select one, then create an authorized test AP and captive portal using that SSID.
 # @category: wifi
 # @danger: true
 # @active: true

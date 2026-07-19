@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: Certificate Info
 # @desc: Inspect a scoped TLS certificate subject
 # @category: reconnaissance

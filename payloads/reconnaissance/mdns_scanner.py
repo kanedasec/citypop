@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: mDNS/Bonjour Discovery
-# @desc: Discovers devices on the local network via mDNS (multicast DNS).
+# @desc: Browse mDNS services on a selected interface for a bounded period and report discovered service instances and hosts.
 # @category: reconnaissance
 # @danger: false
 # @active: true

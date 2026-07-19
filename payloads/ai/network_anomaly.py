@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: Network Anomaly Detector
-# @desc: ML-based network traffic anomaly detection.
+# @desc: Capture live traffic features, optionally train and persist an Isolation Forest baseline, then stream anomaly alerts and save them to loot.
 # @category: ai
 # @danger: false
 # @active: true
+# @web: true
 """
 RaspyJack Payload -- Network Anomaly Detector
 ===============================================
@@ -45,8 +46,9 @@ from collections import deque, Counter
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-MODEL_PATH = "/root/Raspyjack/loot/AI/anomaly_model.pkl"
-ALERTS_PATH = "/root/Raspyjack/loot/AI/anomaly_alerts.json"
+CITYPOP_ROOT = os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+MODEL_PATH = os.path.join(CITYPOP_ROOT, "loot", "AI", "anomaly_model.pkl")
+ALERTS_PATH = os.path.join(CITYPOP_ROOT, "loot", "AI", "anomaly_alerts.json")
 WINDOW_SEC = 10
 
 _running = True

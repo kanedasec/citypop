@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # @active: true
 # @name: WiFi Recon Survey
-# @desc: Live WiFi reconnaissance dashboard inspired by PineAP Recon.
+# @desc: Survey nearby access points and clients from a monitor interface and publish a temporary live web dashboard whose endpoint is printed in the terminal.
 # @category: wifi
 # @danger: false
 # @web: true

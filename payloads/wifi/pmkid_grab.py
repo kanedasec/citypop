@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: PMKID Hash Grabber
 # @desc: Captures PMKID hashes from WPA2 access points by sending association requests and extracting the PMKID from EAPOL RSN PMKID-List.
 # @category: wifi

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Event Triggers
-# @desc: Configurable event monitoring system.
+# @desc: Monitor selected Wi-Fi events, print and log matching alerts, and optionally send configured webhook notifications or run configured actions.
 # @category: wifi
 # @danger: false
 # @active: true

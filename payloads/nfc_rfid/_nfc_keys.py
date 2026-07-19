@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: MIFARE Classic key dictionary and sector cracking utilities
-# @desc: Sources: UberGuidoZ/Flipper, DarkFlippers/Unleashed, Next-Flip/Momentum, Proxmark3/RRG, MFOC, ikarus23/MifareClassicTool.
+# @desc: Shared MIFARE key dictionaries assembled from established NFC tooling sources; it performs no standalone card operation.
 # @category: nfc_rfid
 # @danger: false
 # @active: true

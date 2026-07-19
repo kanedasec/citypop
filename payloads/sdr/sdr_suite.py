@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # @name: SDR Radio Suite
-# @desc: Full-featured SDR radio suite with waterfall display, FM radio, frequency scanner, band presets, settings, and IQ recording.
+# @desc: Run terminal-friendly SDR waterfall status, FM playback, band scanning, preset/settings management, or raw IQ recording with supported receivers.
 # @category: sdr
 # @danger: false
 # @active: true
+# @web: true
+# @inputs: [{"name":"mode","label":"SDR operation","type":"select","choices":["waterfall","fm","scan","presets","settings"],"default":"scan"}]
 """
 RaspyJack Payload -- SDR Radio Suite
 ======================================
@@ -57,7 +59,7 @@ from payloads.sdr._presets import (
     load_settings, save_settings, format_freq, format_freq_short,
 )
 
-LOOT_DIR = "/root/Raspyjack/loot/SDR/recordings"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "SDR", "recordings")
 SUBCOMMANDS = ["waterfall", "fm", "scan", "presets", "settings"]
 _running = True
 

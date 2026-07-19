@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: FTP Credential Brute-Force
-# @desc: Auto-discovers FTP hosts from nmap loot or quick port-21 scan on the local subnet, then sprays ~50 common user:pass pairs against each ho...
+# @desc: Discover local FTP services from existing scan loot or a quick port check, test the built-in default credential list, and save successful authorized logins.
 # @category: credentials
 # @danger: true
 # @active: true

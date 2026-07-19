@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: Evil Twin AP
-# @desc: Clone a target AP to lure clients into connecting.
+# @desc: Select an authorized access point, clone its SSID in a bounded test AP and captive portal, and save submitted test credentials to loot.
 # @category: wifi
 # @danger: true
 # @inputs: [{"name":"seconds","label":"Run duration","type":"number","default":"300"}]

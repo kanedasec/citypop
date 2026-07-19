@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: SDR Radio Suite
-# @desc: Hardware Abstraction Layer.
+# @desc: Shared RTL-SDR, HackRF, and SoapySDR detection and signal-processing support; it performs no standalone scan.
 # @category: sdr
 # @danger: false
 # @active: true
+# @web: true
 """
 SDR Radio Suite – Hardware Abstraction Layer
 Supports RTL-SDR via rtl_sdr subprocess, SoapySDR as bonus.

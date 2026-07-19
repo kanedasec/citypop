@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Firewall Preset Switcher
-# @desc: Switch between iptables firewall presets on the fly.
+# @desc: Inspect, apply, or reset predefined iptables policies through web prompts, with rule status shown in the terminal.
 # @category: network
 # @danger: false
 # @active: true

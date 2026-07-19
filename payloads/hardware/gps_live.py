@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # @name: GPS Live
-# @desc: Real-time GPS data display: position, satellites, altitude, speed, fix status, and raw NMEA sentences scrolling.
+# @desc: Stream GPS fix state, coordinates, altitude, speed, satellites, and recent raw NMEA data from the detected serial receiver.
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
+# @inputs: [{"name":"seconds","label":"Live GPS duration","type":"number","default":"60"}]
 """
 RaspyJack Payload -- GPS Live
 ==============================

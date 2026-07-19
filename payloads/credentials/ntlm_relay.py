@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: NTLM Relay Attack
-# @desc: Wrapper around the vendored Responder tool at /root/Raspyjack/Responder/.
+# @desc: Run City Pop's bundled Responder for LLMNR/NBT-NS/mDNS poisoning, collect NTLM hashes, and optionally attempt SMB or HTTP relay to an authorized host.
 # @category: credentials
 # @danger: true
 # @active: true

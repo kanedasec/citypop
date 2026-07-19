@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: DuckyScript Library & Launcher
-# @desc: Browse, preview, and execute DuckyScript payloads stored in /root/Raspyjack/payloads/hid_scripts/.
+# @desc: Browse, preview, customize, and execute DuckyScript files from City Pop's HID script library through the USB HID injector.
 # @category: usb
 # @danger: false
 # @active: true

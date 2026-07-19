@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: BLE GATT Replay Attack
-# @desc: Scan for BLE devices, connect to a target, enumerate GATT characteristics, record notifications/reads, and replay recorded values back to...
+# @desc: Select a BLE target, enumerate GATT characteristics, record readable values or notifications, save sequences, and replay selected values to writable characteristics.
 # @category: bluetooth
 # @danger: true
 # @active: true

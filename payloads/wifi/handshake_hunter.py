@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: WPA2 Handshake Hunter
-# @desc: Captures WPA2 4-way handshakes by scanning for APs, selecting a target, discovering connected clients, sending targeted deauth, and captu...
+# @desc: Scan access points, select an authorized target, discover clients, optionally send bounded deauthentication assistance, and save verified WPA handshake captures to loot.
 # @category: wifi
 # @danger: true
 # @inputs: [{"name":"scan_seconds","label":"AP scan duration","type":"number","default":"15"},{"name":"capture_seconds","label":"Capture duration","type":"number","default":"120"},{"name":"deauth","label":"Send deauthentication assist","type":"select","choices":["false","true"],"default":"false"}]

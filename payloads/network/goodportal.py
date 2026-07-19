@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Whitelist Portal (GoodPortal)
-# @desc: DNS redirect portal with MAC whitelist.
+# @desc: Run a DNS-redirect captive portal on a selected interface and manage its MAC-address whitelist through live web prompts.
 # @category: network
 # @danger: true
 # @active: true

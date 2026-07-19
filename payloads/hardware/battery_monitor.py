@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # @name: Battery Monitor
-# @desc: Real-time battery fuel gauge monitor for the CardputerZero.
+# @desc: Stream battery percentage, voltage, current, power, temperature, and charging state from Linux power-supply data, with optional loot export.
 # @category: hardware
 # @danger: false
 # @active: true
+# @web: true
+# @inputs: [{"name":"seconds","label":"Monitor duration","type":"number","default":"60"}]
 """
 RaspyJack Payload -- Battery Monitor
 ======================================
@@ -36,7 +38,7 @@ from collections import deque
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-LOOT_DIR = "/root/Raspyjack/loot/Battery"
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), "loot", "Battery")
 POLL_INTERVAL = 1.0
 GRAPH_HISTORY = 300
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Display helper for payloads
-# @desc: automatic 128-base coordinate scaling.
+# @desc: Legacy display-coordinate scaling compatibility helper; web-native payloads do not require a physical LCD.
 # @category: utilities
 # @danger: false
 """

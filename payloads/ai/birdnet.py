@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # @name: BirdNET Live
-# @desc: Real-time bird species detection using BirdNET AI model and the ES8389 built-in microphone.
+# @desc: Record audio from the detected ALSA input, run offline BirdNET inference, stream species/confidence detections, and print a session summary.
 # @category: ai
 # @danger: false
 # @active: true
+# @web: true
+# @inputs: [{"name":"seconds","label":"Listening duration","type":"number","default":"60"},{"name":"language","label":"Species-name language","type":"text","default":"en"}]
 """
 RaspyJack Payload -- BirdNET Live
 ==================================
@@ -39,11 +41,12 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 import numpy as np
 from payloads._audio_helper import get_audio_card, get_alsa_dev
 
-MODEL_DIR = "/root/Raspyjack/models/birdnet"
+CITYPOP_ROOT = os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+MODEL_DIR = os.path.join(CITYPOP_ROOT, "models", "birdnet")
 MODEL_PATH = os.path.join(MODEL_DIR, "model.tflite")
 LABELS_PATH = os.path.join(MODEL_DIR, "labels.txt")
 L18N_DIR = os.path.join(MODEL_DIR, "l18n")
-LOOT_DIR = "/root/Raspyjack/loot/BirdNET"
+LOOT_DIR = os.path.join(CITYPOP_ROOT, "loot", "BirdNET")
 SETTINGS_PATH = os.path.join(LOOT_DIR, "settings.json")
 RECORD_RATE = 16000
 MODEL_RATE = 48000

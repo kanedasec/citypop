@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # @active: true
+# @web: true
 # @name: Unitree Robot Security Tester
 # @desc: Security testing tool for Unitree robots (Go1, Go2, B2, H1, G1).
 # @category: wifi

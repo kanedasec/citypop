@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: LLDP and CDP Discovery
-# @desc: Passive LLDP/CDP listener for infrastructure reconnaissance.
+# @desc: Passively capture LLDP and CDP frames on a selected interface and report discovered infrastructure identity, ports, capabilities, and management addresses.
 # @category: network
 # @danger: false
 # @active: true

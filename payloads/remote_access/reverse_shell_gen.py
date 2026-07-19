@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Reverse Shell Command Generator
-# @desc: Generate reverse shell one-liners, serve them via HTTP, start listeners.
+# @desc: Generate callback one-liners for several shell types, save and temporarily serve them over HTTP, and print listener commands for an authorized endpoint.
 # @category: remote_access
 # @danger: true
 # @active: true

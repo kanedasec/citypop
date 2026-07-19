@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @name: SDR Radio Suite
-# @desc: Waterfall and Spectrum Rendering Engine.
+# @desc: Shared terminal spectrum/waterfall rendering support for SDR payloads; it performs no standalone capture.
 # @category: sdr
 # @danger: false
 # @active: true
+# @web: true
 """
 SDR Radio Suite – Waterfall and Spectrum Rendering Engine
 """
