@@ -3,7 +3,7 @@
   <img src="https://img.shields.io/badge/hardware-Raspberry%20Pi%20Zero%202%20W-C51A4A?style=flat-square&logo=raspberry-pi&logoColor=white" alt="Hardware: Raspberry Pi Zero 2 W">
   <img src="https://img.shields.io/badge/code-Python%203-FFD43B?style=flat-square&logo=python&logoColor=3776AB" alt="Code: Python 3">
   <img src="https://img.shields.io/badge/interface-phone--first%20web-21E6FF?style=flat-square" alt="Interface: phone-first web">
-  <img src="https://img.shields.io/badge/payloads-159-FF2E88?style=flat-square" alt="Payloads: 159">
+  <img src="https://img.shields.io/badge/payloads-160-FF2E88?style=flat-square" alt="Payloads: 160">
   <img src="https://img.shields.io/badge/license-MIT-3DFFB0?style=flat-square" alt="License: MIT">
   <img src="https://img.shields.io/badge/usage-authorized%20testing%20only-3DFFB0?style=flat-square" alt="Usage: authorized testing only">
 </p>
@@ -22,7 +22,7 @@
        ┌──────────────────────────────┐
        │  CITY POP // PI-TAIL DECK   │
        │  PHONE ── USB ── ZERO 2 W   │
-       │  159 WEB-NATIVE PAYLOADS    │
+       │  160 WEB-NATIVE PAYLOADS    │
        └──────────────────────────────┘
 ```
 
@@ -40,7 +40,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 
 - Phone-first, responsive web interface
 - Token-authenticated HTTP and WebSocket control
-- 159 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
+- 160 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
 - Structured launch forms and dynamic adapter/target selectors
 - Live output, cancellation, and runtime input prompts
 - Engagement name, date, and authorized-scope tracking in the browser
