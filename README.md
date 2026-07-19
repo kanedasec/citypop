@@ -106,7 +106,7 @@ The installer:
 5. Installs Python dependencies without attempting large ARM source builds where avoidable.
 6. Generates a random City Pop authentication token.
 7. Enables and starts `city-pop.service` as root.
-8. Prints the web URL and token location.
+8. Prints the primary and all available IPv4 web URLs plus the token location.
 
 An unrelated broken APT repository may cause `apt update` to warn. The installer continues using indexes that did refresh, but required package installation can still fail if Kali cannot fetch them.
 

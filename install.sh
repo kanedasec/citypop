@@ -60,7 +60,6 @@ if [ "$(id -u)" = 0 ]; then
     fi
   done
   apt-get install -y "${AVAILABLE_PACKAGES[@]}"
-
   if [ "$BASE" != "$INSTALL_DIR" ]; then
     install -d "$INSTALL_DIR"
     rm -rf "$INSTALL_DIR/.venv"
@@ -174,7 +173,19 @@ else
   echo "Run now: $INSTALL_DIR/.venv/bin/python $INSTALL_DIR/app.py"
   echo "For boot startup, rerun: sudo $BASE/install.sh"
 fi
-HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
-[ -n "$HOST_IP" ] || HOST_IP="192.168.43.254"
-echo "URL: http://${HOST_IP}:8080"
+PRIMARY_IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i == "src") {print $(i+1); exit}}')"
+ALL_IPS="$(ip -o -4 addr show scope global 2>/dev/null | awk '{split($4, address, "/"); print address[1]}')"
+if [ -n "$PRIMARY_IP" ]; then
+  echo "Primary URL: http://${PRIMARY_IP}:8080"
+fi
+if [ -n "$ALL_IPS" ]; then
+  echo "Available URLs:"
+  while IFS= read -r address; do
+    [ -n "$address" ] && echo "  http://${address}:8080"
+  done <<EOF
+$ALL_IPS
+EOF
+else
+  echo "URL: http://192.168.43.254:8080 (fallback; verify the Pi address with: ip -4 addr)"
+fi
 [ "$(id -u)" = 0 ] && echo "Token file: $INSTALL_DIR/config.json" || echo "Token file: $BASE/config.json"
