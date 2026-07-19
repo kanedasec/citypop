@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Wi-Fi Capture Converter
-# @desc: Convert .cap capture files to .hc22000 format for Hashcat cracking.
+# @desc: Select a .cap, .pcap, or .pcapng file from loot and convert it to Hashcat .hc22000 format with hcxpcapngtool.
 # @category: utilities
 # @danger: false
 # @active: true

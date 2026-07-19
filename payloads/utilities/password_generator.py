@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # @name: Password Generator
-# @desc: Generate cryptographically secure passwords with configurable length and character sets.
+# @desc: Generate a cryptographically secure password from command arguments; optionally append it to loot/Passwords/passwords.txt.
 # @category: utilities
 # @danger: false
 # @active: true
 # @web: true
+# @inputs: [{"name":"length","label":"Password length (8-64)","type":"number","default":"16"},{"name":"charsets","label":"Character sets","type":"text","default":"lud","placeholder":"l=lowercase, u=uppercase, d=digits, s=symbols"},{"name":"save","label":"Save to loot","type":"select","choices":["no","save"],"default":"no"}]
 """
 RaspyJack Payload -- Password Generator
 =========================================

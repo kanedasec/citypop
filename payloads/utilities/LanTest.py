@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: LAN Speed Test
-# @desc: Measures LAN throughput using iperf3 against a chosen server.
+# @desc: Measure upload and download throughput against an authorized iperf3 server.
 # @category: utilities
 # @danger: false
 # @active: true

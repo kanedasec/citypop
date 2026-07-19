@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Handshake File Sanitizer
-# @desc: Strip irrelevant frames from capture files, keeping only EAPOL handshake packets and beacon frames needed for cracking.
+# @desc: Select a capture from loot and use tshark to save only EAPOL and Wi-Fi beacon frames as a smaller capture.
 # @category: utilities
 # @danger: false
 # @active: true

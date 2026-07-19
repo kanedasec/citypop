@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Interface Manager
-# @desc: Centralized network interface management: rfkill, monitor mode,.
+# @desc: Inspect a selected network interface or set its link state up or down; this does not change Wi-Fi mode or rfkill state.
 # @category: utilities
 # @danger: true
 # @active: true

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Hashtopolis Uploader
-# @desc: Upload .hc22000 / .hccapx hash files to a Hashtopolis server via its REST API.
+# @desc: Select a supported hash or pot file from loot and upload it to a Hashtopolis server with its API access key.
 # @category: utilities
 # @danger: true
 # @active: true

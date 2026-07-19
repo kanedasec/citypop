@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # @active: true
 # @name: System Status
-# @desc: Show local system health and network identity
+# @desc: Show the Pi hostname, platform, uptime, memory, temperature, load, and network identity.
 # @category: utilities
 # @danger: false
+# @web: true
 import os, platform, socket, subprocess
 
 def run(*cmd):

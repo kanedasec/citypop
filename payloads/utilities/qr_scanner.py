@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: QR and Barcode Scanner
-# @desc: Scans QR codes and barcodes using the IMX219 camera.
+# @desc: Decode QR codes and barcodes from a selected loot image or a still captured with a supported Raspberry Pi camera command.
 # @category: utilities
 # @danger: false
 # @active: true

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Bluetooth Keyboard Picker
-# @desc: Interactive CLI helper to scan, pair, trust and connect a Bluetooth keyboard (or any HID) without touching the shell.
+# @desc: Scan for nearby Bluetooth devices, then pair, trust, and connect a selected keyboard or other HID through web prompts.
 # @category: utilities
 # @danger: false
 # @active: true

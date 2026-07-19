@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: PCAP Packet Replayer
-# @desc: Lists .pcap files from the loot directory and replays them using scapy.
+# @desc: Select a capture from loot and replay it on a chosen interface with tcpreplay at the requested speed and loop count.
 # @category: utilities
 # @danger: true
 # @active: true

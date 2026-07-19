@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: M5Burner
-# @desc: Flash M5Stack firmwares using the official M5Burner catalog.
+# @desc: Browse the M5Stack firmware catalog and flash or erase a selected USB-connected ESP device through web prompts.
 # @category: utilities
 # @danger: false
 # @active: true

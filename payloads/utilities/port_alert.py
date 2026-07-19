@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: TCP Port Change Monitor
-# @desc: Periodically scans the local subnet with nmap and compares results against a stored baseline.
+# @desc: Poll selected TCP ports on one authorized host and report when their open or closed state changes during the run.
 # @category: utilities
 # @danger: false
 # @active: true

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: GPS Doctor
-# @desc: Checks, installs and configures all GPS dependencies for gps_tracker and wardriving payloads.
+# @desc: Diagnose GPS serial devices, gpsd status, gpspipe availability, and whether a live TPV fix is received.
 # @category: utilities
 # @danger: false
 # @active: true

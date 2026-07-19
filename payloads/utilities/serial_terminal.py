@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: Serial Terminal (Multi-port)
-# @desc: Multi-port serial terminal with auto-baud detection.
+# @desc: Select one detected USB or onboard serial port, estimate its baud rate, and exchange text through web prompts.
 # @category: utilities
 # @danger: false
 # @active: true

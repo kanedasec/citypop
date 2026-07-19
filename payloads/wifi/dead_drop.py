@@ -156,6 +156,23 @@ def _sanitize_filename(name):
 # Service management
 # ---------------------------------------------------------------------------
 
+def _run_required(command, label):
+    result = subprocess.run(command, capture_output=True, text=True, timeout=10)
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip() or f"exit {result.returncode}"
+        raise RuntimeError(f"{label} failed: {detail}")
+    return result
+
+
+def _stream_service_output(process, label):
+    if not process.stdout:
+        return
+    for line in process.stdout:
+        line = line.strip()
+        if line:
+            print(f"[{label}] {line}", flush=True)
+
+
 def _start_services(ifc):
     global _hostapd_proc, _dnsmasq_proc, _http_server, status_msg
 
@@ -163,14 +180,31 @@ def _start_services(ifc):
         subprocess.run(["sudo", "pkill", "-f", f"rj_deaddrop.*{proc_name}"],
                        capture_output=True, timeout=5)
 
-    for cmd in [
-        ["sudo", "ip", "link", "set", ifc, "down"],
-        ["sudo", "iw", "dev", ifc, "set", "type", "managed"],
-        ["sudo", "ip", "link", "set", ifc, "up"],
-        ["sudo", "ip", "addr", "flush", "dev", ifc],
-        ["sudo", "ip", "addr", "add", f"{GATEWAY_IP}/24", "dev", ifc],
-    ]:
-        subprocess.run(cmd, capture_output=True, timeout=5)
+    # NetworkManager can immediately replace the static portal address unless
+    # the selected adapter is temporarily marked unmanaged.
+    if subprocess.run(["which", "nmcli"], capture_output=True).returncode == 0:
+        subprocess.run(["sudo", "nmcli", "device", "set", ifc, "managed", "no"],
+                       capture_output=True, text=True, timeout=10)
+
+    setup = [
+        (["sudo", "ip", "link", "set", "dev", ifc, "down"], "bringing the adapter down"),
+        (["sudo", "iw", "dev", ifc, "set", "type", "managed"], "setting managed/AP preparation mode"),
+        (["sudo", "ip", "addr", "flush", "dev", ifc], "clearing old adapter addresses"),
+        (["sudo", "ip", "addr", "replace", f"{GATEWAY_IP}/24", "dev", ifc], "assigning the portal gateway"),
+        (["sudo", "ip", "link", "set", "dev", ifc, "up"], "bringing the adapter up"),
+    ]
+    for command, label in setup:
+        _run_required(command, label)
+
+    address_check = _run_required(
+        ["ip", "-4", "-o", "addr", "show", "dev", ifc],
+        "verifying the portal gateway",
+    ).stdout
+    if f"{GATEWAY_IP}/24" not in address_check:
+        raise RuntimeError(
+            f"{GATEWAY_IP}/24 did not remain assigned to {ifc}; "
+            "a network manager may still control this adapter"
+        )
 
     with open(HOSTAPD_CONF, "w") as f:
         f.write(
@@ -202,17 +236,27 @@ def _start_services(ifc):
 
     _hostapd_proc = subprocess.Popen(
         ["sudo", "hostapd", HOSTAPD_CONF],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
     time.sleep(2)
+    if _hostapd_proc.poll() is not None:
+        detail = (_hostapd_proc.stdout.read() if _hostapd_proc.stdout else "").strip()
+        raise RuntimeError(f"hostapd failed: {detail or 'no diagnostic output'}")
+    threading.Thread(target=_stream_service_output, args=(_hostapd_proc, "hostapd"), daemon=True).start()
 
     _dnsmasq_proc = subprocess.Popen(
         ["sudo", "dnsmasq", "-C", DNSMASQ_CONF, "--no-daemon"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
     time.sleep(1)
+    if _dnsmasq_proc.poll() is not None:
+        detail = (_dnsmasq_proc.stdout.read() if _dnsmasq_proc.stdout else "").strip()
+        raise RuntimeError(f"dnsmasq failed: {detail or 'no diagnostic output'}")
+    threading.Thread(target=_stream_service_output, args=(_dnsmasq_proc, "dnsmasq"), daemon=True).start()
 
-    _http_server = _ThreadedHTTPServer((GATEWAY_IP, PORTAL_PORT), _DeadDropHandler)
+    # Bind all local addresses after verifying the portal gateway. This avoids
+    # a second race with network managers between verification and bind.
+    _http_server = _ThreadedHTTPServer(("0.0.0.0", PORTAL_PORT), _DeadDropHandler)
     threading.Thread(target=_http_server.serve_forever, daemon=True).start()
 
     with lock:
@@ -245,6 +289,12 @@ def _stop_services():
         subprocess.run(cmd, capture_output=True, timeout=5)
 
     subprocess.run(["sudo", "pkill", "-f", "rj_deaddrop"], capture_output=True, timeout=5)
+    if iface:
+        subprocess.run(["sudo", "ip", "addr", "flush", "dev", iface], capture_output=True, timeout=5)
+        subprocess.run(["sudo", "ip", "link", "set", "dev", iface, "up"], capture_output=True, timeout=5)
+        if subprocess.run(["which", "nmcli"], capture_output=True).returncode == 0:
+            subprocess.run(["sudo", "nmcli", "device", "set", iface, "managed", "yes"],
+                           capture_output=True, timeout=10)
     with lock:
         status_msg = "Stopped"
 
@@ -602,10 +652,12 @@ class _DeadDropHandler(BaseHTTPRequestHandler):
 
 def _select_wifi_interface():
     """Detect WiFi interfaces and pick one. Prompts if more than one is found."""
-    ifaces = list_interfaces(iface_type="wifi")
+    detected = list_interfaces(iface_type="wifi")
+    ifaces = [item for item in detected if item.get("supports_ap")]
 
     if not ifaces:
-        print("No WiFi interface found.", flush=True)
+        names = ", ".join(item["name"] for item in detected) or "none"
+        print(f"No AP-capable WiFi interface found (detected: {names}).", flush=True)
         return None
 
     if len(ifaces) == 1:
@@ -625,7 +677,7 @@ def _select_wifi_interface():
 
     while True:
         choice = str(request_input("Select AP-capable Wi-Fi interface", input_type="select", choices=[
-            {"value": str(i), "label": f"{item['name']} · {'onboard' if item.get('is_onboard') else item.get('bus') or 'external'} · {'AP' if item.get('supports_ap') else 'AP support unknown'} · {'UP' if item.get('is_up') else 'DOWN'}"}
+            {"value": str(i), "label": f"{item['name']} · {'onboard' if item.get('is_onboard') else item.get('driver') or 'external'} · AP · {'UP' if item.get('is_up') else 'DOWN'}"}
             for i, item in enumerate(ifaces)]))
         if choice.isdigit() and 0 <= int(choice) < len(ifaces):
             return ifaces[int(choice)]["name"]
@@ -672,7 +724,12 @@ def main():
         status_msg = f"Using {iface}"
 
     print(f"Starting Dead Drop AP '{ssid}' on {iface} ...", flush=True)
-    _start_services(iface)
+    try:
+        _start_services(iface)
+    except Exception as exc:
+        print(f"Dead Drop startup failed: {exc}", flush=True)
+        _stop_services()
+        return 1
     active = True
     print(f"Portal live at http://{GATEWAY_IP}/  (SSID: {ssid})", flush=True)
     print(f"Dead Drop will run for {duration} seconds. Press Stop to end it early.", flush=True)

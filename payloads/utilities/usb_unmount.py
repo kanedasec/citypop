@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: USB Safe Unmount
-# @desc: Lists connected USB storage devices and provides safe unmount with filesystem sync and power-off.
+# @desc: Select a USB storage device, sync writes, unmount its mounted partitions, and request device power-off.
 # @category: utilities
 # @danger: false
 # @active: true

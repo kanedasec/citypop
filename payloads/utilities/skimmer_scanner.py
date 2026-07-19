@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: BLE Skimmer Scanner
-# @desc: Scans for Bluetooth Low Energy devices that match known skimmer module names (HC-05, HC-06, JDY-31, etc.).
+# @desc: Scan nearby Bluetooth advertisements for names associated with common serial modules; matches are indicators, not proof of a skimmer.
 # @category: utilities
 # @danger: false
 # @active: true

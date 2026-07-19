@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: WAN Speed Test
-# @desc: Measures internet (WAN) download/upload using Speedtest.
+# @desc: Measure internet latency, download speed, and upload speed with an installed Speedtest backend.
 # @category: utilities
 # @danger: false
 # @active: true

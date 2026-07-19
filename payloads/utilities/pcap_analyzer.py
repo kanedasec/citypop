@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # @name: PCAP Analyzer
-# @desc: Browse and analyze pcap/cap/pcapng files directly on the device.
+# @desc: Select a capture from loot and display a tshark overview, protocol hierarchy, endpoints, or conversations in the terminal.
 # @category: utilities
 # @danger: false
 # @active: true
