@@ -191,14 +191,24 @@ def validate_consent(data):
     return data.get("authorized") is True and data.get("in_scope") is True and 0 < len(target) <= 255
 
 
+def engagement_name(data):
+    return str((data or {}).get("engagement", "")).strip()[:80]
+
+
 @socketio.on("run_payload")
 def run_payload(data):
     if not validate_consent(data or {}):
         emit("error", {"message": "Authorization, in-scope confirmation, and a target/context are required."})
         return
+    name = engagement_name(data)
+    if not name:
+        emit("error", {"message": "An engagement name is required for operation logging."})
+        return
     args = [str(x)[:512] for x in (data.get("args") or [])][:12]
     try:
-        started = runner.start(request.sid, str(data.get("id", "")), args, socketio.emit)
+        started = runner.start(
+            request.sid, str(data.get("id", "")), args, socketio.emit, name
+        )
     except (OSError, ValueError) as error:
         emit("error", {"message": str(error)})
         return
@@ -212,7 +222,11 @@ def run_command(data):
         emit("error", {"message": "Unlock and confirm authorization/scope first."})
         return
     command = str(data.get("command", ""))[:2048].strip()
-    if command and not runner.command(request.sid, command, socketio.emit):
+    name = engagement_name(data)
+    if not name:
+        emit("error", {"message": "An engagement name is required for command logging."})
+        return
+    if command and not runner.command(request.sid, command, socketio.emit, name):
         emit("error", {"message": "Another operation is already running."})
 
 @socketio.on("input_response")

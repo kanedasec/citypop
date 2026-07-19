@@ -428,6 +428,7 @@ dialog {
 dialog::backdrop { background: rgb(2 1 7 / 78%); backdrop-filter: blur(5px); }
 dialog form { margin: 0; }
 dialog label { display: block; margin: 15px 0; color: var(--dim); font-size: 11px; }
+.required { color: var(--pink); font-weight: 800; }
 dialog label input:not([type="checkbox"]),
 dialog label select,
 dialog textarea,

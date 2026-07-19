@@ -684,6 +684,45 @@ def _select_wifi_interface():
         print("Invalid selection, try again.", flush=True)
 
 
+def _default_route_interface():
+    """Return the interface carrying the default route, if one exists."""
+    try:
+        result = subprocess.run(
+            ["ip", "route", "show", "default"],
+            capture_output=True, text=True, timeout=5,
+        )
+        for line in result.stdout.splitlines():
+            parts = line.split()
+            if "dev" in parts:
+                index = parts.index("dev") + 1
+                if index < len(parts):
+                    return parts[index]
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return None
+
+
+def _confirm_management_interface(selected):
+    default_iface = _default_route_interface()
+    if selected != default_iface:
+        return True
+    print(
+        f"WARNING: {selected} carries the current default route. Turning it "
+        "into the Dead Drop AP may disconnect this web session.",
+        flush=True,
+    )
+    choice = str(request_input(
+        "The selected adapter may carry City Pop. Continue?",
+        input_type="select",
+        choices=[
+            {"value": "cancel", "label": "Cancel without changing the adapter"},
+            {"value": "continue", "label": "Continue and accept disconnection"},
+        ],
+        default="cancel",
+    ))
+    return choice == "continue"
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -717,6 +756,9 @@ def main():
     iface = _select_wifi_interface()
     if not iface:
         return 1
+    if not _confirm_management_interface(iface):
+        print("Dead Drop cancelled before changing the network interface.", flush=True)
+        return 0
 
     _save_config()
 
@@ -724,6 +766,8 @@ def main():
         status_msg = f"Using {iface}"
 
     print(f"Starting Dead Drop AP '{ssid}' on {iface} ...", flush=True)
+    print(f"After joining '{ssid}', open http://{GATEWAY_IP}:{PORTAL_PORT}/", flush=True)
+    print("The current web terminal may disconnect while the adapter changes mode.", flush=True)
     try:
         _start_services(iface)
     except Exception as exc:

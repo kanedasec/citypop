@@ -81,7 +81,8 @@ class PayloadRunner:
         parse_metadata(path)
         return path
 
-    def start(self, owner: str, payload_id: str, args: list[str], emit: Callable) -> bool:
+    def start(self, owner: str, payload_id: str, args: list[str], emit: Callable,
+              engagement_name: str = "engagement") -> bool:
         path = self.resolve(payload_id)
         meta = parse_metadata(path)
         if not meta["web"]:
@@ -91,12 +92,14 @@ class PayloadRunner:
         # same installed dependencies instead of falling back to system
         # Python.
         command = ([sys.executable, "-u", str(path)] if path.suffix == ".py" else ["bash", str(path)]) + args
-        return self._spawn(owner, meta["name"], command, emit)
+        return self._spawn(owner, meta["name"], command, emit, engagement_name)
 
-    def command(self, owner: str, command: str, emit: Callable) -> bool:
-        return self._spawn(owner, "command", ["bash", "-lc", command], emit)
+    def command(self, owner: str, command: str, emit: Callable,
+                engagement_name: str = "engagement") -> bool:
+        return self._spawn(owner, "command", ["bash", "-lc", command], emit, engagement_name)
 
-    def _spawn(self, owner: str, name: str, command: list[str], emit: Callable) -> bool:
+    def _spawn(self, owner: str, name: str, command: list[str], emit: Callable,
+               engagement_name: str) -> bool:
         with self.lock:
             if self.running and self.running.process.poll() is None:
                 return False
@@ -114,13 +117,21 @@ class PayloadRunner:
                                     stderr=subprocess.STDOUT, stdin=subprocess.PIPE, text=True, bufsize=1,
                                     start_new_session=True, env=env)
             self.running = Running(proc, owner, name)
-        threading.Thread(target=self._stream, args=(proc, owner, name, emit), daemon=True).start()
+        threading.Thread(
+            target=self._stream,
+            args=(proc, owner, name, engagement_name, emit),
+            daemon=True,
+        ).start()
         return True
 
-    def _stream(self, proc: subprocess.Popen, owner: str, name: str, emit: Callable) -> None:
+    def _stream(self, proc: subprocess.Popen, owner: str, name: str,
+                engagement_name: str, emit: Callable) -> None:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         safe_name = re.sub(r"[^a-zA-Z0-9_-]+", "_", name).strip("_") or "run"
-        log_path = self.loot / "logs" / f"{stamp}_{safe_name}.log"
+        safe_engagement = re.sub(
+            r"[^a-zA-Z0-9_-]+", "_", engagement_name
+        ).strip("_")[:80] or "engagement"
+        log_path = self.loot / "logs" / f"{stamp}_{safe_engagement}_{safe_name}.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with log_path.open("w", encoding="utf-8") as log:
             assert proc.stdout is not None
