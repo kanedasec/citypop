@@ -1,34 +1,47 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-Kali%20Pi--Tail-557C94?style=flat-square&logo=kali-linux&logoColor=white" alt="Platform: Kali Pi-Tail">
-  <img src="https://img.shields.io/badge/hardware-Raspberry%20Pi%20Zero%202%20W-C51A4A?style=flat-square&logo=raspberry-pi&logoColor=white" alt="Hardware: Raspberry Pi Zero 2 W">
-  <img src="https://img.shields.io/badge/code-Python%203-FFD43B?style=flat-square&logo=python&logoColor=3776AB" alt="Code: Python 3">
-  <img src="https://img.shields.io/badge/interface-phone--first%20web-21E6FF?style=flat-square" alt="Interface: phone-first web">
-  <img src="https://img.shields.io/badge/payloads-153-FF2E88?style=flat-square" alt="Payloads: 153">
-  <img src="https://img.shields.io/badge/license-MIT-3DFFB0?style=flat-square" alt="License: MIT">
-  <img src="https://img.shields.io/badge/usage-authorized%20testing%20only-3DFFB0?style=flat-square" alt="Usage: authorized testing only">
+  <img src="static/citypop-icon.png" alt="City Pop — phone-first Kali Pi-Tail payload deck" width="760">
 </p>
 
 <p align="center">
-  <img src="static/citypop-icon.png" alt="City Pop icon" width="700">
+  <strong>Turn a phone-powered Raspberry Pi Zero 2 W into a browser-operated security field deck.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/kanedasec/citypop/commits"><img src="https://img.shields.io/github/last-commit/kanedasec/citypop?style=flat-square&color=39e7ef" alt="Last commit"></a>
+  <a href="https://github.com/kanedasec/citypop/issues"><img src="https://img.shields.io/github/issues/kanedasec/citypop?style=flat-square&color=ff4f9a" alt="Open issues"></a>
+  <img src="https://img.shields.io/github/repo-size/kanedasec/citypop?style=flat-square&color=8cf7f7" alt="Repository size">
+  <img src="https://img.shields.io/badge/platform-Kali%20Pi--Tail-557C94?style=flat-square&logo=kali-linux&logoColor=white" alt="Platform: Kali Pi-Tail">
+  <img src="https://img.shields.io/badge/hardware-Pi%20Zero%202%20W-C51A4A?style=flat-square&logo=raspberry-pi&logoColor=white" alt="Hardware: Raspberry Pi Zero 2 W">
+  <img src="https://img.shields.io/badge/payloads-153-ff4f9a?style=flat-square" alt="153 payloads">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-55e6a5?style=flat-square" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/use-authorized%20testing%20only-ffc45c?style=flat-square" alt="Authorized testing only">
 </p>
 
 # CITY POP // Pi-Tail Deck
 
-
-
 > A phone-first field interface for Kali Pi-Tail—inspired by RaspyJack, rebuilt for a Raspberry Pi Zero 2 W that lives in your pocket instead of behind an LCD HAT.
-
-```text
-       ┌──────────────────────────────┐
-       │  CITY POP // PI-TAIL DECK   │
-       │  PHONE ── USB ── ZERO 2 W   │
-       │  153 WEB-NATIVE PAYLOADS    │
-       └──────────────────────────────┘
-```
 
 City Pop turns a Kali Pi-Tail into a compact, browser-operated security deck. The phone supplies power and tethering, displays the interface, stores the access token, and provides the primary controls. The Pi runs the tools, talks to attached radios and boards, and saves results into a central loot directory.
 
 This is an independent web adaptation of [7h30th3r0n3/Raspyjack](https://github.com/7h30th3r0n3/Raspyjack). RaspyJack is an LCD-driven portable offensive toolkit; City Pop preserves much of its payload spirit while replacing joystick, button, and display flows with phone-friendly forms and live web prompts. It is not an official RaspyJack or Kali Linux project.
+
+> [!CAUTION]
+> City Pop launches privileged security tooling. Use it only on systems, devices, radio environments, and networks you own or have explicit permission to test. Keep the web service on a private phone-to-Pi link.
+
+## Contents
+
+- [Why Pi-Tail?](#why-pi-tail)
+- [Feature tour](#feature-tour)
+- [Quick start](#quick-start)
+- [Hardware](#intended-build)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Practical examples](#practical-examples)
+- [Troubleshooting](#troubleshooting)
+- [Security and safety](#web-security)
+- [Project layout](#project-layout)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Why Pi-Tail?
 
@@ -52,6 +65,39 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 - Hardware bindings inherited from Kali through `--system-site-packages`
 - Root systemd service for payloads that require radio, packet, GPIO, or device access
 - ARM-aware dependency handling for the Pi Zero 2 W
+
+## Feature tour
+
+| On your phone | On the Pi-Tail |
+|---|---|
+| Create an engagement with mandatory name, date, and authorized scope | Keep logs and artifacts separated by engagement |
+| Browse all payloads or toggle categories, search, filter, and favorite tools | Discover 153 web-enabled payloads from their metadata |
+| Follow a guided launch flow for any payload | Check commands, radios, adapters, and protected routes before launch |
+| Choose targets, interfaces, modes, and durations through web prompts | Run one privileged operation at a time inside the City Pop environment |
+| Watch a searchable, pausable terminal and open live dashboard links | Stream output and preserve it across temporary phone disconnects |
+| Preview loot, revisit runs, and generate a report | Produce engagement reports with artifact sizes and SHA-256 hashes |
+
+The interface is installable as a phone web app. Its shell remains available without internet access, while payload execution still requires a live connection to the Pi.
+
+## Quick start
+
+Already running Kali Pi-Tail? The shortest supported installation path is:
+
+```bash
+sudo apt update
+sudo apt install -y git
+git clone https://github.com/kanedasec/citypop.git
+cd citypop
+sudo ./install.sh
+```
+
+When installation finishes, open one of the printed URLs on the connected phone and authenticate with the printed token:
+
+```text
+http://<pi-tail-address>:8080
+```
+
+For hardware preparation, installer behavior, updates, and token recovery, continue to [Installation](#installation).
 
 ## Intended build
 
@@ -95,7 +141,7 @@ From an SSH session on the Pi:
 sudo apt update
 sudo apt install -y git
 git clone https://github.com/kanedasec/citypop.git
-cd city-pop
+cd citypop
 chmod +x install.sh
 sudo ./install.sh
 ```
@@ -144,6 +190,67 @@ sudo python3 -c 'import json; print(json.load(open("/opt/city-pop/config.json"))
 
 Only one payload or command runs at a time. A temporary phone or radio disconnect does not stop it: reconnecting restores the running-operation state, buffered terminal output, and any pending prompt. Use **Stop** explicitly when an operation should end.
 
+## Practical examples
+
+### Survey Wi-Fi from a separate adapter
+
+1. Create an engagement such as `homelab` and enter the exact authorized SSIDs/devices in its scope.
+2. Open **Hardware** and identify the interface marked as the protected City Pop route.
+3. Connect a separate monitor-capable USB Wi-Fi adapter through a powered OTG hub.
+4. Select **Wi-Fi → WiFi Recon Survey** or find it through the guided workflow picker.
+5. Review the preflight, choose the separate adapter, and set the survey duration.
+6. Follow the printed dashboard endpoint or watch the terminal; download the resulting JSON from **Loot**.
+
+Never switch the phone tether or current default-route interface into monitor mode. A monitor-capable driver does not guarantee that an adapter switched successfully; verify the preflight and terminal output.
+
+### Run a scoped network check
+
+1. Record the authorized host or CIDR in the engagement scope.
+2. Search for a reconnaissance payload such as **Nmap Target** or **TCP Banner**.
+3. Confirm the exact target again in the payload form.
+4. Review the impact warning, run the payload, and retain the engagement log with the result.
+
+### Generate the engagement handoff
+
+After testing, choose **Report**, add operator notes and limitations, then generate the Markdown report. City Pop includes the execution timeline and SHA-256 inventory of files stored under that engagement.
+
+## Troubleshooting
+
+### The printed address is not my current Wi-Fi or hotspot address
+
+IP addresses can change when moving between home Wi-Fi, USB tethering, and phone hotspots. On the Pi, list current IPv4 addresses with:
+
+```bash
+ip -br -4 address
+```
+
+Open the address reachable from the phone with port `8080`. The service listens independently of the installer’s original address.
+
+### A Wi-Fi survey reports `Network is down`
+
+The selected adapter did not remain operational for monitor capture. Check that it is not the management interface, that its driver supports monitor mode, and that NetworkManager or `wpa_supplicant` did not reclaim it:
+
+```bash
+ip link show <interface>
+iw dev <interface> info
+rfkill list
+journalctl -k --since "5 minutes ago" | tail -100
+```
+
+### Installation appears stuck while building NumPy
+
+On the Pi Zero 2 W, compiling NumPy can take a long time and exhaust memory. The installer is designed to prefer Kali/Debian binary packages and compatible wheels. Confirm that you are using the current installer and a supported Kali Pi-Tail image before retrying.
+
+### The service does not open
+
+```bash
+sudo systemctl status city-pop --no-pager
+sudo journalctl -u city-pop -n 100 --no-pager
+sudo ss -lntp | grep 8080
+```
+
+## Service management and updates
+
 ### Service management
 
 ```bash
@@ -164,23 +271,6 @@ sudo ./install.sh
 ```
 
 Back up loot and any local payload edits before reinstalling. `config.json`, loot, logs, captures, credentials, and local virtual environments are intentionally excluded from Git.
-
-## Network and power safety
-
-### Preserve the phone control path
-
-Do not place the phone-tether interface into monitor mode, disable it, bridge it, change its address, or use it for a disruptive Layer-2 workflow unless another tested management path is active. If that interface drops, the browser loses its connection and cannot send **Stop**.
-
-Use a separate USB Wi-Fi or Ethernet adapter for assessment traffic whenever possible.
-
-### Radio and physical safety
-
-- Monitor mode, injection, beaconing, jamming-like traffic, and rogue services can affect nearby systems beyond the intended target.
-- Use shielding, attenuators, isolated lab networks, or RF test enclosures where appropriate.
-- Verify frequency, channel, transmit-power, and regional regulatory requirements.
-- Treat NFC/RFID write, replay, cloning, and fuzzing operations as potentially destructive.
-- Do not replay unknown SDR captures; transmitting may be illegal and could interfere with safety-critical services.
-- Never connect unknown USB, serial, GPIO, I²C, or SPI hardware without confirming voltage and pinout.
 
 ## Web security
 
@@ -244,6 +334,47 @@ config.example.json     safe configuration template
 misc/                   development documentation (not installed)
 tools/                  local migration tooling (not installed or committed)
 ```
+
+## Contributing
+
+Contributions that improve phone usability, Pi Zero 2 W reliability, hardware detection, documentation, and safe web-native payload behavior are welcome.
+
+### Before opening a pull request
+
+1. [Open an issue](https://github.com/kanedasec/citypop/issues/new) or join an existing discussion for changes that affect architecture or payload behavior.
+2. Fork the repository and create a focused branch from the latest default branch.
+3. Keep each pull request limited to one coherent change.
+4. Preserve the phone-first workflow: payloads must not depend on an LCD, joystick, or attached keyboard.
+5. Never commit tokens, credentials, captures, loot, target data, or generated engagement state.
+6. Describe the Kali image, Pi model, adapters, and test procedure used to validate hardware-related changes.
+
+Every payload must keep valid metadata at the top of its file:
+
+```python
+# @active: true
+# @name: Human-readable name
+# @desc: What the payload actually does and what output it produces.
+# @category: utilities
+# @danger: false
+# @web: true
+# @inputs: []
+```
+
+Use `payloads._web_input` for runtime choices, print actionable status and output locations to the web terminal, write artifacts beneath `CITYPOP_LOOT`, and print the complete URL of any dashboard the payload starts. Clearly mark disruptive behavior with `@danger: true`.
+
+Run the available baseline checks before submitting:
+
+```bash
+python3 -m py_compile app.py payload_runner.py
+node --check static/app.js
+node --check static/input.js
+node --check static/sw.js
+git diff --check
+```
+
+Pull requests should explain what changed, why it is safe for the Pi-Tail control path, how it was tested, and include phone screenshots for visible UI changes. Be respectful, keep testing authorized, and do not submit functionality intended to conceal unauthorized access or harm third parties.
+
+Good entry points include documentation fixes, clearer payload output, adapter compatibility reports, and issues labeled [`good first issue`](https://github.com/kanedasec/citypop/labels/good%20first%20issue) or [`help wanted`](https://github.com/kanedasec/citypop/labels/help%20wanted).
 
 ## License
 
