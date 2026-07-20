@@ -20,7 +20,7 @@ Phone browser
 
 ### `app.py`
 
-The Flask application serves static assets, authenticates token or session requests, exposes hardware and preflight information, manages loot/report APIs, and validates authorization context before starting work.
+The Flask application serves static assets, authenticates token or session requests, exposes hardware and preflight information, manages loot/report generation, listing, preview, download, and deletion APIs, and validates authorization context before starting work.
 
 ### `payload_runner.py`
 
@@ -31,6 +31,10 @@ Payload processes survive temporary browser disconnects. An authenticated browse
 ### `payload_analysis.py`
 
 The static capability analyzer derives launch/runtime input counts, referenced executables, required and optional Python modules, system services, device/data paths, hardware classes, dashboard support, and loot behavior. The catalog uses these capabilities to construct truthful per-payload guide stages, while preflight resolves them against the running Pi.
+
+### `engagement_store.py`
+
+The engagement registry persists names, dates, and authorized scopes in `state/engagements.json`, allowing engagements to be reopened or edited from another browser. Existing execution history and loot directories are surfaced as recovered engagements until their missing scope is supplied. Permanent engagement deletion removes its registry entry, execution history, reports, logs, and loot after exact typed confirmation.
 
 ### `static/`
 

@@ -5,6 +5,7 @@ const term = $('term');
 let payloads = [];
 let currentCat = 'all';
 let engagement = null;
+let engagementRows = [];
 let loginPending = false;
 let connectionAnnounced = false;
 let lastSeq = 0;
@@ -112,6 +113,7 @@ async function login() {
     $('app').hidden = false;
     if (!data.acknowledged && !$('ack').open) $('ack').showModal();
     connect();
+    await migrateLocalEngagements();
     await loadPayloads();
   } catch (error) {
     $('loginMsg').textContent = 'City Pop is unreachable';
@@ -349,6 +351,7 @@ function openPayloadOptions(payload) {
 
 function runPayload(id, args = []) {
   if (!requireEngagement()) return;
+  $('payloadCatalog').open = false;
   socket.emit('run_payload', {
     id, args: args.map(String), target: engagement.scope, engagement: engagement.name,
     authorized: true, in_scope: true,
@@ -365,6 +368,48 @@ function renderEngagement() {
   banner.hidden = false;
   banner.textContent = `ENGAGEMENT · ${engagement.name} · ${engagement.date} · SCOPE: ${engagement.scope}`;
   renderPayloads();
+}
+
+async function saveEngagement(row) {
+  const response = await fetch('/api/engagements', {
+    method: 'POST', headers: authHeaders(true), body: JSON.stringify(row),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Unable to save engagement');
+  return data.engagement;
+}
+
+async function migrateLocalEngagements() {
+  let local = [];
+  try { local = JSON.parse(localStorage.engagements || '[]'); } catch (error) { local = []; }
+  if (engagement) local.push(engagement);
+  try {
+    const response = await fetch('/api/engagements', {headers: authHeaders()});
+    const existing = new Map((await response.json()).engagements.map(row => [row.id, row]));
+    for (const row of local) {
+      if (!row?.name || !row?.date || !row?.scope) continue;
+      const id = row.id || slug(row.name);
+      const serverRow = existing.get(id);
+      if (!serverRow || serverRow.recovered || !serverRow.scope) {
+        const saved = await saveEngagement({...row, id});
+        existing.set(id, saved);
+      }
+    }
+  } catch (error) {
+    line('! unable to migrate browser engagement history', 'line-warn');
+  }
+}
+
+async function loadEngagements() {
+  $('historyList').innerHTML = '<div class="loading">Loading engagements…</div>';
+  try {
+    const response = await fetch('/api/engagements', {headers: authHeaders()});
+    const data = await response.json();
+    engagementRows = data.engagements || [];
+    $('historyList').innerHTML = engagementRows.map(row => `<article class="engagement-row ${row.recovered ? 'recovered' : ''}"><div><b>${escapeHtml(row.name)}</b><small>${escapeHtml(row.date || 'date unavailable')} · ${row.recovered ? 'RECOVERED · EDIT REQUIRED' : escapeHtml(row.id)}</small><p>${escapeHtml(row.scope || 'Authorized scope was not stored. Edit this engagement before reopening it.')}</p></div><div class="engagement-actions"><button type="button" data-eng-open="${escapeHtml(row.id)}" ${row.scope ? '' : 'disabled'}>OPEN</button><button type="button" data-eng-edit="${escapeHtml(row.id)}">EDIT</button><button type="button" class="danger" data-eng-delete="${escapeHtml(row.id)}">DELETE DATA</button></div></article>`).join('') || '<div class="empty-state">No engagements have been created.</div>';
+  } catch (error) {
+    $('historyList').innerHTML = '<p class="preflight-warning">Unable to load engagements.</p>';
+  }
 }
 
 async function showLoot() {
@@ -393,6 +438,33 @@ async function showExecutions() {
   const response = await fetch(`/api/executions?engagement=${encodeURIComponent(slug(engagement.name))}`, {headers: authHeaders()});
   const data = await response.json();
   $('executionsList').innerHTML = (data.executions || []).map(item => `<div class="execution-row"><div><b>${escapeHtml(item.name)}</b><small>${new Date(item.started_at).toLocaleString()} · ${item.exit_code == null ? 'RUNNING' : `EXIT ${item.exit_code}`} · ${item.duration_seconds || 0}s</small><small>${escapeHtml(item.log || '')}</small></div>${item.payload_id !== 'command' ? `<button type="button" data-rerun="${escapeHtml(item.payload_id)}">REOPEN</button>` : ''}</div>`).join('') || 'No executions recorded for this engagement.';
+}
+
+async function loadReports() {
+  $('reportList').innerHTML = '<div class="loading">Loading reports…</div>';
+  $('reportPreview').hidden = true;
+  try {
+    const response = await fetch('/api/reports', {headers: authHeaders()});
+    const data = await response.json();
+    $('reportList').innerHTML = (data.reports || []).map(report => `<article class="report-row"><div><b>${escapeHtml(report.engagement)}</b><small>${new Date(report.modified).toLocaleString()} · ${formatBytes(report.size)}</small><small>${escapeHtml(report.path)}</small></div><div class="report-actions"><button type="button" data-report-preview="${encodeURIComponent(report.path)}">VIEW</button><a href="/api/loot/download/${encodeURIComponent(report.path)}?token=${encodeURIComponent(localStorage.cityToken)}">GET</a><button type="button" class="danger" data-report-delete="${encodeURIComponent(report.path)}">DELETE</button></div></article>`).join('') || '<div class="empty-state">No engagement reports have been generated.</div>';
+  } catch (error) {
+    $('reportList').innerHTML = '<p class="preflight-warning">Unable to load engagement reports.</p>';
+  }
+}
+
+async function previewReport(path) {
+  const preview = $('reportPreview');
+  preview.hidden = false;
+  preview.textContent = 'Loading report…';
+  try {
+    const response = await fetch(`/api/loot/preview/${encodeURIComponent(path)}`, {headers: authHeaders()});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Preview failed');
+    preview.textContent = data.content;
+    preview.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+  } catch (error) {
+    preview.textContent = `Unable to preview report: ${error.message}`;
+  }
 }
 
 function renderWorkflow(payload) {
@@ -521,34 +593,80 @@ $('payloadForm').onsubmit = event => {
   runPayload(id, args);
 };
 
-$('engage').onclick = () => { $('engDate').value = new Date().toISOString().slice(0, 10); $('engagementDialog').showModal(); };
+$('engage').onclick = () => {
+  $('engagementDialog').dataset.id = '';
+  $('engagementTitle').textContent = 'CREATE ENGAGEMENT';
+  $('engName').disabled = false;
+  $('engName').value = '';
+  $('engDate').value = new Date().toISOString().slice(0, 10);
+  $('engScope').value = '';
+  $('engagementDialog').showModal();
+};
 $('engCancel').onclick = () => $('engagementDialog').close('cancel');
-$('engConfirm').onclick = event => {
+$('engConfirm').onclick = async event => {
   event.preventDefault();
   const form = event.currentTarget.form;
   $('engName').setCustomValidity($('engName').value.trim() ? '' : 'Enter an engagement name.');
   $('engScope').setCustomValidity($('engScope').value.trim() ? '' : 'Enter the authorized scope.');
   if (!form.reportValidity()) return;
-  engagement = {name: $('engName').value.trim(), date: $('engDate').value, scope: $('engScope').value.trim()};
-  const history = JSON.parse(localStorage.engagements || '[]').filter(item => item.name !== engagement.name || item.date !== engagement.date);
-  history.unshift(engagement);
-  localStorage.engagements = JSON.stringify(history.slice(0, 50));
-  sessionStorage.engagement = JSON.stringify(engagement);
-  $('engagementDialog').close();
-  renderEngagement();
+  event.currentTarget.disabled = true;
+  try {
+    engagement = await saveEngagement({id: $('engagementDialog').dataset.id, name: $('engName').value.trim(), date: $('engDate').value, scope: $('engScope').value.trim()});
+    sessionStorage.engagement = JSON.stringify(engagement);
+    const history = [engagement, ...engagementRows.filter(item => item.id !== engagement.id && item.scope)];
+    localStorage.engagements = JSON.stringify(history.slice(0, 50));
+    $('engagementDialog').close();
+    renderEngagement();
+    if ($('historyDialog').open) loadEngagements();
+  } catch (error) {
+    $('engScope').setCustomValidity(error.message);
+    form.reportValidity();
+  } finally {
+    event.currentTarget.disabled = false;
+  }
 };
 $('history').onclick = () => {
-  const history = JSON.parse(localStorage.engagements || '[]');
-  $('historyList').innerHTML = history.length ? history.map((item, index) => `<div class="lootrow"><span><b>${escapeHtml(item.name)}</b><br>${escapeHtml(item.date)}<br><small>${escapeHtml(item.scope)}</small></span><button type="button" data-hist="${index}">REOPEN</button></div>`).join('') : 'No engagements yet.';
   $('historyDialog').showModal();
+  loadEngagements();
 };
-$('historyList').onclick = event => {
-  const button = event.target.closest('[data-hist]');
-  if (!button) return;
-  engagement = JSON.parse(localStorage.engagements || '[]')[button.dataset.hist];
-  sessionStorage.engagement = JSON.stringify(engagement);
-  $('historyDialog').close();
-  renderEngagement();
+$('historyList').onclick = async event => {
+  const open = event.target.closest('[data-eng-open]');
+  const edit = event.target.closest('[data-eng-edit]');
+  const remove = event.target.closest('[data-eng-delete]');
+  const id = open?.dataset.engOpen || edit?.dataset.engEdit || remove?.dataset.engDelete;
+  if (!id) return;
+  const row = engagementRows.find(item => item.id === id);
+  if (!row) return;
+  if (open) {
+    engagement = row;
+    sessionStorage.engagement = JSON.stringify(engagement);
+    $('historyDialog').close();
+    renderEngagement();
+    return;
+  }
+  if (edit) {
+    $('engagementDialog').dataset.id = row.id;
+    $('engagementTitle').textContent = 'EDIT ENGAGEMENT';
+    $('engName').value = row.name;
+    $('engName').disabled = true;
+    $('engDate').value = row.date;
+    $('engScope').value = row.scope;
+    $('engagementDialog').showModal();
+    return;
+  }
+  const confirmation = prompt(`Permanently delete ${row.name}?\n\nThis removes its reports, logs, loot, and execution history. Type DELETE ${row.id} to confirm.`);
+  if (confirmation !== `DELETE ${row.id}`) return;
+  const response = await fetch(`/api/engagements/${encodeURIComponent(row.id)}`, {method: 'DELETE', headers: authHeaders(true), body: JSON.stringify({confirm: confirmation})});
+  const data = await response.json();
+  if (!response.ok) { line(`! ${data.error || 'engagement deletion failed'}`, 'line-hot'); return; }
+  if (engagement?.id === row.id || slug(engagement?.name) === row.id) {
+    engagement = null;
+    sessionStorage.removeItem('engagement');
+    renderEngagement();
+  }
+  localStorage.engagements = JSON.stringify(engagementRows.filter(item => item.id !== row.id && item.scope));
+  line(`» deleted engagement · ${row.name} · ${data.deleted_files} files · ${data.deleted_runs} runs`, 'line-warn');
+  loadEngagements();
 };
 $('endEngage').onclick = () => { engagement = null; sessionStorage.removeItem('engagement'); renderEngagement(); line('» engagement ended', 'line-warn'); };
 
@@ -584,15 +702,37 @@ $('executionsList').onclick = event => {
   $('executionsDialog').close();
   if (payload) showPreflight(payload);
 };
-$('reportBtn').onclick = () => { if (requireEngagement()) { $('reportResult').textContent = ''; $('reportDialog').showModal(); } };
+$('reportBtn').onclick = () => {
+  $('reportResult').textContent = '';
+  $('reportContext').textContent = engagement ? `Generate or replace the report for ${engagement.name}, or manage existing reports below.` : 'Reopen or create an engagement to generate a report. Existing reports remain available below.';
+  $('reportGenerate').disabled = !engagement;
+  $('reportDialog').showModal();
+  loadReports();
+};
 $('reportCancel').onclick = () => $('reportDialog').close();
+$('reportList').onclick = async event => {
+  const view = event.target.closest('[data-report-preview]');
+  if (view) { previewReport(decodeURIComponent(view.dataset.reportPreview)); return; }
+  const remove = event.target.closest('[data-report-delete]');
+  if (!remove) return;
+  const path = decodeURIComponent(remove.dataset.reportDelete);
+  if (!confirm(`Delete this engagement report?\n\n${path}`)) return;
+  const response = await fetch(`/api/loot/${encodeURIComponent(path)}`, {method: 'DELETE', headers: authHeaders()});
+  if (!response.ok) { line('! report deletion failed', 'line-hot'); return; }
+  $('reportPreview').hidden = true;
+  line(`» deleted report · ${path}`, 'line-warn');
+  loadReports();
+};
 $('reportForm').onsubmit = async event => {
   event.preventDefault();
+  if (!engagement) { $('reportResult').textContent = 'Create or reopen an engagement first.'; return; }
   const response = await fetch('/api/report', {method: 'POST', headers: authHeaders(true), body: JSON.stringify({engagement: engagement.name, notes: $('reportNotes').value})});
   const data = await response.json();
   if (!response.ok) { $('reportResult').textContent = data.error || 'Report generation failed.'; return; }
   $('reportResult').innerHTML = `Report created: <a href="/api/loot/download/${encodeURIComponent(data.path)}?token=${encodeURIComponent(localStorage.cityToken)}">${escapeHtml(data.path)}</a>`;
   addRuntimeItem('artifact', data.path, data.path);
+  await loadReports();
+  previewReport(data.path);
 };
 
 $('workflowStart').onclick = () => {

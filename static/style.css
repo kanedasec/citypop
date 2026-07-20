@@ -258,6 +258,30 @@ nav::-webkit-scrollbar { display: none; }
 .catalog,
 .console-stack { min-width: 0; }
 
+.catalog > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  margin-bottom: 8px;
+  padding: 10px 13px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  color: var(--cyan);
+  background: linear-gradient(90deg, rgb(57 231 239 / 8%), transparent), var(--panel-soft);
+  cursor: pointer;
+  list-style: none;
+  font: 650 10px/1 var(--display);
+  letter-spacing: .12em;
+}
+.catalog > summary::-webkit-details-marker { display: none; }
+.catalog > summary::after { content: '−'; flex: 0 0 auto; color: var(--cyan); font-size: 18px; }
+.catalog:not([open]) > summary { margin-bottom: 0; }
+.catalog:not([open]) > summary::after { content: '+'; }
+.catalog > summary small { margin-left: auto; color: var(--muted); font: 400 8px/1.3 var(--mono); letter-spacing: .04em; text-align: right; }
+.catalog > summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
 .catalog-tools {
   display: grid;
   grid-template-columns: minmax(180px, 1.4fr) repeat(2, minmax(130px, .8fr));
@@ -562,6 +586,18 @@ dialog label input[type="checkbox"] { width: 18px; min-height: 18px; margin: 0; 
 .lootrow > span:last-child { flex: 0 0 auto; white-space: nowrap; }
 .lootrow a { color: var(--cyan-soft); text-underline-offset: 3px; }
 .lootdelete { min-height: 32px; padding: 4px 7px; font-size: 9px; }
+.engagement-manager { width: min(680px, calc(100% - 28px)); }
+.engagement-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 13px 2px; border-bottom: 1px solid var(--edge); }
+.engagement-row > div:first-child { min-width: 0; }
+.engagement-row b,
+.engagement-row small { display: block; overflow-wrap: anywhere; }
+.engagement-row b { font: 650 13px var(--display); }
+.engagement-row small { margin-top: 3px; color: var(--cyan); font-size: 8px; letter-spacing: .06em; }
+.engagement-row p { margin: 6px 0 0; color: var(--dim); font-size: 9px; overflow-wrap: anywhere; }
+.engagement-row.recovered { border-left: 2px solid var(--amber); padding-left: 9px; }
+.engagement-row.recovered small { color: var(--amber); }
+.engagement-actions { display: flex; gap: 5px; }
+.engagement-actions button { min-height: 38px; padding: 5px 7px; font-size: 8px; }
 
 .loading { padding: 22px 0; color: var(--cyan); text-align: center; }
 .impact-banner { margin: 8px 0 12px; padding: 9px 10px; border: 1px solid rgb(57 231 239 / 34%); border-radius: var(--radius-sm); color: var(--cyan-soft); font-size: 9px; letter-spacing: .1em; }
@@ -608,6 +644,20 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
 .execution-row button { flex: 0 0 auto; min-height: 36px; padding: 5px 8px; font-size: 8px; }
 #reportResult { margin-top: 12px; color: var(--green); overflow-wrap: anywhere; }
 #reportResult a { color: var(--cyan-soft); }
+.report-dialog { width: min(720px, calc(100% - 28px)); }
+.report-manager { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--edge); }
+#reportList { max-height: 42vh; overflow: auto; }
+.report-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 2px; border-bottom: 1px solid var(--edge); }
+.report-row > div:first-child { min-width: 0; }
+.report-row b,
+.report-row small { display: block; overflow-wrap: anywhere; }
+.report-row b { font: 650 12px var(--display); }
+.report-row small { margin-top: 3px; color: var(--dim); font-size: 8px; }
+.report-actions { display: flex; gap: 5px; align-items: center; }
+.report-actions button,
+.report-actions a { display: grid; place-items: center; min-width: 48px; min-height: 38px; padding: 5px 7px; border: 1px solid var(--edge); border-radius: var(--radius-sm); color: var(--cyan-soft); background: var(--panel); font-size: 8px; text-decoration: none; }
+.report-actions button.danger { color: #ff9bc6; }
+#reportPreview { min-height: 180px; max-height: 42vh; margin-top: 12px; border: 1px solid var(--edge); border-radius: var(--radius-sm); background: var(--bg-deep); }
 .workflow-steps { margin: 14px 0; padding-left: 24px; }
 .workflow-steps li { padding: 9px 8px; color: var(--muted); }
 .workflow-steps li.current { color: var(--cyan); background: rgb(57 231 239 / 5%); }
@@ -635,6 +685,7 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
   .deck { padding-inline: 14px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
   .brand small { display: block; margin-top: 7px; }
   .toolbar { margin-inline: -14px; padding-inline: 14px; }
+  .catalog > summary { position: sticky; top: 0; z-index: 6; }
   .catalog-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .catalog-tools .search-field { grid-column: 1 / -1; }
   .workflow-rail { grid-template-columns: 1fr; }
@@ -660,6 +711,13 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
   .actions button { width: 100%; }
   .lootrow { align-items: flex-start; flex-direction: column; }
   .lootrow > span:last-child { white-space: normal; }
+  .engagement-row { grid-template-columns: 1fr; }
+  .engagement-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .engagement-actions button { min-height: 44px; }
+  .report-row { grid-template-columns: 1fr; }
+  .report-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .report-actions button,
+  .report-actions a { min-height: 44px; }
 }
 
 @media (max-width: 380px) {

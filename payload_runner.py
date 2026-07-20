@@ -296,6 +296,18 @@ class PayloadRunner:
             rows = [row for row in rows if row.get("engagement_slug") == engagement]
         return rows
 
+    def delete_engagement_history(self, engagement_slug: str) -> int:
+        with self.lock:
+            before = len(self.history)
+            self.history = [
+                row for row in self.history
+                if row.get("engagement_slug") != engagement_slug
+            ]
+            deleted = before - len(self.history)
+            if deleted:
+                self._save_history()
+            return deleted
+
     def respond(self, owner: str, request_id: str, value) -> bool:
         with self.lock:
             running = self.running

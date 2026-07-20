@@ -27,6 +27,16 @@ class WebApiTests(unittest.TestCase):
         self.assertEqual(history.status_code, 200)
         self.assertIn("executions", history.get_json())
 
+    def test_report_manager_shape(self):
+        response = self.client.get("/api/reports", headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("reports", response.get_json())
+
+    def test_engagement_manager_shape(self):
+        response = self.client.get("/api/engagements", headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("engagements", response.get_json())
+
     def test_every_payload_has_a_preflight_endpoint(self):
         payloads = self.client.get("/api/payloads", headers=self.headers).get_json()["payloads"]
         for payload in payloads:

@@ -18,6 +18,7 @@ from flask import Flask, abort, jsonify, request, send_from_directory, session
 from flask_socketio import SocketIO, disconnect, emit
 
 from payload_analysis import analyze_payload
+from engagement_store import EngagementStore
 from payload_runner import PayloadRunner, discover, parse_metadata, safe_slug
 
 BASE = Path(__file__).resolve().parent
@@ -41,6 +42,7 @@ app = Flask(__name__, static_folder="static", static_url_path="")
 app.secret_key = os.environ.get("CITYPOP_SESSION_KEY", secrets.token_hex(32))
 socketio = SocketIO(app, async_mode="threading", cors_allowed_origins=[])
 runner = PayloadRunner(PAYLOADS, LOOT, BASE / "state")
+engagements = EngagementStore(BASE / "state" / "engagements.json")
 
 
 def authorized():
@@ -84,6 +86,83 @@ def acknowledge():
 @require_auth
 def payload_list():
     return jsonify(payloads=discover(PAYLOADS), category_order=config["category_order"])
+
+
+def engagement_inventory() -> list[dict]:
+    rows = {row["id"]: row for row in engagements.list()}
+    for execution in runner.execution_history():
+        identifier = str(execution.get("engagement_slug") or "").strip()
+        if not identifier or identifier in rows:
+            continue
+        started = str(execution.get("started_at") or "")
+        rows[identifier] = {
+            "id": identifier,
+            "name": execution.get("engagement") or identifier.replace("_", " "),
+            "date": started[:10], "scope": "", "created_at": started,
+            "updated_at": execution.get("finished_at") or started,
+            "recovered": True,
+        }
+    if LOOT.exists():
+        for directory in LOOT.iterdir():
+            if not directory.is_dir() or directory.is_symlink() or directory.name in rows:
+                continue
+            modified = datetime.fromtimestamp(directory.stat().st_mtime, timezone.utc).isoformat()
+            rows[directory.name] = {
+                "id": directory.name, "name": directory.name.replace("_", " "),
+                "date": modified[:10], "scope": "", "created_at": modified,
+                "updated_at": modified, "recovered": True,
+            }
+    return sorted(rows.values(), key=lambda row: row.get("updated_at", ""), reverse=True)
+
+
+@app.get("/api/engagements")
+@require_auth
+def engagement_list():
+    return jsonify(engagements=engagement_inventory())
+
+
+@app.post("/api/engagements")
+@require_auth
+def engagement_save():
+    data = request.get_json(silent=True) or {}
+    identifier = str(data.get("id", "")).strip()
+    name = str(data.get("name", "")).strip()[:80]
+    date = str(data.get("date", "")).strip()
+    scope = str(data.get("scope", "")).strip()[:500]
+    if identifier and safe_slug(identifier) != identifier:
+        return jsonify(error="invalid engagement id"), 400
+    if not name or not scope:
+        return jsonify(error="name and authorized scope are required"), 400
+    try:
+        datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        return jsonify(error="date must use YYYY-MM-DD"), 400
+    row = engagements.upsert(name, date, scope, identifier)
+    return jsonify(ok=True, engagement=row)
+
+
+@app.delete("/api/engagements/<engagement_id>")
+@require_auth
+def engagement_delete(engagement_id):
+    if safe_slug(engagement_id) != engagement_id:
+        return jsonify(error="invalid engagement id"), 400
+    running = runner.snapshot().get("running")
+    if running and running.get("engagement_slug") == engagement_id:
+        return jsonify(error="stop the running engagement operation before deleting it"), 409
+    data = request.get_json(silent=True) or {}
+    if data.get("confirm") != f"DELETE {engagement_id}":
+        return jsonify(error="confirmation required"), 400
+    target = LOOT / engagement_id
+    deleted_files = 0
+    if target.is_symlink():
+        target.unlink()
+        deleted_files = 1
+    elif target.exists():
+        deleted_files = sum(1 for path in target.rglob("*") if path.is_file() or path.is_symlink())
+        shutil.rmtree(target)
+    deleted_runs = runner.delete_engagement_history(engagement_id)
+    engagements.delete(engagement_id)
+    return jsonify(ok=True, deleted_files=deleted_files, deleted_runs=deleted_runs)
 
 
 def default_route_interface():
@@ -409,6 +488,27 @@ def generate_report():
     report = root / "engagement-report.md"
     report.write_text("\n".join(lines), encoding="utf-8")
     return jsonify(ok=True, path=str(report.relative_to(LOOT)))
+
+
+@app.get("/api/reports")
+@require_auth
+def report_list():
+    reports = []
+    if LOOT.exists():
+        for path in LOOT.glob("*/engagement-report.md"):
+            if not path.is_file() or path.is_symlink():
+                continue
+            stat = path.stat()
+            relative = path.relative_to(LOOT)
+            reports.append({
+                "path": str(relative),
+                "engagement": str(relative.parent),
+                "size": stat.st_size,
+                "mtime": stat.st_mtime,
+                "modified": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+            })
+    reports.sort(key=lambda item: item["mtime"], reverse=True)
+    return jsonify(reports=reports)
 
 
 def safe_loot_path(name):

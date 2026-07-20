@@ -62,6 +62,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 - Category-filtered guided launch workflow for every payload
 - Recoverable live output, cancellation, runtime prompts, and endpoint/artifact cards
 - Engagement-scoped run history, logs, loot, and Markdown reports with artifact hashes
+- Server-persisted engagement manager for reopening, editing, and securely deleting an engagement with all associated data
 - Installable phone app shell with offline UI fallback
 - Isolated Python environment at `/opt/city-pop/.venv`
 - Hardware bindings inherited from Kali through `--system-site-packages`
