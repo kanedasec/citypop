@@ -7,6 +7,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/kanedasec/citypop/actions/workflows/ci.yml"><img src="https://github.com/kanedasec/citypop/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
   <a href="https://github.com/kanedasec/citypop/commits"><img src="https://img.shields.io/github/last-commit/kanedasec/citypop?style=flat-square&color=39e7ef" alt="Last commit"></a>
   <a href="https://github.com/kanedasec/citypop/issues"><img src="https://img.shields.io/github/issues/kanedasec/citypop?style=flat-square&color=ff4f9a" alt="Open issues"></a>
   <img src="https://img.shields.io/github/repo-size/kanedasec/citypop?style=flat-square&color=8cf7f7" alt="Repository size">
@@ -40,6 +41,7 @@ This is an independent web adaptation of [7h30th3r0n3/Raspyjack](https://github.
 - [Troubleshooting](#troubleshooting)
 - [Security and safety](#web-security)
 - [Project layout](#project-layout)
+- [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -324,6 +326,9 @@ app.py                  Flask + Socket.IO web application
 payload_runner.py       payload discovery, persistent execution, prompts, history
 payloads/               web-native payload catalog and shared helpers
 static/                 phone UI, styles, service worker, manifest, client logic
+docs/                   architecture and payload-authoring references
+tests/                  catalog-contract and authenticated API tests
+.github/                CI, issue forms, and pull-request template
 state/                  local execution history (generated, excluded from Git)
 install.sh              Kali/ARM-aware installer
 city-pop.service        systemd service template
@@ -335,44 +340,28 @@ misc/                   development documentation (not installed)
 tools/                  local migration tooling (not installed or committed)
 ```
 
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) — runtime components, data flow, environment contract, trust boundaries, and Pi-Tail constraints.
+- [Payload authoring](docs/PAYLOAD_AUTHORING.md) — metadata, phone prompts, output, loot, dashboards, dependencies, safety, and verification.
+- [Security policy](SECURITY.md) — supported version, private vulnerability reporting, and deployment expectations.
+- [Code of Conduct](CODE_OF_CONDUCT.md) — behavior expected in project spaces.
+
 ## Contributing
 
-Contributions that improve phone usability, Pi Zero 2 W reliability, hardware detection, documentation, and safe web-native payload behavior are welcome.
+Contributions that improve phone usability, Pi Zero 2 W reliability, hardware detection, documentation, and safe web-native payload behavior are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), which documents architecture boundaries, the payload contract, local setup, validation, safety expectations, and the pull-request checklist.
 
-### Before opening a pull request
-
-1. [Open an issue](https://github.com/kanedasec/citypop/issues/new) or join an existing discussion for changes that affect architecture or payload behavior.
-2. Fork the repository and create a focused branch from the latest default branch.
-3. Keep each pull request limited to one coherent change.
-4. Preserve the phone-first workflow: payloads must not depend on an LCD, joystick, or attached keyboard.
-5. Never commit tokens, credentials, captures, loot, target data, or generated engagement state.
-6. Describe the Kali image, Pi model, adapters, and test procedure used to validate hardware-related changes.
-
-Every payload must keep valid metadata at the top of its file:
-
-```python
-# @active: true
-# @name: Human-readable name
-# @desc: What the payload actually does and what output it produces.
-# @category: utilities
-# @danger: false
-# @web: true
-# @inputs: []
-```
-
-Use `payloads._web_input` for runtime choices, print actionable status and output locations to the web terminal, write artifacts beneath `CITYPOP_LOOT`, and print the complete URL of any dashboard the payload starts. Clearly mark disruptive behavior with `@danger: true`.
-
-Run the available baseline checks before submitting:
+The baseline validation is:
 
 ```bash
+python3 -m unittest discover -s tests -v
 python3 -m py_compile app.py payload_runner.py
 node --check static/app.js
 node --check static/input.js
 node --check static/sw.js
+bash -n install.sh
 git diff --check
 ```
-
-Pull requests should explain what changed, why it is safe for the Pi-Tail control path, how it was tested, and include phone screenshots for visible UI changes. Be respectful, keep testing authorized, and do not submit functionality intended to conceal unauthorized access or harm third parties.
 
 Good entry points include documentation fixes, clearer payload output, adapter compatibility reports, and issues labeled [`good first issue`](https://github.com/kanedasec/citypop/labels/good%20first%20issue) or [`help wanted`](https://github.com/kanedasec/citypop/labels/help%20wanted).
 

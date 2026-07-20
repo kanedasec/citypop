@@ -1,0 +1,81 @@
+import ast
+import unittest
+from pathlib import Path
+
+from payload_runner import discover, parse_metadata
+
+
+ROOT = Path(__file__).resolve().parents[1]
+PAYLOADS = ROOT / "payloads"
+SUPPORTED_INPUTS = {"text", "password", "number", "select"}
+
+
+class PayloadCatalogTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.payloads = discover(PAYLOADS)
+
+    def test_catalog_is_not_empty_and_ids_are_unique(self):
+        self.assertGreater(len(self.payloads), 0)
+        ids = [payload["id"] for payload in self.payloads]
+        self.assertEqual(len(ids), len(set(ids)))
+
+    def test_every_payload_is_active_and_web_native(self):
+        for payload in self.payloads:
+            with self.subTest(payload=payload["id"]):
+                self.assertTrue(payload["active"])
+                self.assertTrue(payload["web"])
+
+    def test_category_matches_parent_directory(self):
+        for payload in self.payloads:
+            with self.subTest(payload=payload["id"]):
+                self.assertEqual(payload["category"], Path(payload["id"]).parent.name)
+
+    def test_descriptions_are_web_appropriate(self):
+        forbidden = ("lcd", "raspyjack")
+        for payload in self.payloads:
+            with self.subTest(payload=payload["id"]):
+                description = payload["desc"].strip().lower()
+                self.assertTrue(description)
+                self.assertFalse(any(word in description for word in forbidden))
+
+    def test_static_inputs_use_supported_schema(self):
+        for payload in self.payloads:
+            names = set()
+            for index, spec in enumerate(payload["inputs"]):
+                with self.subTest(payload=payload["id"], input=index):
+                    self.assertIsInstance(spec, dict)
+                    self.assertTrue(spec.get("name"))
+                    self.assertTrue(spec.get("label"))
+                    self.assertIn(spec.get("type"), SUPPORTED_INPUTS)
+                    self.assertNotIn(spec["name"], names)
+                    names.add(spec["name"])
+                    if spec["type"] == "select":
+                        self.assertIsInstance(spec.get("choices"), list)
+                        self.assertTrue(spec["choices"])
+
+    def test_runtime_input_types_are_supported(self):
+        for path in PAYLOADS.glob("*/*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                name = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", "")
+                if name != "request_input":
+                    continue
+                keywords = {item.arg: item.value for item in node.keywords if item.arg}
+                input_type = ast.literal_eval(keywords["input_type"]) if "input_type" in keywords else "text"
+                with self.subTest(payload=str(path.relative_to(PAYLOADS)), line=node.lineno):
+                    self.assertIn(input_type, SUPPORTED_INPUTS)
+                    if input_type == "select":
+                        self.assertIn("choices", keywords)
+
+    def test_all_discoverable_files_parse_directly(self):
+        for payload in self.payloads:
+            path = PAYLOADS / payload["id"]
+            with self.subTest(payload=payload["id"]):
+                self.assertEqual(parse_metadata(path)["name"], payload["name"])
+
+
+if __name__ == "__main__":
+    unittest.main()
