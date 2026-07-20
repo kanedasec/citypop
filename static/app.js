@@ -12,8 +12,10 @@ let terminalPaused = false;
 let pausedOutput = [];
 let timestampsEnabled = false;
 let preflightPayload = null;
+let preflightData = null;
 let runningState = null;
 let workflowPayload = null;
+let activeWorkflow = null;
 const runtimeItems = new Set();
 
 $('linkHost').textContent = `kali@${location.hostname || 'localhost'}`;
@@ -138,10 +140,17 @@ function connect() {
     else line(`» finished · exit ${data.exit_code} · ${data.duration_seconds || 0}s · log ${data.log}`, data.exit_code ? 'line-warn' : 'line-ok');
     setRunning(null);
     (data.artifacts || []).forEach(path => addRuntimeItem('artifact', path, path));
+    finishWorkflow(data.exit_code);
   });
   socket.on('runtime_link', data => addRuntimeItem('link', data.url, data.label || data.url));
   socket.on('artifact', data => addRuntimeItem('artifact', data.path, data.path));
-  socket.on('stopped', data => line(data.ok ? '» operation stopped' : '! no operation was running', 'line-warn'));
+  socket.on('stopped', data => {
+    line(data.ok ? '» operation stopped' : '! no operation was running', 'line-warn');
+    if (data.ok) {
+      if (activeWorkflow) activeWorkflow.stopRequested = true;
+      finishWorkflow('stopped');
+    }
+  });
   socket.on('error', data => line(`! ${data.message}`, 'line-hot'));
 }
 
@@ -159,6 +168,7 @@ async function recoverRuntime() {
     (data.output || []).forEach(consumeOutput);
     lastSeq = Math.max(lastSeq, Number(data.last_seq || 0));
     setRunning(data.running || null);
+    restoreWorkflowFromRun(data.running || null);
     if (data.running?.pending_input && window.renderCityPopInput) window.renderCityPopInput(data.running.pending_input);
   } catch (error) {
     line('! unable to recover runtime state', 'line-warn');
@@ -180,6 +190,8 @@ function addRuntimeItem(type, value, label) {
   const key = `${type}:${value}`;
   if (runtimeItems.has(key)) return;
   runtimeItems.add(key);
+  if (type === 'link') updateWorkflowStage('dashboard', 'done');
+  if (type === 'artifact') updateWorkflowStage('artifacts', 'done');
   const box = $('runtimeLinks');
   box.hidden = false;
   const row = document.createElement('div');
@@ -209,6 +221,7 @@ async function loadPayloads() {
   $('workflowCategory').innerHTML = `<option value="all">All categories (${payloads.length})</option>${categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category.replaceAll('_', ' '))} (${payloads.filter(item => item.category === category).length})</option>`).join('')}`;
   renderWorkflowOptions();
   renderPayloads();
+  if (runningState) restoreWorkflowFromRun(runningState);
 }
 
 function renderWorkflowOptions() {
@@ -263,7 +276,10 @@ function renderPayloads() {
 
 async function showPreflight(payload) {
   if (!requireEngagement()) return;
+  if (!activeWorkflow || activeWorkflow.payload.id !== payload.id) beginWorkflow(payload);
+  updateWorkflowStage('preflight', 'current');
   preflightPayload = payload;
+  preflightData = null;
   $('preflightTitle').textContent = `${payload.name} · PREFLIGHT`;
   $('preflightBody').innerHTML = '<div class="loading">Checking this Pi-Tail…</div>';
   $('preflightRun').disabled = true;
@@ -271,11 +287,28 @@ async function showPreflight(payload) {
   try {
     const response = await fetch(`/api/preflight/${encodeURIComponent(payload.id)}`, {headers: authHeaders()});
     const data = await response.json();
-    $('preflightBody').innerHTML = `<div class="impact-banner ${payload.danger ? 'danger' : ''}">${payload.danger ? 'ACTIVE / HIGH-IMPACT OPERATION' : 'NORMAL OPERATION'}</div>${(data.checks || []).map(check => `<div class="check-row ${check.ok ? 'ok' : 'bad'}"><i>${check.ok ? '✓' : '!'}</i><span><b>${escapeHtml(check.label)}</b><small>${escapeHtml(check.detail)}</small></span></div>`).join('') || '<p>No explicit dependencies detected.</p>'}${(data.warnings || []).map(warning => `<p class="preflight-warning">⚠ ${escapeHtml(warning)}</p>`).join('')}`;
-    $('preflightRun').disabled = false;
+    preflightData = data;
+    const failed = (data.checks || []).filter(check => check.blocking && !check.ok);
+    $('preflightBody').innerHTML = `<div class="impact-banner ${payload.danger ? 'danger' : ''}">${payload.danger ? 'ACTIVE / HIGH-IMPACT OPERATION' : 'NORMAL OPERATION'}</div><div class="capability-summary"><span>${data.capabilities.static_inputs || 0} launch inputs</span><span>${data.capabilities.runtime_inputs || 0} runtime prompts</span><span>${data.capabilities.dashboard ? 'dashboard' : 'terminal output'}</span><span>${data.capabilities.produces_loot ? 'artifacts' : 'log only'}</span></div>${(data.checks || []).map(check => `<div class="check-row ${check.ok ? 'ok' : check.blocking ? 'bad' : 'optional'}"><i>${check.ok ? '✓' : check.blocking ? '!' : '○'}</i><span><b>${escapeHtml(check.label)}</b><small>${escapeHtml(check.detail)}${check.blocking ? '' : ' · optional'}</small></span></div>`).join('')}${(data.warnings || []).map(warning => `<p class="preflight-warning">⚠ ${escapeHtml(warning)}</p>`).join('')}${failed.length ? `<label class="preflight-override"><input id="preflightOverride" type="checkbox"><span>I reviewed ${failed.length} failed required check${failed.length === 1 ? '' : 's'} and explicitly choose to continue anyway.</span></label>` : ''}`;
+    if (failed.length) {
+      updateWorkflowStage('preflight', 'failed');
+      $('preflightRun').disabled = true;
+      $('preflightOverride').onchange = event => {
+        $('preflightRun').disabled = !event.target.checked;
+        updateWorkflowStage('preflight', event.target.checked ? 'override' : 'failed');
+      };
+    } else {
+      updateWorkflowStage('preflight', 'done');
+      $('preflightRun').disabled = false;
+    }
   } catch (error) {
-    $('preflightBody').innerHTML = '<p class="preflight-warning">Preflight service is unavailable. Verify the target manually.</p>';
-    $('preflightRun').disabled = false;
+    updateWorkflowStage('preflight', 'failed');
+    $('preflightBody').innerHTML = '<p class="preflight-warning">Preflight service is unavailable. Automatic verification did not complete.</p><label class="preflight-override"><input id="preflightOverride" type="checkbox"><span>I understand that preflight could not run and explicitly choose to continue.</span></label>';
+    $('preflightRun').disabled = true;
+    $('preflightOverride').onchange = event => {
+      $('preflightRun').disabled = !event.target.checked;
+      updateWorkflowStage('preflight', event.target.checked ? 'override' : 'failed');
+    };
   }
 }
 
@@ -308,7 +341,10 @@ function openPayloadOptions(payload) {
     label.append(control);
     box.append(label);
   });
-  if (specs.length) $('payloadDialog').showModal(); else runPayload(payload.id, []);
+  if (specs.length) {
+    updateWorkflowStage('configuration', 'current');
+    $('payloadDialog').showModal();
+  } else runPayload(payload.id, []);
 }
 
 function runPayload(id, args = []) {
@@ -318,6 +354,8 @@ function runPayload(id, args = []) {
     authorized: true, in_scope: true,
   });
   setRunning({payload_id: id, name: payloads.find(item => item.id === id)?.name || id, engagement: engagement.name, args, started_at: new Date().toISOString(), elapsed_seconds: 0, log: 'pending'});
+  const runtimePrompts = activeWorkflow?.payload.id === id ? activeWorkflow.capabilities.runtime_inputs : 0;
+  updateWorkflowStage(runtimePrompts ? 'configuration' : 'execution', 'current');
   requestAnimationFrame(() => document.querySelector('.terminal').scrollIntoView({behavior: 'smooth', block: 'start'}));
 }
 
@@ -359,12 +397,88 @@ async function showExecutions() {
 
 function renderWorkflow(payload) {
   workflowPayload = payload;
-  $('workflowBody').innerHTML = `<div class="guide-heading"><span>${escapeHtml(payload.category.replaceAll('_', ' '))}</span><h3>${escapeHtml(payload.name)}</h3><p>${escapeHtml(payload.desc)}</p></div><ol class="workflow-steps"><li class="current"><b>1 · Confirm engagement scope</b><small>Use the mandatory engagement name, date, and authorized target scope.</small></li><li><b>2 · Inspect Pi-Tail preflight</b><small>Review dependencies, attached hardware, impact, and the protected management route.</small></li><li><b>3 · Configure the payload</b><small>Choose every interface, target, duration, mode, or other argument requested by this script.</small></li><li><b>4 · Run and observe</b><small>The page moves to the terminal; output, dashboard endpoints, logs, and artifacts remain attached to the engagement.</small></li></ol>`;
+  beginWorkflow(payload);
+  $('workflowBody').innerHTML = `<div class="guide-heading"><span>${escapeHtml(payload.category.replaceAll('_', ' '))}</span><h3>${escapeHtml(payload.name)}</h3><p>${escapeHtml(payload.desc)}</p></div><ol class="workflow-steps">${activeWorkflow.steps.map((step, index) => `<li class="${index === 0 ? 'current' : ''}"><b>${index + 1} · ${escapeHtml(step.label)}</b><small>${escapeHtml(step.detail)}</small></li>`).join('')}</ol>`;
   $('workflowNext').textContent = 'BEGIN PREFLIGHT';
+}
+
+function workflowSteps(payload) {
+  const capabilities = payload.capabilities || {};
+  const dependencies = (capabilities.commands?.length || 0) + (capabilities.python_modules?.length || 0) + (capabilities.hardware?.length || 0) + (capabilities.services?.length || 0) + (capabilities.device_paths?.length || 0) + (capabilities.data_paths?.length || 0) + (capabilities.kernel_capabilities?.length || 0);
+  const steps = [
+    {key: 'scope', label: 'Confirm engagement scope', detail: `Use ${engagement?.name || 'the active engagement'} and verify its authorized targets.`},
+    {key: 'preflight', label: 'Verify this Pi-Tail', detail: `Check ${dependencies || 'standard-library'} requirements${capabilities.hardware?.length ? ` and ${capabilities.hardware.join(', ')} hardware` : ''}.`},
+  ];
+  if ((capabilities.static_inputs || 0) + (capabilities.runtime_inputs || 0) > 0) {
+    steps.push({key: 'configuration', label: 'Configure requested options', detail: `${capabilities.static_inputs || 0} launch input${capabilities.static_inputs === 1 ? '' : 's'} and ${capabilities.runtime_inputs || 0} possible runtime prompt${capabilities.runtime_inputs === 1 ? '' : 's'}.`});
+  }
+  steps.push({key: 'execution', label: 'Run and observe', detail: 'Follow live terminal output and use Stop if behavior is unexpected.'});
+  if (capabilities.dashboard) steps.push({key: 'dashboard', label: 'Open live dashboard', detail: 'Use the tokenized endpoint printed in the terminal.'});
+  if (capabilities.produces_loot) steps.push({key: 'artifacts', label: 'Review engagement artifacts', detail: 'Preview or download files created under this engagement.'});
+  steps.push({key: 'complete', label: 'Confirm completion', detail: capabilities.produces_loot ? 'Review the exit status, log, and generated artifacts.' : 'Review the exit status and engagement log.'});
+  return steps;
+}
+
+function beginWorkflow(payload) {
+  activeWorkflow = {
+    payload,
+    capabilities: payload.capabilities || {},
+    steps: workflowSteps(payload),
+    status: {scope: 'done'},
+    sawDashboard: false,
+    sawArtifacts: false,
+  };
+  renderWorkflowTracker();
+}
+
+function restoreWorkflowFromRun(run) {
+  if (!run || run.payload_id === 'command') return;
+  const payload = payloads.find(item => item.id === run.payload_id);
+  if (!payload || activeWorkflow?.payload.id === payload.id) return;
+  beginWorkflow(payload);
+  updateWorkflowStage('preflight', 'done');
+  if (activeWorkflow.steps.some(step => step.key === 'configuration')) {
+    updateWorkflowStage('configuration', run.pending_input ? 'current' : 'done');
+  }
+  if (!run.pending_input) updateWorkflowStage('execution', 'current');
+}
+
+function updateWorkflowStage(key, status) {
+  if (!activeWorkflow || !activeWorkflow.steps.some(step => step.key === key)) return;
+  if (key === 'dashboard' && status === 'done') activeWorkflow.sawDashboard = true;
+  if (key === 'artifacts' && status === 'done') activeWorkflow.sawArtifacts = true;
+  if (status === 'current') {
+    activeWorkflow.steps.forEach(step => {
+      if (activeWorkflow.status[step.key] === 'current') activeWorkflow.status[step.key] = 'done';
+    });
+  }
+  activeWorkflow.status[key] = status;
+  renderWorkflowTracker();
+}
+
+function finishWorkflow(exitCode) {
+  if (!activeWorkflow) return;
+  if (activeWorkflow.stopRequested && typeof exitCode === 'number' && exitCode < 0) exitCode = 'stopped';
+  if (activeWorkflow.status.configuration === 'current') updateWorkflowStage('configuration', 'skipped');
+  updateWorkflowStage('execution', exitCode === 0 ? 'done' : exitCode === 'stopped' ? 'stopped' : 'failed');
+  if (activeWorkflow.steps.some(step => step.key === 'dashboard') && !activeWorkflow.sawDashboard) updateWorkflowStage('dashboard', 'skipped');
+  if (activeWorkflow.steps.some(step => step.key === 'artifacts') && !activeWorkflow.sawArtifacts) updateWorkflowStage('artifacts', 'skipped');
+  updateWorkflowStage('complete', exitCode === 0 ? 'done' : exitCode === 'stopped' ? 'stopped' : 'failed');
+}
+
+window.citypopWorkflowInputRequested = () => updateWorkflowStage('configuration', 'current');
+window.citypopWorkflowInputSubmitted = () => updateWorkflowStage('execution', 'current');
+
+function renderWorkflowTracker() {
+  const tracker = $('workflowTracker');
+  if (!activeWorkflow) { tracker.hidden = true; return; }
+  tracker.hidden = false;
+  tracker.innerHTML = `<div class="tracker-head"><span>GUIDED WORKFLOW</span><b>${escapeHtml(activeWorkflow.payload.name)}</b></div><ol>${activeWorkflow.steps.map((step, index) => { const status = activeWorkflow.status[step.key] || 'pending'; return `<li class="${status}"><i>${status === 'done' ? '✓' : status === 'failed' ? '!' : status === 'override' ? '⚠' : status === 'skipped' ? '–' : index + 1}</i><span><b>${escapeHtml(step.label)}</b><small>${status === 'override' ? 'operator override accepted' : status === 'skipped' ? 'not produced during this run' : status}</small></span></li>`; }).join('')}</ol>`;
 }
 
 function stopCurrent() {
   if (!socket) return;
+  if (activeWorkflow) activeWorkflow.stopRequested = true;
   socket.emit('stop');
   line('» stop requested', 'line-warn');
 }
@@ -392,7 +506,11 @@ $('grid').onclick = event => {
   if (button) showPreflight(payloads.find(item => item.id === button.dataset.id));
 };
 ['payloadSearch', 'impactFilter', 'capabilityFilter'].forEach(id => $(id).addEventListener(id === 'payloadSearch' ? 'input' : 'change', renderPayloads));
-$('preflightRun').onclick = () => { $('preflightDialog').close(); if (preflightPayload) openPayloadOptions(preflightPayload); };
+$('preflightRun').onclick = () => {
+  $('preflightDialog').close();
+  if (activeWorkflow?.status.preflight === 'current') updateWorkflowStage('preflight', 'done');
+  if (preflightPayload) openPayloadOptions(preflightPayload);
+};
 $('payloadCancel').onclick = () => $('payloadDialog').close();
 $('payloadForm').onsubmit = event => {
   event.preventDefault();

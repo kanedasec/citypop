@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import glob
+import importlib.util
 import secrets
 import shutil
 import socket
@@ -15,6 +17,7 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, request, send_from_directory, session
 from flask_socketio import SocketIO, disconnect, emit
 
+from payload_analysis import analyze_payload
 from payload_runner import PayloadRunner, discover, parse_metadata, safe_slug
 
 BASE = Path(__file__).resolve().parent
@@ -183,16 +186,58 @@ def hardware_status():
     return jsonify(system=system_inventory(), interfaces=interface_inventory())
 
 
-def literal_commands(source: str):
-    commands = set(re.findall(
-        r"(?:which\(|shutil\.which\(|\[)\s*['\"]([a-zA-Z0-9_.+-]+)['\"]", source
-    ))
-    common = {
-        "sudo", "ip", "iw", "nmap", "tshark", "tcpdump", "hostapd",
-        "dnsmasq", "aircrack-ng", "hciconfig", "hcitool", "bluetoothctl",
-        "rtl_test", "mmcli", "gpspipe", "tcpreplay", "john", "gobuster",
+def module_available(name: str) -> bool:
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ModuleNotFoundError, ValueError):
+        return False
+
+
+def hardware_check(name: str, system: dict, interfaces: list[dict]) -> tuple[bool, str]:
+    wireless = [item["name"] for item in interfaces if item["wireless"]]
+    checks = {
+        "wifi": (bool(wireless), ", ".join(wireless) or "no Wi-Fi adapter detected"),
+        "bluetooth": (system["bluetooth"], "adapter detected" if system["bluetooth"] else "no Bluetooth adapter detected"),
+        "sdr": (system["sdr"], "SDR tooling detected" if system["sdr"] else "no supported SDR tooling detected"),
+        "nfc": (system["nfc"], "possible USB/serial reader detected" if system["nfc"] else "no NFC/serial reader detected"),
+        "gps": (system["gps"], "serial receiver detected" if system["gps"] else "no serial GPS receiver detected"),
+        "i2c": (bool(glob.glob("/dev/i2c-*")), ", ".join(glob.glob("/dev/i2c-*")) or "no I²C device node"),
+        "gpio": (bool(glob.glob("/dev/gpiochip*")), ", ".join(glob.glob("/dev/gpiochip*")) or "no GPIO character device"),
+        "camera": (bool(glob.glob("/dev/video*")), ", ".join(glob.glob("/dev/video*")) or "no video device"),
+        "serial": (bool(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*")), "serial device detected" if glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*") else "no USB serial device"),
+        "audio": (Path("/dev/snd").exists(), "audio subsystem detected" if Path("/dev/snd").exists() else "no audio subsystem"),
+        "modem": (bool(shutil.which("mmcli")), shutil.which("mmcli") or "ModemManager CLI missing"),
+        "usb": (Path("/sys/bus/usb/devices").exists(), "USB subsystem available" if Path("/sys/bus/usb/devices").exists() else "USB subsystem unavailable"),
     }
-    return sorted(command for command in commands if command in common)
+    return checks.get(name, (True, "no automatic probe available"))
+
+
+def service_installed(name: str) -> bool:
+    if not shutil.which("systemctl"):
+        return False
+    try:
+        result = subprocess.run(
+            ["systemctl", "cat", f"{name}.service"], capture_output=True,
+            text=True, timeout=4,
+        )
+        return result.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def has_linux_capability(name: str) -> bool:
+    if os.geteuid() == 0:
+        return True
+    numbers = {"NET_ADMIN": 12, "NET_RAW": 13}
+    try:
+        line = next(
+            item for item in Path("/proc/self/status").read_text().splitlines()
+            if item.startswith("CapEff:")
+        )
+        effective = int(line.split()[1], 16)
+        return bool(effective & (1 << numbers[name]))
+    except (OSError, StopIteration, KeyError, ValueError):
+        return False
 
 
 @app.get("/api/preflight/<path:payload_id>")
@@ -200,32 +245,57 @@ def literal_commands(source: str):
 def payload_preflight(payload_id):
     path = runner.resolve(payload_id)
     meta = parse_metadata(path)
-    source = path.read_text(encoding="utf-8", errors="replace")
-    commands = literal_commands(source)
-    checks = [
-        {"label": f"command · {command}", "ok": bool(shutil.which(command)),
-         "detail": shutil.which(command) or "not installed"}
-        for command in commands
-    ]
+    capabilities = analyze_payload(path, meta)
+    checks = []
+    for command in capabilities["commands"]:
+        resolved = shutil.which(command)
+        checks.append({"kind": "command", "label": f"Executable · {command}",
+                       "ok": bool(resolved), "blocking": True,
+                       "detail": resolved or "not found in PATH"})
+    for module in capabilities["python_modules"]:
+        ok = module_available(module)
+        checks.append({"kind": "python", "label": f"Python module · {module}",
+                       "ok": ok, "blocking": True,
+                       "detail": "importable" if ok else "module not importable"})
+    for module in capabilities["optional_python_modules"]:
+        ok = module_available(module)
+        checks.append({"kind": "optional", "label": f"Optional module · {module}",
+                       "ok": ok, "blocking": False,
+                       "detail": "available" if ok else "optional feature unavailable"})
     interfaces = interface_inventory()
-    if meta["category"] == "wifi":
-        wireless = [item for item in interfaces if item["wireless"]]
-        checks.append({"label": "Wi-Fi adapter", "ok": bool(wireless),
-                       "detail": ", ".join(item["name"] for item in wireless) or "none detected"})
-    if meta["category"] == "bluetooth":
-        checks.append({"label": "Bluetooth adapter", "ok": system_inventory()["bluetooth"],
-                       "detail": "detected" if system_inventory()["bluetooth"] else "none detected"})
-    if meta["category"] == "sdr":
-        checks.append({"label": "SDR tooling", "ok": system_inventory()["sdr"],
-                       "detail": "detected" if system_inventory()["sdr"] else "optional hardware/tool missing"})
+    system = system_inventory()
+    for hardware in capabilities["hardware"]:
+        ok, detail = hardware_check(hardware, system, interfaces)
+        checks.append({"kind": "hardware", "label": f"Hardware · {hardware}",
+                       "ok": ok, "blocking": True, "detail": detail})
+    for service in capabilities["services"]:
+        ok = service_installed(service)
+        checks.append({"kind": "service", "label": f"Service · {service}",
+                       "ok": ok, "blocking": True,
+                       "detail": "installed" if ok else "service unit not found"})
+    for capability in capabilities["kernel_capabilities"]:
+        ok = has_linux_capability(capability)
+        checks.append({"kind": "kernel", "label": f"Linux capability · CAP_{capability}",
+                       "ok": ok, "blocking": True,
+                       "detail": "available" if ok else "service lacks required privilege"})
+    for pattern in capabilities["device_paths"] + capabilities["data_paths"]:
+        matches = glob.glob(pattern)
+        checks.append({"kind": "path", "label": f"Path · {pattern}",
+                       "ok": bool(matches), "blocking": True,
+                       "detail": ", ".join(matches[:3]) if matches else "not found"})
+    if not checks:
+        checks.append({"kind": "runtime", "label": "Runtime · Python standard library",
+                       "ok": True, "blocking": True,
+                       "detail": "no external command, module, service, or device dependency detected"})
     warnings = []
     route_names = [item["name"] for item in interfaces if item["default_route"]]
     if meta["category"] in {"wifi", "network", "evasion"} and route_names:
         warnings.append(f"Protect the City Pop route: {', '.join(route_names)}")
     return jsonify(
         payload={"id": payload_id, "name": meta["name"], "danger": meta["danger"]},
-        ready=all(item["ok"] for item in checks), checks=checks,
+        ready=all(item["ok"] for item in checks if item["blocking"]), checks=checks,
         warnings=warnings, estimated_impact="high" if meta["danger"] else "normal",
+        capabilities=capabilities,
     )
 
 

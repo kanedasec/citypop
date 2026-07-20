@@ -92,6 +92,8 @@ Use `payloads._dashboard.DashboardServer` for small read-only live views. Bind o
 
 Check optional commands, Python modules, services, and devices before destructive setup. Fail with a direct terminal message and a meaningful nonzero exit code. Avoid downloading or installing packages from a payload; dependencies belong in the installer and requirement files.
 
+City Pop statically analyzes literal subprocess commands, imports, service units, `/dev` and `/usr/share` paths, hardware indicators, and network-related Linux capabilities. Required failures block the guide until the operator explicitly acknowledges an override. Keep dependency references literal where practical so preflight can discover them; dynamic construction may require a direct check inside the payload.
+
 ## Danger classification
 
 Use `@danger: true` when a payload transmits disruptive traffic, modifies a target or medium, handles credentials, changes network behavior, performs replay/injection, creates access material, or can interrupt service. Passive local status and read-only inspection can normally use `false`.

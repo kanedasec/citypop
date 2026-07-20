@@ -28,6 +28,10 @@ The runner discovers metadata, resolves payload paths safely, launches Python or
 
 Payload processes survive temporary browser disconnects. An authenticated browser retrieves the runtime snapshot and pending prompt after reconnecting.
 
+### `payload_analysis.py`
+
+The static capability analyzer derives launch/runtime input counts, referenced executables, required and optional Python modules, system services, device/data paths, hardware classes, dashboard support, and loot behavior. The catalog uses these capabilities to construct truthful per-payload guide stages, while preflight resolves them against the running Pi.
+
 ### `static/`
 
 The vanilla HTML/CSS/JavaScript client is optimized for a phone. It owns engagement information stored in browser storage, catalog filtering, guide/preflight dialogs, terminal presentation, live prompts, loot controls, and report actions. The service worker caches only the application shell; APIs and Socket.IO are never cached.

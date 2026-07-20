@@ -16,6 +16,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
+from payload_analysis import analyze_payload
+
 META_RE = re.compile(r"^#\s*@([a-z_]+):\s*(.*?)\s*$")
 REQUIRED = {"name", "desc", "category", "danger"}
 INPUT_PREFIX = "CITYPOP_INPUT_REQUEST:"
@@ -58,6 +60,7 @@ def discover(root: Path) -> list[dict]:
             meta = parse_metadata(path)
         except (OSError, ValueError):
             continue
+        meta["capabilities"] = analyze_payload(path, meta)
         meta.update({"id": str(path.relative_to(root)), "filename": path.name})
         result.append(meta)
     return result

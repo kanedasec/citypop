@@ -37,6 +37,9 @@ class WebApiTests(unittest.TestCase):
                 self.assertEqual(data["payload"]["id"], payload["id"])
                 self.assertIn("checks", data)
                 self.assertIn("warnings", data)
+                self.assertIn("capabilities", data)
+                self.assertTrue(data["checks"])
+                self.assertTrue(all("blocking" in check for check in data["checks"]))
 
 
 if __name__ == "__main__":

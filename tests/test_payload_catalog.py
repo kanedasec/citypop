@@ -25,6 +25,15 @@ class PayloadCatalogTests(unittest.TestCase):
             with self.subTest(payload=payload["id"]):
                 self.assertTrue(payload["active"])
                 self.assertTrue(payload["web"])
+                capabilities = payload.get("capabilities", {})
+                self.assertIn("static_inputs", capabilities)
+                self.assertIn("runtime_inputs", capabilities)
+                self.assertIn("commands", capabilities)
+                self.assertIn("python_modules", capabilities)
+                self.assertIn("hardware", capabilities)
+                self.assertIn("kernel_capabilities", capabilities)
+                self.assertIn("dashboard", capabilities)
+                self.assertIn("produces_loot", capabilities)
 
     def test_category_matches_parent_directory(self):
         for payload in self.payloads:
