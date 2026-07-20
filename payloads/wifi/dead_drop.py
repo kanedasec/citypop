@@ -32,7 +32,7 @@ Controls:
   Ctrl-C   Stop the dead drop and print a final summary. You'll then
            be asked whether to purge all dropped files.
 
-Loot: $CITYPOP_ROOT/loot/DeadDrop/
+Loot: $CITYPOP_LOOT/DeadDrop/
 """
 
 from payloads._web_input import request_input
@@ -58,8 +58,12 @@ from payloads._dashboard import DashboardServer
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-DROP_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), 'loot', 'DeadDrop', 'files')
-LOG_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), 'loot', 'DeadDrop')
+_ENGAGEMENT_LOOT = os.environ.get(
+    "CITYPOP_LOOT",
+    os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")), "loot"),
+)
+DROP_DIR = os.path.join(_ENGAGEMENT_LOOT, 'DeadDrop', 'files')
+LOG_DIR = os.path.join(_ENGAGEMENT_LOOT, 'DeadDrop')
 CONFIG_PATH = os.path.join(LOG_DIR, "config.json")
 
 HOSTAPD_CONF = "/tmp/rj_deaddrop_hostapd.conf"

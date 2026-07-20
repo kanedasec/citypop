@@ -40,7 +40,7 @@ Controls:
     - Once the rogue AP is live, status (clients / captured creds) is
       printed periodically. Press Ctrl-C to stop and clean up.
 
-Loot: $CITYPOP_ROOT/loot/KarmaAP/
+Loot: $CITYPOP_LOOT/KarmaAP/
 """
 
 from payloads._web_input import request_input
@@ -63,7 +63,13 @@ from payloads._iface_helper import list_interfaces, supports_monitor
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), 'loot', 'KarmaAP')
+LOOT_DIR = os.path.join(
+    os.environ.get(
+        "CITYPOP_LOOT",
+        os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")), "loot"),
+    ),
+    'KarmaAP',
+)
 os.makedirs(LOOT_DIR, exist_ok=True)
 
 HOSTAPD_CONF = "/tmp/raspyjack_karma_hostapd.conf"

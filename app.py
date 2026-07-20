@@ -102,16 +102,6 @@ def engagement_inventory() -> list[dict]:
             "updated_at": execution.get("finished_at") or started,
             "recovered": True,
         }
-    if LOOT.exists():
-        for directory in LOOT.iterdir():
-            if not directory.is_dir() or directory.is_symlink() or directory.name in rows:
-                continue
-            modified = datetime.fromtimestamp(directory.stat().st_mtime, timezone.utc).isoformat()
-            rows[directory.name] = {
-                "id": directory.name, "name": directory.name.replace("_", " "),
-                "date": modified[:10], "scope": "", "created_at": modified,
-                "updated_at": modified, "recovered": True,
-            }
     return sorted(rows.values(), key=lambda row: row.get("updated_at", ""), reverse=True)
 
 

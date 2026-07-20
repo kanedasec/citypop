@@ -34,7 +34,7 @@ The static capability analyzer derives launch/runtime input counts, referenced e
 
 ### `engagement_store.py`
 
-The engagement registry persists names, dates, and authorized scopes in `state/engagements.json`, allowing engagements to be reopened or edited from another browser. Existing execution history and loot directories are surfaced as recovered engagements until their missing scope is supplied. Permanent engagement deletion removes its registry entry, execution history, reports, logs, and loot after exact typed confirmation.
+The engagement registry persists names, dates, and authorized scopes in `state/engagements.json`, allowing engagements to be reopened or edited from another browser. Existing execution history is surfaced as recovered engagements until its missing scope is supplied; arbitrary payload output directories are never interpreted as engagements. Permanent engagement deletion removes its registry entry, execution history, reports, logs, and loot after exact typed confirmation.
 
 ### `static/`
 

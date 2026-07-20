@@ -1,6 +1,10 @@
 import unittest
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
 
 import app as citypop
+from engagement_store import EngagementStore
 
 
 class WebApiTests(unittest.TestCase):
@@ -36,6 +40,19 @@ class WebApiTests(unittest.TestCase):
         response = self.client.get("/api/engagements", headers=self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertIn("engagements", response.get_json())
+
+    def test_payload_loot_directories_are_not_engagements(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "loot" / "DeadDrop").mkdir(parents=True)
+            (root / "loot" / "KarmaAP").mkdir()
+            (root / "loot" / "logs").mkdir()
+            store = EngagementStore(root / "state" / "engagements.json")
+            with patch.object(citypop, "LOOT", root / "loot"), \
+                    patch.object(citypop, "engagements", store), \
+                    patch.object(citypop.runner, "execution_history", return_value=[]):
+                response = self.client.get("/api/engagements", headers=self.headers)
+            self.assertEqual(response.get_json()["engagements"], [])
 
     def test_every_payload_has_a_preflight_endpoint(self):
         payloads = self.client.get("/api/payloads", headers=self.headers).get_json()["payloads"]
