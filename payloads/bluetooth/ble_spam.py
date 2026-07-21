@@ -120,6 +120,7 @@ speed_idx = 2       # default: Fast (100ms)
 packets_sent = 0
 last_error = ""
 last_device = ""
+selected_adapter = None
 
 
 # ---------------------------------------------------------------------------
@@ -243,41 +244,43 @@ def _broadcast_once(adv_bytes, label):
     global packets_sent, last_error, last_device
 
     try:
-        # Random MAC
         mac = [random.randint(0, 255) for _ in range(6)]
         mac[0] = mac[0] | 0xC0
         mac_hex = " ".join(f"{b:02X}" for b in mac)
 
-        # Adv data hex
         data = list(adv_bytes)
         data_len = len(data)
-        while len(data) < 30:
+        while len(data) < 31:
             data.append(0)
         hex_str = " ".join(f"{b:02X}" for b in data)
         total_len = f"{data_len:02X}"
 
-        # Single bash call — all HCI commands chained
-        script = (
-            f"hcitool -i {HCI_DEV} cmd 0x08 0x000a 00 >/dev/null 2>&1;"
-            f"hcitool -i {HCI_DEV} cmd 0x08 0x0005 {mac_hex} >/dev/null 2>&1;"
-            f"hcitool -i {HCI_DEV} cmd 0x08 0x0006 20 00 20 00 00 01 00 "
-            f"00 00 00 00 00 00 07 00 >/dev/null 2>&1;"
-            f"hcitool -i {HCI_DEV} cmd 0x08 0x0008 {total_len} {hex_str} >/dev/null 2>&1;"
-            f"hcitool -i {HCI_DEV} cmd 0x08 0x000a 01 >/dev/null 2>&1;"
-            f"sleep 0.1;"
-            f"hcitool -i {HCI_DEV} cmd 0x08 0x000a 00 >/dev/null 2>&1"
-        )
-        subprocess.run(["sudo", "bash", "-c", script],
-                       capture_output=True, timeout=3)
+        # Each as separate call
+        subprocess.run(f"sudo hcitool -i {HCI_DEV} cmd 0x08 0x000a 00".split(), 
+                      capture_output=True, timeout=1)
+        time.sleep(0.02)
+        subprocess.run(f"sudo hcitool -i {HCI_DEV} cmd 0x08 0x0005 {mac_hex}".split(), 
+                      capture_output=True, timeout=1)
+        time.sleep(0.02)
+        subprocess.run(f"sudo hcitool -i {HCI_DEV} cmd 0x08 0x0006 20 00 20 00 00 01 00 00 00 00 00 00 00 07 00".split(), 
+                      capture_output=True, timeout=1)
+        time.sleep(0.02)
+        subprocess.run(f"sudo hcitool -i {HCI_DEV} cmd 0x08 0x0008 {total_len} {hex_str}".split(), 
+                      capture_output=True, timeout=1)
+        time.sleep(0.02)
+        subprocess.run(f"sudo hcitool -i {HCI_DEV} cmd 0x08 0x000a 01".split(), 
+                      capture_output=True, timeout=1)
+        
+        time.sleep(0.1)
+        
+        subprocess.run(f"sudo hcitool -i {HCI_DEV} cmd 0x08 0x000a 00".split(), 
+                      capture_output=True, timeout=1)
 
         with lock:
             packets_sent += 1
             last_device = label
         return True
-    except subprocess.TimeoutExpired:
-        with lock:
-            last_error = "Timeout"
-        return False
+
     except Exception as exc:
         with lock:
             last_error = str(exc)[:30]
@@ -432,6 +435,7 @@ def _spam_loop():
 
         builder = random.choice(builders)
         adv_bytes, label = builder()
+        print(adv_bytes.hex())
         _broadcast_once(adv_bytes, label)
 
         time.sleep(delay_ms / 1000.0)
@@ -439,7 +443,7 @@ def _spam_loop():
 
 def _start_spam():
     """Start spamming in a background thread."""
-    global spamming
+    global spamming, selected_adapter, mode_idx, HCI_DEV
     with lock:
         if spamming:
             return
@@ -448,7 +452,31 @@ def _start_spam():
     time.sleep(0.3)
     _hci_up()
     time.sleep(0.1)
-    threading.Thread(target=_spam_loop, daemon=True).start()
+
+    adapter = _select_bt_interface()
+    if not adapter:
+        with lock:
+            spamming = False
+        return
+    
+    while True:
+        # Select mode
+        mode_choice = str(request_input("Select mode adapter", input_type="select", choices=[
+            {"value": mode, "label": mode}
+            for mode in MODES
+        ]))
+        
+        if mode_choice in MODES:
+            print(mode_choice)
+            # Store globally so _spam_loop can use it
+            with lock:
+                HCI_DEV = adapter  # Set HCI_DEV to the selected adapter
+                mode_idx = MODES.index(mode_choice)
+                spamming = True
+            
+            # Start the spam loop
+            threading.Thread(target=_spam_loop, daemon=True).start()
+            return
 
 
 def _stop_spam():
@@ -545,6 +573,9 @@ def main():
     if not HCI_DEV:
         return 1
 
+    _start_spam()
+    start_time = time.time()
+
     mode = MODES[mode_idx]
     print(f"Mode: {mode}  Speed: {SPEED_LABELS[speed_idx]} ({SPEED_LEVELS[speed_idx]}ms)", flush=True)
     if duration:
@@ -552,8 +583,6 @@ def main():
     else:
         print("Spamming until Ctrl-C ...", flush=True)
 
-    _start_spam()
-    start_time = time.time()
 
     try:
         while True:
