@@ -38,6 +38,10 @@ function slug(value) {
   return String(value || 'engagement').replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'engagement';
 }
 
+function activeEngagementId() {
+  return engagement?.id || (engagement ? slug(engagement.name) : '');
+}
+
 function formatBytes(value) {
   let bytes = Number(value || 0);
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -402,11 +406,13 @@ async function migrateLocalEngagements() {
 
 async function loadEngagements() {
   $('historyList').innerHTML = '<div class="loading">Loading engagements…</div>';
+  const activeId = activeEngagementId();
+  $('historyActive').innerHTML = engagement ? `<div><span>ACTIVE ENGAGEMENT</span><b>${escapeHtml(engagement.name)}</b><small>${escapeHtml(engagement.date)} · ${escapeHtml(engagement.scope)}</small></div><button type="button" id="endActiveEngagement" class="danger">END ACTIVE</button>` : '<div><span>ACTIVE ENGAGEMENT</span><b>NONE</b><small>Open an engagement below to begin working in its scope.</small></div>';
   try {
     const response = await fetch('/api/engagements', {headers: authHeaders()});
     const data = await response.json();
     engagementRows = data.engagements || [];
-    $('historyList').innerHTML = engagementRows.map(row => `<article class="engagement-row ${row.recovered ? 'recovered' : ''}"><div><b>${escapeHtml(row.name)}</b><small>${escapeHtml(row.date || 'date unavailable')} · ${row.recovered ? 'RECOVERED · EDIT REQUIRED' : escapeHtml(row.id)}</small><p>${escapeHtml(row.scope || 'Authorized scope was not stored. Edit this engagement before reopening it.')}</p></div><div class="engagement-actions"><button type="button" data-eng-open="${escapeHtml(row.id)}" ${row.scope ? '' : 'disabled'}>OPEN</button><button type="button" data-eng-edit="${escapeHtml(row.id)}">EDIT</button><button type="button" class="danger" data-eng-delete="${escapeHtml(row.id)}">DELETE DATA</button></div></article>`).join('') || '<div class="empty-state">No engagements have been created.</div>';
+    $('historyList').innerHTML = engagementRows.map(row => `<article class="engagement-row ${row.recovered ? 'recovered' : ''} ${activeId === row.id ? 'active' : ''}"><div><b>${escapeHtml(row.name)}${activeId === row.id ? '<span class="active-badge">ACTIVE</span>' : ''}</b><small>${escapeHtml(row.date || 'date unavailable')} · ${row.recovered ? 'RECOVERED · EDIT REQUIRED' : escapeHtml(row.id)}</small><p>${escapeHtml(row.scope || 'Authorized scope was not stored. Edit this engagement before reopening it.')}</p></div><div class="engagement-actions"><button type="button" data-eng-open="${escapeHtml(row.id)}" ${activeId === row.id || !row.scope ? 'disabled' : ''}>${activeId === row.id ? 'ACTIVE' : 'OPEN'}</button><button type="button" data-eng-edit="${escapeHtml(row.id)}">EDIT</button><button type="button" class="danger" data-eng-delete="${escapeHtml(row.id)}">DELETE DATA</button></div></article>`).join('') || '<div class="empty-state">No engagements have been created.</div>';
   } catch (error) {
     $('historyList').innerHTML = '<p class="preflight-warning">Unable to load engagements.</p>';
   }
@@ -469,9 +475,9 @@ async function showExecutions() {
   if (!requireEngagement()) return;
   $('executionsList').innerHTML = '<div class="loading">Loading execution timeline…</div>';
   $('executionsDialog').showModal();
-  const response = await fetch(`/api/executions?engagement=${encodeURIComponent(slug(engagement.name))}`, {headers: authHeaders()});
+  const response = await fetch(`/api/executions?engagement=${encodeURIComponent(activeEngagementId())}`, {headers: authHeaders()});
   const data = await response.json();
-  $('executionsList').innerHTML = (data.executions || []).map(item => `<div class="execution-row"><div><b>${escapeHtml(item.name)}</b><small>${new Date(item.started_at).toLocaleString()} · ${item.exit_code == null ? 'RUNNING' : `EXIT ${item.exit_code}`} · ${item.duration_seconds || 0}s</small><small>${escapeHtml(item.log || '')}</small></div>${item.payload_id !== 'command' ? `<button type="button" data-rerun="${escapeHtml(item.payload_id)}">REOPEN</button>` : ''}</div>`).join('') || 'No executions recorded for this engagement.';
+  $('executionsList').innerHTML = (data.executions || []).map(item => `<div class="execution-row"><div><b>${escapeHtml(item.name)}</b><small>${new Date(item.started_at).toLocaleString()} · ${runningState?.run_id === item.run_id ? 'RUNNING' : item.exit_code == null ? 'INCOMPLETE' : `EXIT ${item.exit_code}`} · ${item.duration_seconds || 0}s</small><small>${escapeHtml(item.log || '')}</small></div><div class="execution-actions">${item.payload_id !== 'command' ? `<button type="button" data-rerun="${escapeHtml(item.payload_id)}">REOPEN</button>` : ''}<button type="button" class="danger" data-run-delete="${escapeHtml(item.run_id)}" ${runningState?.run_id === item.run_id ? 'disabled' : ''}>DELETE</button></div></div>`).join('') || 'No executions recorded for this engagement.';
 }
 
 async function loadReports() {
@@ -702,7 +708,15 @@ $('historyList').onclick = async event => {
   line(`» deleted engagement · ${row.name} · ${data.deleted_files} files · ${data.deleted_runs} runs`, 'line-warn');
   loadEngagements();
 };
-$('endEngage').onclick = () => { engagement = null; sessionStorage.removeItem('engagement'); renderEngagement(); line('» engagement ended', 'line-warn'); };
+$('historyActive').onclick = event => {
+  if (event.target.id !== 'endActiveEngagement' || !engagement) return;
+  const name = engagement.name;
+  engagement = null;
+  sessionStorage.removeItem('engagement');
+  renderEngagement();
+  loadEngagements();
+  line(`» engagement ended · ${name}`, 'line-warn');
+};
 
 $('lootBtn').onclick = showLoot;
 $('lootScope').onchange = showLoot;
@@ -729,12 +743,31 @@ $('deleteAllLoot').onclick = async () => {
 
 $('hardwareBtn').onclick = showHardware;
 $('executionsBtn').onclick = showExecutions;
-$('executionsList').onclick = event => {
+$('executionsList').onclick = async event => {
+  const remove = event.target.closest('[data-run-delete]');
+  if (remove) {
+    if (!confirm('Delete this run from execution history? Logs and loot are not removed.')) return;
+    const response = await fetch(`/api/executions/${encodeURIComponent(remove.dataset.runDelete)}`, {method: 'DELETE', headers: authHeaders(true), body: JSON.stringify({confirm: `DELETE ${remove.dataset.runDelete}`})});
+    const data = await response.json();
+    if (!response.ok) { line(`! ${data.error || 'run deletion failed'}`, 'line-hot'); return; }
+    line('» deleted run history entry', 'line-warn');
+    showExecutions();
+    return;
+  }
   const button = event.target.closest('[data-rerun]');
   if (!button) return;
   const payload = payloads.find(item => item.id === button.dataset.rerun);
   $('executionsDialog').close();
   if (payload) showPreflight(payload);
+};
+$('deleteAllExecutions').onclick = async () => {
+  if (!engagement) return;
+  if (prompt(`Delete all run history for ${engagement.name}? Logs and loot are not removed.\n\nType DELETE ALL RUNS to confirm.`) !== 'DELETE ALL RUNS') return;
+  const response = await fetch('/api/executions', {method: 'DELETE', headers: authHeaders(true), body: JSON.stringify({engagement: activeEngagementId(), confirm: 'DELETE ALL RUNS'})});
+  const data = await response.json();
+  if (!response.ok) { line(`! ${data.error || 'run history deletion failed'}`, 'line-hot'); return; }
+  line(`» deleted ${data.deleted} run history entr${data.deleted === 1 ? 'y' : 'ies'}`, 'line-warn');
+  showExecutions();
 };
 $('reportBtn').onclick = () => {
   $('reportResult').textContent = '';

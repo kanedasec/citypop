@@ -497,6 +497,36 @@ def execution_history():
     return jsonify(executions=runner.execution_history(engagement))
 
 
+@app.delete("/api/executions/<run_id>")
+@require_auth
+def execution_delete(run_id):
+    if not re.fullmatch(r"[a-f0-9]{32}", run_id):
+        return jsonify(error="invalid run id"), 400
+    if (request.get_json(silent=True) or {}).get("confirm") != f"DELETE {run_id}":
+        return jsonify(error="confirmation required"), 400
+    running = runner.snapshot().get("running")
+    if running and running.get("run_id") == run_id:
+        return jsonify(error="stop the running operation before deleting its history"), 409
+    if not runner.delete_execution_history(run_id):
+        return jsonify(error="run not found"), 404
+    return jsonify(ok=True)
+
+
+@app.delete("/api/executions")
+@require_auth
+def execution_delete_all():
+    data = request.get_json(silent=True) or {}
+    engagement = str(data.get("engagement", ""))
+    if safe_slug(engagement) != engagement:
+        return jsonify(error="invalid engagement id"), 400
+    if data.get("confirm") != "DELETE ALL RUNS":
+        return jsonify(error="confirmation required"), 400
+    running = runner.snapshot().get("running")
+    if running and running.get("engagement_slug") == engagement:
+        return jsonify(error="stop the running operation before deleting its history"), 409
+    return jsonify(ok=True, deleted=runner.delete_engagement_history(engagement))
+
+
 @app.get("/api/payload/<path:payload_id>")
 @require_auth
 def payload_get(payload_id):

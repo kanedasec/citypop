@@ -587,6 +587,11 @@ dialog label input[type="checkbox"] { width: 18px; min-height: 18px; margin: 0; 
 .lootrow a { color: var(--cyan-soft); text-underline-offset: 3px; }
 .lootdelete { min-height: 32px; padding: 4px 7px; font-size: 9px; }
 .engagement-manager { width: min(680px, calc(100% - 28px)); }
+#historyActive { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin: 12px 0 18px; padding: 13px; border: 1px solid rgb(85 230 165 / 38%); border-radius: var(--radius-sm); background: rgb(85 230 165 / 6%); }
+#historyActive span, #historyActive b, #historyActive small { display: block; }
+#historyActive span { color: var(--green); font-size: 8px; letter-spacing: .12em; }
+#historyActive b { margin-top: 4px; font: 650 13px var(--display); }
+#historyActive small { margin-top: 3px; color: var(--dim); font-size: 8px; overflow-wrap: anywhere; }
 .engagement-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 13px 2px; border-bottom: 1px solid var(--edge); }
 .engagement-row > div:first-child { min-width: 0; }
 .engagement-row b,
@@ -596,6 +601,8 @@ dialog label input[type="checkbox"] { width: 18px; min-height: 18px; margin: 0; 
 .engagement-row p { margin: 6px 0 0; color: var(--dim); font-size: 9px; overflow-wrap: anywhere; }
 .engagement-row.recovered { border-left: 2px solid var(--amber); padding-left: 9px; }
 .engagement-row.recovered small { color: var(--amber); }
+.engagement-row.active { padding-left: 9px; border-left: 2px solid var(--green); }
+.active-badge { display: inline-block; margin-left: 7px; padding: 3px 5px; border: 1px solid rgb(85 230 165 / 42%); border-radius: 999px; color: var(--green); font: 650 7px var(--display); vertical-align: middle; }
 .engagement-actions { display: flex; gap: 5px; }
 .engagement-actions button { min-height: 38px; padding: 5px 7px; font-size: 8px; }
 
@@ -654,6 +661,7 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
 .execution-row small { display: block; overflow-wrap: anywhere; }
 .execution-row small { margin-top: 3px; color: var(--dim); font-size: 9px; }
 .execution-row button { flex: 0 0 auto; min-height: 36px; padding: 5px 8px; font-size: 8px; }
+.execution-actions { display: flex; gap: 6px; }
 #reportResult { margin-top: 12px; color: var(--green); overflow-wrap: anywhere; }
 #reportResult a { color: var(--cyan-soft); }
 .report-dialog { width: min(720px, calc(100% - 28px)); }

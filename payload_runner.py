@@ -308,6 +308,15 @@ class PayloadRunner:
                 self._save_history()
             return deleted
 
+    def delete_execution_history(self, run_id: str) -> bool:
+        with self.lock:
+            before = len(self.history)
+            self.history = [row for row in self.history if row.get("run_id") != run_id]
+            deleted = len(self.history) != before
+            if deleted:
+                self._save_history()
+            return deleted
+
     def respond(self, owner: str, request_id: str, value) -> bool:
         with self.lock:
             running = self.running

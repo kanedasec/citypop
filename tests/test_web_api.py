@@ -72,6 +72,28 @@ class WebApiTests(unittest.TestCase):
         self.assertEqual(history.status_code, 200)
         self.assertIn("executions", history.get_json())
 
+    def test_running_execution_history_cannot_be_deleted(self):
+        run_id = "a" * 32
+        with patch.object(citypop.runner, "snapshot", return_value={"running": {"run_id": run_id}}), \
+                patch.object(citypop.runner, "delete_execution_history") as delete:
+            response = self.client.delete(
+                f"/api/executions/{run_id}", headers=self.headers,
+                json={"confirm": f"DELETE {run_id}"},
+            )
+        self.assertEqual(response.status_code, 409)
+        delete.assert_not_called()
+
+    def test_delete_all_execution_history_is_scoped_to_engagement(self):
+        with patch.object(citypop.runner, "snapshot", return_value={"running": None}), \
+                patch.object(citypop.runner, "delete_engagement_history", return_value=3) as delete:
+            response = self.client.delete(
+                "/api/executions", headers=self.headers,
+                json={"engagement": "test_lab", "confirm": "DELETE ALL RUNS"},
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["deleted"], 3)
+        delete.assert_called_once_with("test_lab")
+
     def test_report_manager_shape(self):
         response = self.client.get("/api/reports", headers=self.headers)
         self.assertEqual(response.status_code, 200)
