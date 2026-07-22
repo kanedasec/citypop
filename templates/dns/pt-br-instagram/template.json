@@ -1,0 +1,8 @@
+{
+  "name": "pt-br-instagram Awareness Simulation",
+  "description": "Detection metadata for the pt br instagram sign-in simulation page, a controlled security-awareness replica that submits the account identifier and secret fields listed here for phishing-detection validation.",
+  "submission_fields": [
+    "email",
+    "password"
+  ]
+}

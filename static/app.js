@@ -261,6 +261,8 @@ function matchesCapability(payload, capability, favorites) {
   return true;
 }
 
+const maturityRank = {'functional': 0, 'limited': 1, 'not tested': 2};
+
 function renderPayloads() {
   if (!engagement) { $('grid').innerHTML = '<div class="empty-state">Create or reopen an engagement to unlock the payload catalog.</div>'; return; }
   const query = $('payloadSearch').value.trim().toLowerCase();
@@ -276,8 +278,17 @@ function renderPayloads() {
     .filter(payload => !query || `${payload.name} ${payload.desc} ${payload.id}`.toLowerCase().includes(query))
     .filter(payload => impact === 'all' || (impact === 'active') === Boolean(payload.danger))
     .filter(payload => matchesCapability(payload, capability, favorites))
-    .sort((a, b) => Number(favorites.has(b.id)) - Number(favorites.has(a.id)) || a.name.localeCompare(b.name));
-  $('grid').innerHTML = items.map(payload => `<article class="payload-card ${payload.danger ? 'hot' : ''}"><button class="op ${payload.danger ? 'hot' : ''}" data-id="${escapeHtml(payload.id)}" ${payload.web === false ? 'disabled' : ''}><b>${escapeHtml(payload.name)}</b><small>${payload.web === false ? 'DEVICE CONTROLS ONLY · ' : ''}${escapeHtml(payload.desc)}</small><span class="impact">${payload.danger ? 'ACTIVE' : 'NORMAL'}</span></button><button type="button" class="favorite ${favorites.has(payload.id) ? 'on' : ''}" data-favorite="${escapeHtml(payload.id)}" aria-label="${favorites.has(payload.id) ? 'Remove from' : 'Add to'} favorites">★</button></article>`).join('') || '<div class="empty-state">No payloads match these filters.</div>';
+    .sort((a, b) => {
+      const aRank = Object.hasOwn(maturityRank, a.maturity) ? maturityRank[a.maturity] : 3;
+      const bRank = Object.hasOwn(maturityRank, b.maturity) ? maturityRank[b.maturity] : 3;
+      return aRank - bRank || Number(favorites.has(b.id)) - Number(favorites.has(a.id)) || a.name.localeCompare(b.name);
+    });
+  $('grid').innerHTML = items.map(payload => {
+    const maturity = Object.hasOwn(maturityRank, payload.maturity)
+      ? `<span class="maturity maturity-${payload.maturity.replace(' ', '-')}">${escapeHtml(payload.maturity)}</span>`
+      : '';
+    return `<article class="payload-card ${payload.danger ? 'hot' : ''}"><button class="op ${payload.danger ? 'hot' : ''}" data-id="${escapeHtml(payload.id)}" ${payload.web === false ? 'disabled' : ''}><b>${escapeHtml(payload.name)}</b><small>${payload.web === false ? 'DEVICE CONTROLS ONLY · ' : ''}${escapeHtml(payload.desc)}</small><span class="payload-status"><span class="impact">${payload.danger ? 'ACTIVE' : 'NORMAL'}</span>${maturity}</span></button><button type="button" class="favorite ${favorites.has(payload.id) ? 'on' : ''}" data-favorite="${escapeHtml(payload.id)}" aria-label="${favorites.has(payload.id) ? 'Remove from' : 'Add to'} favorites">★</button></article>`;
+  }).join('') || '<div class="empty-state">No payloads match these filters.</div>';
 }
 
 async function showPreflight(payload) {

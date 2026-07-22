@@ -1,4 +1,5 @@
 import ast
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -89,6 +90,20 @@ class PayloadCatalogTests(unittest.TestCase):
             path = PAYLOADS / payload["id"]
             with self.subTest(payload=payload["id"]):
                 self.assertEqual(parse_metadata(path)["name"], payload["name"])
+
+    def test_maturity_is_optional_and_validated(self):
+        base = "# @name: Test\n# @desc: Test payload\n# @category: test\n# @danger: false\n"
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "payload.py"
+            path.write_text(base, encoding="utf-8")
+            self.assertEqual(parse_metadata(path)["maturity"], "not tested")
+
+            path.write_text(base + "# @maturity: Functional\n", encoding="utf-8")
+            self.assertEqual(parse_metadata(path)["maturity"], "functional")
+
+            path.write_text(base + "# @maturity: experimental\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "@maturity"):
+                parse_metadata(path)
 
 
 if __name__ == "__main__":

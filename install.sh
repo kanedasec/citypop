@@ -61,13 +61,20 @@ if [ "$(id -u)" = 0 ]; then
   done
   apt-get install -y "${AVAILABLE_PACKAGES[@]}"
   if [ "$BASE" != "$INSTALL_DIR" ]; then
+    for catalog in payloads templates; do
+      if [ ! -d "$BASE/$catalog" ]; then
+        echo "Refusing to deploy: repository catalog is missing: $BASE/$catalog" >&2
+        exit 1
+      fi
+    done
     install -d "$INSTALL_DIR"
     rm -rf "$INSTALL_DIR/.venv"
-    # payloads/ is a deployed catalog, not runtime state. Replace it instead
-    # of overlaying files so payloads removed or renamed in the repository do
-    # not survive as stale, disabled cards in the web interface. Loot and the
+    # payloads/ and templates/ are deployed catalogs, not runtime state.
+    # Replace them instead of overlaying files so entries removed or renamed
+    # in the repository do not survive in an installation. Loot and the
     # generated config remain untouched.
     rm -rf "$INSTALL_DIR/payloads"
+    rm -rf "$INSTALL_DIR/templates"
     # Stream only runtime files into /opt. Avoid temporarily duplicating a
     # potentially huge venv or copying Git history, caches, source migration
     # material, and collected loot on a small Pi SD card.

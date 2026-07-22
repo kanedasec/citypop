@@ -5,6 +5,7 @@
 # @desc: Start a bounded access point and DNS-redirect captive portal on a selected adapter, serve a built-in page, and store submitted form data in loot.
 # @category: wifi
 # @danger: true
+# @maturity: functional
 # @inputs: [{"name":"ssid","label":"Access point SSID","type":"text","default":"FreeWiFi"},{"name":"channel","label":"Channel","type":"number","default":"6"},{"name":"seconds","label":"Run duration","type":"number","default":"300"}]
 
 import html

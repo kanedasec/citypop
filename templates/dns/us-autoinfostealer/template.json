@@ -1,0 +1,8 @@
+{
+  "name": "us-autoinfostealer Awareness Simulation",
+  "description": "Detection metadata for the us autoinfostealer awareness questionnaire, which consolidates entered survey and contact information into the two query parameters transmitted by the page for controlled detection testing.",
+  "submission_fields": [
+    "email",
+    "password"
+  ]
+}

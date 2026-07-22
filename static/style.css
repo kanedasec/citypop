@@ -366,8 +366,20 @@ nav button span { margin-left: 4px; opacity: .68; font-size: 8px; }
 }
 .payload-card .favorite.on { color: var(--amber); border-color: rgb(255 196 92 / 38%); }
 .op b { padding-right: 34px; }
-.op .impact { display: block; margin-top: 9px; color: var(--muted); font-size: 8px; letter-spacing: .12em; }
+.op .payload-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 9px; }
+.op .impact { color: var(--muted); font-size: 8px; letter-spacing: .12em; }
 .op.hot .impact { color: #ff91c0; }
+.op .maturity {
+  padding: 3px 6px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font: 700 8px/1 var(--display);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.op .maturity-functional { color: #69efb0; background: rgb(85 230 165 / 8%); }
+.op .maturity-limited { color: var(--amber); background: rgb(255 196 92 / 8%); }
+.op .maturity-not-tested { color: #ff91c0; background: rgb(255 75 154 / 8%); }
 .empty-state { grid-column: 1 / -1; padding: 28px 16px; border: 1px dashed var(--edge); border-radius: var(--radius); color: var(--muted); text-align: center; }
 
 .running-panel {

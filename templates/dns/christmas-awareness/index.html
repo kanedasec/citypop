@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Holiday Gathering</title>
+  <style>
+    :root { color-scheme: light; font-family: Georgia, "Times New Roman", serif; --pine:#123d2d; --berry:#9d263d; --paper:#fffaf0; }
+    * { box-sizing: border-box; }
+    body { min-height:100vh; margin:0; padding:24px; display:grid; place-items:center; color:#24332c; background:repeating-linear-gradient(135deg,#123d2d 0 18px,#174b38 18px 36px); }
+    main { width:min(680px,100%); overflow:hidden; border:1px solid #e7d9bd; border-radius:22px; background:var(--paper); box-shadow:0 30px 90px #061b1488; }
+    header { padding:42px clamp(24px,7vw,64px) 30px; color:white; background:radial-gradient(circle at 85% 10%,#d9af62 0 2px,transparent 3px),linear-gradient(125deg,var(--berry),#67162a); background-size:24px 24px,auto; }
+    .eyebrow { margin:0 0 14px; font:700 12px ui-monospace,monospace; letter-spacing:.18em; text-transform:uppercase; }
+    h1 { max-width:520px; margin:0; font-size:clamp(2.4rem,8vw,5.2rem); line-height:.9; }
+    form { display:grid; gap:22px; padding:32px clamp(24px,7vw,64px) 46px; }
+    fieldset { display:grid; gap:10px; margin:0; padding:0; border:0; }
+    legend { margin-bottom:8px; color:var(--pine); font-weight:700; }
+    label { display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border:1px solid #ded3bd; border-radius:12px; background:white; cursor:pointer; }
+    input { margin-top:3px; accent-color:var(--berry); }
+    button { min-height:48px; border:0; border-radius:999px; color:white; background:var(--pine); font:700 14px ui-monospace,monospace; letter-spacing:.08em; cursor:pointer; }
+    button:focus-visible, input:focus-visible { outline:3px solid #d9af62; outline-offset:3px; }
+    small { color:#6d716d; line-height:1.5; }
+  </style>
+</head>
+<body>
+  <main>
+    <header><p class="eyebrow">Holiday gathering · RSVP</p><h1>Make the season bright.</h1></header>
+    <form method="post" action="/submit">
+      <fieldset><legend>Will you join the celebration?</legend>
+        <label><input type="radio" name="attendance_plan" value="attending" required> Yes, count me in</label>
+        <label><input type="radio" name="attendance_plan" value="maybe"> Maybe, I will confirm later</label>
+        <label><input type="radio" name="attendance_plan" value="not_attending"> I cannot attend</label>
+      </fieldset>
+      <fieldset><legend>Choose a holiday activity</legend>
+        <label><input type="radio" name="holiday_activity" value="sweater" required> Festive sweater showcase</label>
+        <label><input type="radio" name="holiday_activity" value="quiz"> Holiday team quiz</label>
+        <label><input type="radio" name="holiday_activity" value="music"> Seasonal music vote</label>
+      </fieldset>
+      <button type="submit">SEND RSVP</button>
+      <small>This exercise does not request names, email addresses, passwords, authentication codes, or payment information.</small>
+    </form>
+  </main>
+<script src="/submit-awareness.js"></script>
+</body>
+</html>

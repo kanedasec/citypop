@@ -5,6 +5,7 @@
 # @danger: true
 # @active: true
 # @web: true
+# @maturity: functional
 """
 RaspyJack Payload -- BLE Flood
 ================================

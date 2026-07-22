@@ -1,0 +1,5 @@
+{
+  "name": "webforkbomb Awareness Simulation",
+  "description": "Detection metadata for the webforkbomb page, a browser-behavior demonstration designed to exercise detection of disruptive client-side activity without collecting submitted form values.",
+  "submission_fields": []
+}

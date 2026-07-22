@@ -20,6 +20,7 @@ from payload_analysis import analyze_payload
 
 META_RE = re.compile(r"^#\s*@([a-z_]+):\s*(.*?)\s*$")
 REQUIRED = {"name", "desc", "category", "danger"}
+MATURITY_LEVELS = {"not tested", "limited", "functional"}
 INPUT_PREFIX = "CITYPOP_INPUT_REQUEST:"
 URL_RE = re.compile(r"https?://[^\s<>\"']+")
 
@@ -47,6 +48,12 @@ def parse_metadata(path: Path) -> dict:
     if web not in {"true", "false"}:
         raise ValueError("@web must be true or false")
     meta["web"] = web == "true"
+    maturity = meta.get("maturity", "not tested").strip().lower()
+    if maturity not in MATURITY_LEVELS:
+        raise ValueError(
+            "@maturity must be one of: not tested, limited, functional"
+        )
+    meta["maturity"] = maturity
     meta["inputs"] = json.loads(meta.get("inputs", "[]"))
     return meta
 

@@ -5,6 +5,7 @@
 # @danger: true
 # @active: true
 # @web: true
+# @maturity: limited
 """
 RaspyJack Payload -- BLE Spam (iOS / Android / Windows)
 ========================================================

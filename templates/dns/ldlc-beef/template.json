@@ -1,0 +1,8 @@
+{
+  "name": "ldlc-beef Awareness Simulation",
+  "description": "Detection metadata for the ldlc beef sign-in simulation page, a controlled security-awareness replica that submits the account identifier and secret fields listed here for phishing-detection validation.",
+  "submission_fields": [
+    "username",
+    "password"
+  ]
+}

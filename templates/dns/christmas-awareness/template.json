@@ -1,0 +1,5 @@
+{
+  "name": "Christmas RSVP Awareness Simulation",
+  "description": "run a credential-free holiday phishing-awareness exercise",
+  "submission_fields": ["attendance_plan", "holiday_activity"]
+}
