@@ -424,12 +424,46 @@ async function showLoot() {
 
 async function showHardware() {
   $('hardwareBody').innerHTML = '<div class="loading">Inspecting the Pi-Tail…</div>';
-  $('hardwareDialog').showModal();
+  if (!$('hardwareDialog').open) $('hardwareDialog').showModal();
   const response = await fetch('/api/hardware', {headers: authHeaders()});
   const data = await response.json();
   const system = data.system || {};
-  $('hardwareBody').innerHTML = `<div class="system-vitals"><div><b>${escapeHtml(system.hostname)}</b><small>HOST</small></div><div><b>${system.temperature_c == null ? '—' : `${system.temperature_c}°C`}</b><small>CPU</small></div><div><b>${formatBytes(system.memory?.available)}</b><small>RAM FREE</small></div><div><b>${formatBytes(system.disk?.free)}</b><small>DISK FREE</small></div></div><div class="hardware-flags"><span class="${system.bluetooth ? 'ok' : ''}">BT</span><span class="${system.gps ? 'ok' : ''}">GPS</span><span class="${system.sdr ? 'ok' : ''}">SDR</span><span class="${system.nfc ? 'ok' : ''}">NFC</span></div><h3>NETWORK INTERFACES</h3>${(data.interfaces || []).map(item => `<div class="interface-row ${item.default_route ? 'protected' : ''}"><div><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.driver || 'virtual')} · ${escapeHtml(item.mode || item.state)}</small></div><div><span class="state ${item.state === 'up' ? 'ok' : ''}">${escapeHtml(item.state)}</span><small>${escapeHtml((item.addresses || []).join(', ') || item.mac || 'no address')}</small></div>${item.default_route ? '<em>PROTECTED ROUTE</em>' : ''}</div>`).join('')}`;
+  const wirelessInterfaces = (data.interfaces || []).filter(item => item.wireless);
+  $('hardwareBody').innerHTML = `<div class="system-vitals"><div><b>${escapeHtml(system.hostname)}</b><small>HOST</small></div><div><b>${system.temperature_c == null ? '—' : `${system.temperature_c}°C`}</b><small>CPU</small></div><div><b>${formatBytes(system.memory?.available)}</b><small>RAM FREE</small></div><div><b>${formatBytes(system.disk?.free)}</b><small>DISK FREE</small></div></div><div class="hardware-flags"><span class="${system.bluetooth ? 'ok' : ''}">BT</span><span class="${system.gps ? 'ok' : ''}">GPS</span><span class="${system.sdr ? 'ok' : ''}">SDR</span><span class="${system.nfc ? 'ok' : ''}">NFC</span></div><h3>WI-FI INTERFACES</h3>${wirelessInterfaces.map(item => `<div class="interface-row ${item.default_route ? 'protected' : ''}"><div><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.driver || 'virtual')} · ${escapeHtml(item.mode || 'mode unknown')}</small></div><div><span class="admin-state ${item.admin_up ? 'ok' : ''}">${item.admin_up ? 'ENABLED' : 'DISABLED'}</span><span class="connection-state ${item.state === 'up' ? 'ok' : ''}">${item.state === 'up' ? 'CONNECTED' : item.state === 'dormant' ? 'DORMANT' : 'DISCONNECTED'}</span><small>${escapeHtml((item.addresses || []).join(', ') || item.mac || 'no address')}</small></div>${item.default_route ? '<em>PROTECTED ROUTE · CONTROLS LOCKED</em>' : `<div class="interface-actions"><button type="button" class="interface-link" data-interface="${escapeHtml(item.name)}" data-state="${item.admin_up ? 'down' : 'up'}">BRING ${item.admin_up ? 'DOWN' : 'UP'}</button><button type="button" class="interface-mode" data-interface="${escapeHtml(item.name)}" data-mode="${item.mode === 'monitor' ? 'managed' : 'monitor'}">${item.mode === 'monitor' ? 'DISABLE MONITOR' : 'ENABLE MONITOR'}</button></div>`}</div>`).join('') || '<div class="empty-state">No Wi-Fi interfaces detected.</div>'}<div id="hardwareStatus" role="status" aria-live="polite"></div><section class="power-zone"><div><b>SAFE POWEROFF</b><small>Flush storage and halt the Raspberry Pi.</small></div><button type="button" id="poweroffBtn" class="danger">POWER OFF</button></section>`;
 }
+
+$('hardwareBody').onclick = async event => {
+  const linkButton = event.target.closest('.interface-link');
+  if (linkButton) {
+    const state = linkButton.dataset.state;
+    if (!confirm(`Bring ${linkButton.dataset.interface} ${state}?`)) return;
+    linkButton.disabled = true;
+    const response = await fetch('/api/hardware/interface-link', {method: 'POST', headers: authHeaders(true), body: JSON.stringify({interface: linkButton.dataset.interface, state})});
+    const data = await response.json();
+    $('hardwareStatus').textContent = data.detail || data.error || 'Interface change failed.';
+    if (response.ok) setTimeout(showHardware, 500); else linkButton.disabled = false;
+    return;
+  }
+  const modeButton = event.target.closest('.interface-mode');
+  if (modeButton) {
+    const mode = modeButton.dataset.mode;
+    if (!confirm(`${mode === 'monitor' ? 'Enable monitor mode on' : 'Return to managed mode:'} ${modeButton.dataset.interface}?`)) return;
+    modeButton.disabled = true;
+    const response = await fetch('/api/hardware/interface-mode', {method: 'POST', headers: authHeaders(true), body: JSON.stringify({interface: modeButton.dataset.interface, mode})});
+    const data = await response.json();
+    $('hardwareStatus').textContent = data.detail || data.error || 'Interface change failed.';
+    if (response.ok) setTimeout(showHardware, 500); else modeButton.disabled = false;
+    return;
+  }
+  if (event.target.id === 'poweroffBtn') {
+    if (!confirm('Safely power off this Raspberry Pi now? The web interface will disconnect.')) return;
+    event.target.disabled = true;
+    const response = await fetch('/api/system/poweroff', {method: 'POST', headers: authHeaders()});
+    const data = await response.json();
+    $('hardwareStatus').textContent = data.detail || data.error || 'Poweroff request failed.';
+    if (!response.ok) event.target.disabled = false;
+  }
+};
 
 async function showExecutions() {
   if (!requireEngagement()) return;

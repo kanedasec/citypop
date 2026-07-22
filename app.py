@@ -182,6 +182,11 @@ def interface_inventory():
         except OSError:
             operstate = "unknown"
         try:
+            flags = int((path / "flags").read_text().strip(), 16)
+            admin_up = bool(flags & 0x1)  # Linux IFF_UP
+        except (OSError, ValueError):
+            admin_up = False
+        try:
             address = (path / "address").read_text().strip()
         except OSError:
             address = ""
@@ -212,7 +217,7 @@ def interface_inventory():
         device_path = os.path.realpath(str(path / "device"))
         driver_path = os.path.realpath(str(path / "device" / "driver"))
         rows.append({
-            "name": name, "state": operstate, "mac": address,
+            "name": name, "state": operstate, "admin_up": admin_up, "mac": address,
             "addresses": addresses, "wireless": wireless, "mode": mode,
             "driver": os.path.basename(driver_path) if driver_path else "",
             "onboard": "mmc" in device_path or os.path.basename(driver_path) == "brcmfmac",
@@ -253,6 +258,113 @@ def system_inventory():
 @require_auth
 def hardware_status():
     return jsonify(system=system_inventory(), interfaces=interface_inventory())
+
+
+def set_interface_mode(name: str, mode: str) -> tuple[bool, str]:
+    """Change an unprotected wireless interface and verify the resulting mode."""
+    interfaces = {item["name"]: item for item in interface_inventory()}
+    interface = interfaces.get(name)
+    if not interface or not interface["wireless"]:
+        return False, "wireless interface not found"
+    if interface["default_route"]:
+        return False, "the City Pop route is protected and cannot be modified"
+    if mode not in {"monitor", "managed"}:
+        return False, "unsupported interface mode"
+
+    commands = (
+        ["sudo", "-n", "ip", "link", "set", name, "down"],
+        ["sudo", "-n", "iw", "dev", name, "set", "type", mode],
+        ["sudo", "-n", "ip", "link", "set", name, "up"],
+    )
+    try:
+        for command in commands:
+            result = subprocess.run(command, capture_output=True, text=True, timeout=10)
+            if result.returncode:
+                raise RuntimeError((result.stderr or result.stdout or "command failed").strip())
+        info = subprocess.run(
+            ["iw", "dev", name, "info"], capture_output=True, text=True, timeout=4,
+        )
+        current = re.search(r"^\s*type\s+(\S+)", info.stdout, re.M)
+        if info.returncode or not current or current.group(1) != mode:
+            raise RuntimeError(f"could not verify {mode} mode")
+        return True, f"{name} is now in {mode} mode"
+    except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
+        # A failed monitor transition must not strand the adapter down or half changed.
+        for command in (
+            ["sudo", "-n", "ip", "link", "set", name, "down"],
+            ["sudo", "-n", "iw", "dev", name, "set", "type", "managed"],
+            ["sudo", "-n", "ip", "link", "set", name, "up"],
+        ):
+            try:
+                subprocess.run(command, capture_output=True, timeout=10)
+            except (OSError, subprocess.SubprocessError):
+                pass
+        return False, str(exc)
+
+
+@app.post("/api/hardware/interface-mode")
+@require_auth
+def hardware_interface_mode():
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("interface", ""))
+    mode = str(data.get("mode", ""))
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,15}", name):
+        return jsonify(error="invalid interface name"), 400
+    ok, detail = set_interface_mode(name, mode)
+    return jsonify(ok=ok, detail=detail), 200 if ok else 409
+
+
+def set_interface_link_state(name: str, state: str) -> tuple[bool, str]:
+    """Bring a detected, non-protected network interface up or down."""
+    interfaces = {item["name"]: item for item in interface_inventory()}
+    interface = interfaces.get(name)
+    if not interface:
+        return False, "network interface not found"
+    if interface["default_route"]:
+        return False, "the City Pop route is protected and cannot be modified"
+    if name == "lo":
+        return False, "the system loopback interface cannot be modified"
+    if state not in {"up", "down"}:
+        return False, "unsupported interface state"
+    try:
+        result = subprocess.run(
+            ["sudo", "-n", "ip", "link", "set", "dev", name, state],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return False, str(exc)
+    if result.returncode:
+        return False, (result.stderr or result.stdout or "command failed").strip()
+    return True, f"{name} was brought {state}"
+
+
+@app.post("/api/hardware/interface-link")
+@require_auth
+def hardware_interface_link():
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("interface", ""))
+    state = str(data.get("state", ""))
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,15}", name):
+        return jsonify(error="invalid interface name"), 400
+    ok, detail = set_interface_link_state(name, state)
+    return jsonify(ok=ok, detail=detail), 200 if ok else 409
+
+
+@app.post("/api/system/poweroff")
+@require_auth
+def system_poweroff():
+    if runner.snapshot().get("running"):
+        return jsonify(error="stop the running operation before powering off"), 409
+    try:
+        result = subprocess.run(
+            ["sudo", "-n", "shutdown", "-h", "+0"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return jsonify(error=f"poweroff request failed: {exc}"), 503
+    if result.returncode:
+        return jsonify(error=(result.stderr or result.stdout or "poweroff request failed").strip()), 503
+    return jsonify(ok=True, detail="safe poweroff scheduled")
 
 
 def module_available(name: str) -> bool:

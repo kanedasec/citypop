@@ -1,5 +1,6 @@
 import unittest
 import tempfile
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -22,6 +23,46 @@ class WebApiTests(unittest.TestCase):
         payloads = response.get_json()["payloads"]
         self.assertTrue(payloads)
         self.assertTrue(all(payload["web"] for payload in payloads))
+
+    def test_protected_interface_cannot_change_mode(self):
+        protected = {"name": "wlan0", "wireless": True, "default_route": True}
+        with patch.object(citypop, "interface_inventory", return_value=[protected]):
+            response = self.client.post(
+                "/api/hardware/interface-mode", headers=self.headers,
+                json={"interface": "wlan0", "mode": "monitor"},
+            )
+        self.assertEqual(response.status_code, 409)
+        self.assertIn("protected", response.get_json()["detail"])
+
+    def test_protected_interface_cannot_be_brought_down(self):
+        protected = {"name": "wlan0", "wireless": True, "default_route": True}
+        with patch.object(citypop, "interface_inventory", return_value=[protected]):
+            response = self.client.post(
+                "/api/hardware/interface-link", headers=self.headers,
+                json={"interface": "wlan0", "state": "down"},
+            )
+        self.assertEqual(response.status_code, 409)
+        self.assertIn("protected", response.get_json()["detail"])
+
+    def test_non_protected_interface_can_be_brought_up(self):
+        available = {"name": "wlan1", "wireless": True, "default_route": False}
+        command = subprocess.CompletedProcess([], 0, "", "")
+        with patch.object(citypop, "interface_inventory", return_value=[available]), \
+                patch.object(citypop.subprocess, "run", return_value=command) as run:
+            response = self.client.post(
+                "/api/hardware/interface-link", headers=self.headers,
+                json={"interface": "wlan1", "state": "up"},
+            )
+        self.assertEqual(response.status_code, 200)
+        run.assert_called_once_with(
+            ["sudo", "-n", "ip", "link", "set", "dev", "wlan1", "up"],
+            capture_output=True, text=True, timeout=10,
+        )
+
+    def test_poweroff_refuses_while_operation_is_running(self):
+        with patch.object(citypop.runner, "snapshot", return_value={"running": {"name": "test"}}):
+            response = self.client.post("/api/system/poweroff", headers=self.headers)
+        self.assertEqual(response.status_code, 409)
 
     def test_runtime_and_history_shapes(self):
         runtime = self.client.get("/api/runtime", headers=self.headers)

@@ -630,10 +630,22 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
 .interface-row b,
 .interface-row small { display: block; overflow-wrap: anywhere; }
 .interface-row small { color: var(--dim); font-size: 8px; }
-.interface-row .state { color: var(--muted); font-size: 9px; text-transform: uppercase; }
-.interface-row .state.ok { color: var(--green); }
+.interface-row .admin-state,
+.interface-row .connection-state { display: inline-block; margin-left: 7px; color: var(--muted); font-size: 8px; text-transform: uppercase; }
+.interface-row .admin-state.ok,
+.interface-row .connection-state.ok { color: var(--green); }
+.interface-row .admin-state::before { content: 'ADMIN '; color: var(--dim); }
+.interface-row .connection-state::before { content: 'LINK '; color: var(--dim); }
 .interface-row.protected { padding-left: 8px; border-left: 2px solid var(--pink); }
 .interface-row em { grid-column: 1 / -1; color: #ff91c0; font-size: 8px; font-style: normal; letter-spacing: .1em; }
+.interface-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
+.interface-actions button { min-height: 30px; padding: 5px 9px; font-size: 8px; }
+#hardwareStatus { min-height: 18px; margin-top: 10px; color: var(--cyan-soft); font-size: 9px; }
+.power-zone { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px; border: 1px solid rgb(255 75 128 / 35%); border-radius: var(--radius-sm); background: rgb(255 75 128 / 6%); }
+.power-zone b, .power-zone small { display: block; }
+.power-zone b { color: #ff91c0; font: 650 10px var(--display); }
+.power-zone small { margin-top: 3px; color: var(--dim); font-size: 8px; }
+.power-zone button { flex: 0 0 auto; }
 
 #executionsList { max-height: 58vh; overflow: auto; }
 .execution-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--edge); }
