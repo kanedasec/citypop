@@ -5,7 +5,7 @@
 # @danger: true
 # @active: true
 # @web: true
-# @inputs: [{"name":"action","label":"Desired monitor-mode state","type":"select","choices":[{"value":"enable","label":"Enable monitor mode"},{"value":"disable","label":"Disable monitor mode"}],"default":"enable"}]
+# @inputs: [{"name":"action","label":"Desired Wi-Fi mode (a compatible interface is selected next)","type":"select","choices":[{"value":"enable","label":"Enable monitor mode — disconnect normal Wi-Fi service and allow raw 802.11 capture"},{"value":"disable","label":"Disable monitor mode — return the adapter to managed client mode"}],"default":"enable"}]
 
 """Manage monitor mode on Kali Pi-Tail and other wireless interfaces."""
 

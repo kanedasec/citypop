@@ -5,7 +5,7 @@
 # @danger: true
 # @active: true
 # @web: true
-# @inputs: [{"name":"speed","label":"Replay speed","type":"select","choices":["realtime","5x","maximum"],"default":"realtime"},{"name":"loops","label":"Replay count","type":"number","default":"1"}]
+# @inputs: [{"name":"speed","label":"Packet transmission timing","type":"select","choices":[{"value":"realtime","label":"Recorded timing — preserve the capture's original packet rate"},{"value":"5x","label":"Five times faster — replay at 5× the recorded packet rate"},{"value":"maximum","label":"Maximum speed — transmit as quickly as the interface permits"}],"default":"realtime"},{"name":"loops","label":"Number of times to replay the complete capture","type":"number","default":"1"}]
 
 import os
 import shutil

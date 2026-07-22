@@ -5,7 +5,7 @@
 # @desc: Select an authorized Wi-Fi target, transmit bounded deauthentication frames, and optionally capture WPA handshake traffic to loot.
 # @category: wifi
 # @danger: true
-# @inputs: [{"name":"seconds","label":"Run duration","type":"number","default":"30"},{"name":"capture","label":"Capture WPA handshakes","type":"select","choices":["false","true"],"default":"false"}]
+# @inputs: [{"name":"seconds","label":"Maximum transmission and capture duration in seconds","type":"number","default":"30"},{"name":"capture","label":"Optional WPA handshake capture","type":"select","choices":[{"value":"false","label":"Do not capture — transmit only the authorized deauthentication test"},{"value":"true","label":"Capture handshakes — also save observed EAPOL traffic to loot"}],"default":"false"}]
 
 import os
 import sys

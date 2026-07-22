@@ -5,7 +5,7 @@
 # @danger: true
 # @active: true
 # @web: true
-# @inputs: [{"name":"host","label":"Authorized callback host","type":"text","required":true},{"name":"port","label":"Callback port","type":"number","default":"4444"},{"name":"platform","label":"Target platform","type":"select","choices":["linux","windows-powershell"],"default":"linux"}]
+# @inputs: [{"name":"host","label":"Authorized callback host or IP embedded in the generated script","type":"text","required":true},{"name":"port","label":"Callback TCP port embedded in the generated script","type":"number","default":"4444"},{"name":"platform","label":"Target operating system and generated command style","type":"select","choices":[{"value":"linux","label":"Linux — generate a Bash-compatible callback script"},{"value":"windows-powershell","label":"Windows PowerShell — generate a PowerShell callback script"}],"default":"linux"}]
 import os,re,sys
 from datetime import datetime,timezone
 from pathlib import Path

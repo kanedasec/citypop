@@ -5,7 +5,7 @@
 # @desc: Hop 2.4 GHz channels on a selected monitor interface, detect EAPOL exchanges, optionally assist with bounded deauthentication, and save handshake captures to loot.
 # @category: wifi
 # @danger: true
-# @inputs: [{"name":"seconds","label":"Capture duration","type":"number","default":"120"},{"name":"deauth","label":"Enable deauthentication assist","type":"select","choices":["false","true"],"default":"false"}]
+# @inputs: [{"name":"seconds","label":"Maximum channel-hopping capture duration in seconds","type":"number","default":"120"},{"name":"deauth","label":"Optional client reconnection assistance","type":"select","choices":[{"value":"false","label":"Passive only — capture naturally occurring WPA handshakes"},{"value":"true","label":"Deauthentication assist — send bounded frames on authorized targets to prompt reconnection"}],"default":"false"}]
 
 import os
 import sys

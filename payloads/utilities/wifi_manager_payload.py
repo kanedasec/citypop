@@ -5,7 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
-# @inputs: [{"name":"action","label":"Action","type":"select","choices":["status","scan","connect","disconnect"],"default":"status"}]
+# @inputs: [{"name":"action","label":"Managed Wi-Fi client action","type":"select","choices":[{"value":"status","label":"Status only — show current Wi-Fi interfaces and connections"},{"value":"scan","label":"Scan only — list nearby access points without connecting"},{"value":"connect","label":"Connect — scan, select a network, and request its credentials"},{"value":"disconnect","label":"Disconnect — select and disconnect a managed Wi-Fi interface"}],"default":"status"}]
 
 """Phone-friendly Wi-Fi station management for City Pop.
 

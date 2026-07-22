@@ -5,7 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
-# @inputs: [{"name":"mode","label":"SDR operation","type":"select","choices":["waterfall","fm","scan","presets","settings"],"default":"scan"}]
+# @inputs: [{"name":"mode","label":"SDR operation to open","type":"select","choices":[{"value":"waterfall","label":"Waterfall — view live signal power across a frequency range"},{"value":"fm","label":"FM radio — tune and play a broadcast FM frequency"},{"value":"scan","label":"Band scan — search a frequency range for active signals"},{"value":"presets","label":"Presets — manage and use saved frequency presets"},{"value":"settings","label":"Settings — inspect or change SDR device configuration"}],"default":"scan"}]
 """
 RaspyJack Payload -- SDR Radio Suite
 ======================================

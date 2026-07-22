@@ -5,7 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
-# @inputs: [{"name":"source","label":"Image source","type":"select","choices":["loot image","Pi camera"],"default":"loot image"}]
+# @inputs: [{"name":"source","label":"Where to obtain the image to decode","type":"select","choices":[{"value":"loot image","label":"Loot image — select an existing image from the current engagement"},{"value":"Pi camera","label":"Raspberry Pi camera — capture a new still image, then decode it"}],"default":"loot image"}]
 
 import os
 import shutil

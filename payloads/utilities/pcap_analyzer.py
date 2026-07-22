@@ -5,7 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
-# @inputs: [{"name":"view","label":"Analysis view","type":"select","choices":["overview","protocols","endpoints","conversations"],"default":"overview"}]
+# @inputs: [{"name":"view","label":"PCAP report to display","type":"select","choices":[{"value":"overview","label":"Overview — show capture duration, size, packet count, and basic details"},{"value":"protocols","label":"Protocol hierarchy — summarize traffic by protocol and layer"},{"value":"endpoints","label":"Endpoints — summarize traffic sent and received by each address"},{"value":"conversations","label":"Conversations — summarize traffic exchanged between endpoint pairs"}],"default":"overview"}]
 
 import os
 import shutil

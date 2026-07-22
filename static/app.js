@@ -324,6 +324,10 @@ function openPayloadOptions(payload) {
   box.textContent = '';
   $('payloadTitle').textContent = `${payload.name} · OPTIONS`;
   $('payloadForm').dataset.id = payload.id;
+  const context = document.createElement('p');
+  context.className = 'payload-option-context';
+  context.textContent = payload.desc || 'Review each argument before running this payload.';
+  box.append(context);
   specs.forEach(spec => {
     const label = document.createElement('label');
     label.append(document.createTextNode(spec.label || spec.name || 'Value'));

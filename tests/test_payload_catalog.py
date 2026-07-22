@@ -62,6 +62,11 @@ class PayloadCatalogTests(unittest.TestCase):
                     if spec["type"] == "select":
                         self.assertIsInstance(spec.get("choices"), list)
                         self.assertTrue(spec["choices"])
+                        for choice in spec["choices"]:
+                            self.assertIsInstance(choice, dict)
+                            self.assertIn("value", choice)
+                            self.assertTrue(choice.get("label"))
+                            self.assertNotEqual(str(choice["value"]), choice["label"])
 
     def test_runtime_input_types_are_supported(self):
         for path in PAYLOADS.glob("*/*.py"):

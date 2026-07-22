@@ -5,7 +5,7 @@
 # @desc: Attack WPS-enabled access points using Pixie Dust (offline) and online brute-force via reaver/wash.
 # @category: wifi
 # @danger: true
-# @inputs: [{"name":"scan_seconds","label":"WPS scan duration","type":"number","default":"12"},{"name":"mode","label":"Audit mode","type":"select","choices":["pixie","pin"],"default":"pixie"},{"name":"timeout","label":"Audit timeout","type":"number","default":"300"}]
+# @inputs: [{"name":"scan_seconds","label":"WPS access-point discovery duration in seconds","type":"number","default":"12"},{"name":"mode","label":"Authorized WPS audit method","type":"select","choices":[{"value":"pixie","label":"Pixie Dust — test for offline recovery weaknesses with limited exchanges"},{"value":"pin","label":"Online PIN audit — try WPS PINs against the target until timeout or lockout"}],"default":"pixie"},{"name":"timeout","label":"Maximum audit runtime in seconds","type":"number","default":"300"}]
 
 import os
 import re

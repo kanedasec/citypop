@@ -5,7 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
-# @inputs: [{"name":"seconds","label":"Dashboard duration","type":"number","default":"60"},{"name":"sort","label":"Device sorting","type":"select","choices":["rssi","name","count"],"default":"rssi"}]
+# @inputs: [{"name":"seconds","label":"Dashboard duration in seconds","type":"number","default":"60"},{"name":"sort","label":"Initial device ordering","type":"select","choices":[{"value":"rssi","label":"Signal strength — strongest nearby advertisements first"},{"value":"name","label":"Device name — alphabetical order, including unnamed devices"},{"value":"count","label":"Sightings — most frequently observed devices first"}],"default":"rssi"}]
 """
 RaspyJack Payload -- Continuous BLE Scanner Dashboard
 =====================================================

@@ -5,7 +5,7 @@
 # @desc: Security testing tool for Unitree robots (Go1, Go2, B2, H1, G1).
 # @category: wifi
 # @danger: true
-# @inputs: [{"name":"mode","label":"Operation mode","type":"select","choices":["recon","scan","ble-scan","autopwn"],"default":"recon"},{"name":"seconds","label":"BLE scan duration (ble-scan only)","type":"number","default":"8"}]
+# @inputs: [{"name":"mode","label":"Authorized Unitree assessment operation","type":"select","choices":[{"value":"recon","label":"Reconnaissance — collect passive/local robot and network information"},{"value":"scan","label":"Network scan — probe the authorized robot for exposed services"},{"value":"ble-scan","label":"Bluetooth scan — search nearby BLE advertisements for Unitree devices"},{"value":"autopwn","label":"Automated active test — run the payload's full authorized exploitation workflow"}],"default":"recon"},{"name":"seconds","label":"Bluetooth scan duration in seconds (BLE scan mode only)","type":"number","default":"8"}]
 
 import os
 import sys

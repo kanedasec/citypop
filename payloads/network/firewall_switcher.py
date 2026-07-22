@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # @name: Firewall Preset Switcher
-# @desc: Inspect, apply, or reset predefined iptables policies through web prompts, with rule status shown in the terminal.
+# @desc: Inspect current iptables rules, save them as a custom preset, or apply a clearly described firewall policy; selected policies take effect immediately.
 # @category: network
 # @danger: false
 # @active: true
 # @web: true
+# @inputs: [{"name":"action","label":"Firewall action (policy changes apply immediately)","type":"select","choices":[{"value":"show","label":"Inspect only — show current rules without changing the firewall"},{"value":"OPEN","label":"OPEN — flush rules and allow all inbound, forwarded, and outbound traffic"},{"value":"STEALTH","label":"STEALTH — keep established/loopback traffic, drop ping, reject new TCP/UDP inbound traffic"},{"value":"BLOCK-ALL","label":"BLOCK-ALL — allow established/loopback traffic but drop every new inbound connection"},{"value":"CUSTOM","label":"CUSTOM — replace current rules with the previously saved custom preset"},{"value":"save","label":"Save current rules — overwrite the CUSTOM preset without applying a new policy"}],"default":"show"}]
 """
 RaspyJack Payload -- Firewall Preset Switcher
 ===============================================
@@ -51,6 +52,15 @@ LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.j
 CONFIG_PATH = os.path.join(LOOT_DIR, "presets.json")
 os.makedirs(LOOT_DIR, exist_ok=True)
 PRESET_NAMES = ["OPEN", "STEALTH", "BLOCK-ALL", "CUSTOM"]
+ACTION_CHOICES = [
+    {"value": "show", "label": "Inspect only — show current rules without changing the firewall"},
+    {"value": "OPEN", "label": "OPEN — flush rules and allow all inbound, forwarded, and outbound traffic"},
+    {"value": "STEALTH", "label": "STEALTH — keep established/loopback traffic, drop ping, reject new TCP/UDP inbound traffic"},
+    {"value": "BLOCK-ALL", "label": "BLOCK-ALL — allow established/loopback traffic but drop every new inbound connection"},
+    {"value": "CUSTOM", "label": "CUSTOM — replace current rules with the previously saved custom preset"},
+    {"value": "save", "label": "Save current rules — overwrite the CUSTOM preset without applying a new policy"},
+    {"value": "cancel", "label": "Cancel — leave the current firewall unchanged"},
+]
 
 
 # ---------------------------------------------------------------------------
@@ -219,24 +229,18 @@ def main():
     print(f"[*] Current active preset (detected): {active}", flush=True)
 
     if not args:
-        print("Available presets:", flush=True)
-        for i, name in enumerate(PRESET_NAMES):
-            marker = "*" if name == active else " "
-            print(f"  [{i}] {marker}{name}", flush=True)
-        choice = request_input(
-            f"Select preset [0-{len(PRESET_NAMES) - 1}] "
-            f"(blank to cancel): "
-        ).strip()
-        if not choice:
+        print("Choose an action. Policy selections replace the current iptables rules immediately:", flush=True)
+        for choice_info in ACTION_CHOICES:
+            marker = " [CURRENT]" if choice_info["value"] == active else ""
+            print(f"  - {choice_info['label']}{marker}", flush=True)
+        choice = str(request_input(
+            "Firewall action — inspect is read-only; OPEN, STEALTH, BLOCK-ALL, and CUSTOM apply immediately",
+            input_type="select", choices=ACTION_CHOICES, default="show",
+        )).strip()
+        if not choice or choice == "cancel":
             print("[*] Cancelled.", flush=True)
             return 0
-        if not (choice.isdigit() and 0 <= int(choice) < len(PRESET_NAMES)):
-            print("[!] Invalid selection.", flush=True)
-            return 1
-        target = PRESET_NAMES[int(choice)]
-        result = APPLY_FNS[target]()
-        print(f"[*] {result}", flush=True)
-        return 0
+        args = [choice]
 
     action = args[0]
     action_upper = action.upper()

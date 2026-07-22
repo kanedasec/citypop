@@ -5,7 +5,7 @@
 # @desc: Scan access points, select an authorized target, discover clients, optionally send bounded deauthentication assistance, and save verified WPA handshake captures to loot.
 # @category: wifi
 # @danger: true
-# @inputs: [{"name":"scan_seconds","label":"AP scan duration","type":"number","default":"15"},{"name":"capture_seconds","label":"Capture duration","type":"number","default":"120"},{"name":"deauth","label":"Send deauthentication assist","type":"select","choices":["false","true"],"default":"false"}]
+# @inputs: [{"name":"scan_seconds","label":"Access-point discovery duration in seconds","type":"number","default":"15"},{"name":"capture_seconds","label":"Maximum handshake capture duration in seconds","type":"number","default":"120"},{"name":"deauth","label":"Optional client reconnection assistance","type":"select","choices":[{"value":"false","label":"Passive only — wait for natural WPA client reconnections"},{"value":"true","label":"Deauthentication assist — send bounded frames to authorized clients to prompt reconnection"}],"default":"false"}]
 
 import csv
 import os
