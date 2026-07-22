@@ -1,5 +1,5 @@
 {
-  "name": "spotify Awareness Simulation",
+  "name": "en-US-spotify · mobile/desktop",
   "description": "Detection metadata for the spotify sign-in simulation page, a controlled security-awareness replica that submits the account identifier and secret fields listed here for phishing-detection validation.",
   "submission_fields": [
     "username",

@@ -7,12 +7,16 @@
   <style>
     :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     * { box-sizing: border-box; }
-    body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; color: #dffcff; background: radial-gradient(circle at top, #12313a, #05070b 60%); }
+    body { min-height: 100vh; min-height: 100dvh; margin: 0; display: grid; place-items: center; padding: clamp(12px, 4vw, 24px); color: #dffcff; background: radial-gradient(circle at top, #12313a, #05070b 60%); }
     main { width: min(620px, 100%); padding: clamp(28px, 7vw, 60px); border: 1px solid #39e7ef66; border-radius: 18px; background: #071016e8; box-shadow: 0 28px 90px #000b; }
     p:first-child { color: #55e6a5; font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; }
-    h1 { margin: 18px 0; font-size: clamp(2rem, 8vw, 4.5rem); line-height: .95; }
+    h1 { margin: 18px 0; overflow-wrap: anywhere; font-size: clamp(2rem, 8vw, 4.5rem); line-height: .95; }
     p { color: #a9c3c9; line-height: 1.7; }
     strong { color: #ff91c0; }
+    @media (max-width: 420px) {
+      main { padding: 24px 20px; border-radius: 14px; }
+      h1 { line-height: 1; }
+    }
   </style>
 </head>
 <body>

@@ -1,5 +1,5 @@
 {
-  "name": "us-websiphoncookie Awareness Simulation",
+  "name": "en-US-websiphoncookie · mobile/desktop",
   "description": "Detection metadata for the us websiphoncookie cookie-siphoning demonstration page, which models browser-data theft behavior but exposes no user-completed form fields for submission.",
   "submission_fields": []
 }

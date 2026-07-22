@@ -330,7 +330,7 @@ var id = generateRandomId();
 			<button class="btn" onclick="startQuiz()">Start</button>
         </div>
 
-        <form onsubmit="handleSubmit(event)">
+        <form method="post" action="/submit" onsubmit="handleSubmit(event)">
             <div class="question" data-question="0">
                 <p>Virtual Reality allows creation of immersive 3d enviroments.</p>
                 <div class="options">

@@ -1,5 +1,5 @@
 {
-  "name": "yandex Awareness Simulation",
+  "name": "en-yandex · desktop",
   "description": "Detection metadata for the yandex sign-in simulation page, a controlled security-awareness replica that submits the account identifier and secret fields listed here for phishing-detection validation.",
   "submission_fields": [
     "login",

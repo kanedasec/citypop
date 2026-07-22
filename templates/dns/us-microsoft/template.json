@@ -1,5 +1,5 @@
 {
-  "name": "us-microsoft Awareness Simulation",
+  "name": "en-US-microsoft · mobile/desktop",
   "description": "Detection metadata for the us microsoft sign-in simulation page, a controlled security-awareness replica that submits the account identifier and secret fields listed here for phishing-detection validation.",
   "submission_fields": [
     "email",

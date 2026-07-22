@@ -45,11 +45,10 @@ class DnsSpoofingTests(unittest.TestCase):
             root = Path(temporary)
             (root / "index.html").write_text("formulário de ação", encoding="utf-8")
             (root / "thanks.html").write_text("thanks", encoding="utf-8")
-            access_log = root / "access.jsonl"
-            response_log = root / "responses.jsonl"
+            event_log = root / "events.jsonl"
             server = ThreadingHTTPServer(
                 ("127.0.0.1", 0),
-                template_handler(root, access_log, response_log, ["survey_choice"]),
+                template_handler(root, event_log, ["survey_choice"]),
             )
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
@@ -63,8 +62,15 @@ class DnsSpoofingTests(unittest.TestCase):
                     base + "/submit", data=urlencode({"survey_choice": "report"}).encode(),
                 )
                 self.assertEqual(urlopen(request, timeout=3).read(), b"thanks")
-                recorded = json.loads(response_log.read_text(encoding="utf-8"))
-                self.assertEqual(recorded["fields"], {"survey_choice": "report"})
+                events = [
+                    json.loads(line)
+                    for line in event_log.read_text(encoding="utf-8").splitlines()
+                ]
+                submission = next(
+                    event for event in events if event["event"] == "form_submission"
+                )
+                self.assertEqual(submission["fields"], {"survey_choice": "report"})
+                self.assertTrue(any(event["event"] == "http_request" for event in events))
 
                 prohibited = Request(
                     base + "/submit", data=urlencode({"password": "never"}).encode(),

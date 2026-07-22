@@ -1,5 +1,5 @@
 {
-  "name": "normal Awareness Simulation",
+  "name": "fr-normal · desktop",
   "description": "Detection metadata for the normal captive-portal-style awareness page, which sends the displayed identity or message value and its companion input through the page's two submission parameters.",
   "submission_fields": [
     "email",

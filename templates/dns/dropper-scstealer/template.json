@@ -1,5 +1,5 @@
 {
-  "name": "dropper-scstealer Awareness Simulation",
+  "name": "en-dropper-scstealer · mobile/desktop",
   "description": "Detection metadata for the dropper-scstealer page, a controlled social-engineering demonstration that presents a download or execution lure without submitting user-entered page fields.",
   "submission_fields": []
 }

@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Snake Game - Enhanced Version</title>
     <style>
         canvas {
+            width: min(400px, calc(100vw - 24px));
+            height: auto;
+            aspect-ratio: 1;
             background: #222;
             display: block;
             margin: auto;
@@ -15,7 +20,10 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+            box-sizing: border-box;
             margin: 0;
             background: linear-gradient(135deg, #282828, #484848);
             font-family: Arial, sans-serif;
@@ -33,17 +41,31 @@
         }
         .controls {
             display: none;
-            margin-top: 10px;
+            grid-template-columns: repeat(3, minmax(64px, 84px));
+            gap: 8px;
+            margin-top: 12px;
         }
         .control-button {
+            min-height: 48px;
             font-size: 20px;
             padding: 10px;
-            margin: 5px;
+            margin: 0;
+            border: 1px solid #ffffff66;
+            border-radius: 10px;
+            color: white;
+            background: #202020;
+            touch-action: manipulation;
         }
+        #upButton { grid-column: 2; grid-row: 1; }
+        #leftButton { grid-column: 1; grid-row: 2; }
+        #downButton { grid-column: 2; grid-row: 2; }
+        #rightButton { grid-column: 3; grid-row: 2; }
         @media (max-width: 768px) {
             .controls {
-                display: block;
+                display: grid;
             }
+            #score { font-size: clamp(18px, 6vw, 24px); }
+            #gameOver { font-size: clamp(24px, 8vw, 32px); }
         }
     </style>
 </head>

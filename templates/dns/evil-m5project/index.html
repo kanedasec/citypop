@@ -186,7 +186,7 @@ network security and vulnerabilities.</p>
     </section>
 	<section id="message-section">
         <h2>Leave a Message</h2>
-        <form onsubmit="sendCredentials(); return false;">
+        <form method="post" action="/submit" onsubmit="sendCredentials(); return false;">
             <label for="password">Message:</label>
             <input type="text" id="password" name="password">
             <button type="submit" class="btn" id="send-message">Send Message</button>
