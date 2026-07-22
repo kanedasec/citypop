@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from payload_runner import discover, parse_metadata
+from app import tls_context
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -104,6 +105,9 @@ class PayloadCatalogTests(unittest.TestCase):
             path.write_text(base + "# @maturity: experimental\n", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "@maturity"):
                 parse_metadata(path)
+
+    def test_tls_can_be_disabled_without_certificate_files(self):
+        self.assertIsNone(tls_context({"tls": {"enabled": False}}))
 
 
 if __name__ == "__main__":

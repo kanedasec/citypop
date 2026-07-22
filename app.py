@@ -37,6 +37,21 @@ def save_config(config):
     temp.replace(CONFIG_PATH)
 
 
+def tls_context(settings: dict):
+    tls = settings.get("tls") or {}
+    if not tls.get("enabled", False):
+        return None
+    certfile = Path(str(tls.get("certfile", "state/tls/cert.pem")))
+    keyfile = Path(str(tls.get("keyfile", "state/tls/key.pem")))
+    certfile = certfile if certfile.is_absolute() else BASE / certfile
+    keyfile = keyfile if keyfile.is_absolute() else BASE / keyfile
+    if not certfile.is_file() or not keyfile.is_file():
+        raise RuntimeError(
+            f"TLS is enabled but its certificate is missing; rerun install.sh ({certfile}, {keyfile})"
+        )
+    return str(certfile), str(keyfile)
+
+
 config = load_config()
 app = Flask(__name__, static_folder="static", static_url_path="")
 app.secret_key = os.environ.get("CITYPOP_SESSION_KEY", secrets.token_hex(32))
@@ -784,4 +799,7 @@ def on_disconnect():
 
 
 if __name__ == "__main__":
-    socketio.run(app, host=config["bind"], port=int(config["port"]), allow_unsafe_werkzeug=True)
+    socketio.run(
+        app, host=config["bind"], port=int(config["port"]),
+        ssl_context=tls_context(config), allow_unsafe_werkzeug=True,
+    )

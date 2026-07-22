@@ -167,8 +167,25 @@ fi
 import json,secrets,sys
 p=sys.argv[1]; c=json.load(open(p));
 if c.get('auth_token') in ('CHANGE_ME_ON_INSTALL',''): c['auth_token']=secrets.token_urlsafe(24)
+c.setdefault('tls', {'enabled': True, 'certfile': 'state/tls/cert.pem', 'keyfile': 'state/tls/key.pem'})
 json.dump(c,open(p,'w'),indent=2); open(p,'a').write('\n'); print('City Pop token:',c['auth_token'])
 PY
+TLS_DIR="$INSTALL_DIR/state/tls"
+install -d -m 700 "$TLS_DIR"
+if [ ! -s "$TLS_DIR/cert.pem" ] || [ ! -s "$TLS_DIR/key.pem" ]; then
+  TLS_SAN="DNS:city-pop.local,DNS:localhost,IP:127.0.0.1"
+  while IFS= read -r address; do
+    [ -n "$address" ] && TLS_SAN="$TLS_SAN,IP:$address"
+  done <<EOF
+$(ip -o -4 addr show scope global 2>/dev/null | awk '{split($4, address, "/"); print address[1]}')
+EOF
+  openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 825 \
+    -keyout "$TLS_DIR/key.pem" -out "$TLS_DIR/cert.pem" \
+    -subj "/CN=city-pop.local/O=City Pop Authorized Lab" \
+    -addext "subjectAltName=$TLS_SAN"
+  chmod 600 "$TLS_DIR/key.pem"
+  chmod 644 "$TLS_DIR/cert.pem"
+fi
 if [ "$(id -u)" = 0 ]; then
   sed 's/^User=.*/User=root/' "$INSTALL_DIR/city-pop.service" > /etc/systemd/system/city-pop.service
   systemctl daemon-reload
@@ -183,16 +200,16 @@ fi
 PRIMARY_IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i == "src") {print $(i+1); exit}}')"
 ALL_IPS="$(ip -o -4 addr show scope global 2>/dev/null | awk '{split($4, address, "/"); print address[1]}')"
 if [ -n "$PRIMARY_IP" ]; then
-  echo "Primary URL: http://${PRIMARY_IP}:8080"
+  echo "Primary URL: https://${PRIMARY_IP}:8080"
 fi
 if [ -n "$ALL_IPS" ]; then
   echo "Available URLs:"
   while IFS= read -r address; do
-    [ -n "$address" ] && echo "  http://${address}:8080"
+    [ -n "$address" ] && echo "  https://${address}:8080"
   done <<EOF
 $ALL_IPS
 EOF
 else
-  echo "URL: http://192.168.43.254:8080 (fallback; verify the Pi address with: ip -4 addr)"
+  echo "URL: https://192.168.43.254:8080 (fallback; verify the Pi address with: ip -4 addr)"
 fi
 [ "$(id -u)" = 0 ] && echo "Token file: $INSTALL_DIR/config.json" || echo "Token file: $BASE/config.json"

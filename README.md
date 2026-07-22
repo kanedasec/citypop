@@ -97,7 +97,7 @@ sudo ./install.sh
 When installation finishes, open one of the printed URLs on the connected phone and authenticate with the printed token:
 
 ```text
-http://<pi-tail-address>:8080
+https://<pi-tail-address>:8080
 ```
 
 For hardware preparation, installer behavior, updates, and token recovery, continue to [Installation](#installation).
@@ -167,7 +167,7 @@ An unrelated broken APT repository may cause `apt update` to warn. The installer
 On the tethered phone, browse to the URL printed by the installer:
 
 ```text
-http://<pi-tail-ip>:8080
+https://<pi-tail-ip>:8080
 ```
 
 The Pi-Tail default is often `192.168.43.254`, but hotspot vendors and USB tethering modes may assign another address.
@@ -227,7 +227,7 @@ IP addresses can change when moving between home Wi-Fi, USB tethering, and phone
 ip -br -4 address
 ```
 
-Open the address reachable from the phone with port `8080`. The service listens independently of the installer’s original address.
+Open the HTTPS address reachable from the phone with port `8080`. The service listens independently of the installer’s original address. The installer creates a self-signed certificate, so the browser will require you to inspect and explicitly accept its warning.
 
 ### A Wi-Fi survey reports `Network is down`
 
@@ -281,7 +281,7 @@ City Pop is a privileged administration surface, not a hardened internet service
 
 - The service runs payloads as root.
 - The optional command bar executes shell commands as root.
-- The default server uses plain HTTP; the token is not protected by transport encryption.
+- The installer enables HTTPS with a locally generated self-signed certificate. Verify its fingerprint before trusting it on a management device.
 - Keep port `8080` on a trusted, private phone-to-Pi link.
 - Do not expose it through public Wi-Fi, router forwarding, cloud tunnels, or an untrusted VPN.
 - Treat the token like a root password and rotate it if it is disclosed.

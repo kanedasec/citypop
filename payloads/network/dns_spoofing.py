@@ -18,6 +18,7 @@ import os
 import shutil
 import signal
 import socket
+import ssl
 import subprocess
 import sys
 import threading
@@ -377,6 +378,8 @@ def main() -> int:
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     http_server = None
     http_thread = None
+    https_server = None
+    https_thread = None
     previous_handlers = {}
     redirect_added = False
     forwarding_changed = False
@@ -384,15 +387,34 @@ def main() -> int:
     try:
         server.bind(("0.0.0.0", LOCAL_DNS_PORT))
         if template_path:
+            handler = template_handler(
+                template_path, access_log, submission_log,
+                selected_template.get("submission_fields", []),
+            )
             http_server = ThreadingHTTPServer(
-                ("0.0.0.0", 80),
-                template_handler(
-                    template_path, access_log, submission_log,
-                    selected_template.get("submission_fields", []),
-                ),
+                ("0.0.0.0", 80), handler,
             )
             http_thread = threading.Thread(target=http_server.serve_forever, daemon=True)
             http_thread.start()
+            certfile = Path(os.environ.get(
+                "CITYPOP_TLS_CERT", Path(os.environ["CITYPOP_ROOT"]) / "state/tls/cert.pem"
+            ))
+            keyfile = Path(os.environ.get(
+                "CITYPOP_TLS_KEY", Path(os.environ["CITYPOP_ROOT"]) / "state/tls/key.pem"
+            ))
+            if certfile.is_file() and keyfile.is_file():
+                https_server = ThreadingHTTPServer(("0.0.0.0", 443), handler)
+                context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+                context.load_cert_chain(certfile, keyfile)
+                https_server.socket = context.wrap_socket(
+                    https_server.socket, server_side=True,
+                )
+                https_thread = threading.Thread(
+                    target=https_server.serve_forever, daemon=True,
+                )
+                https_thread.start()
+            else:
+                print("Template HTTPS unavailable · rerun install.sh to generate the TLS certificate", flush=True)
         for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
             previous_handlers[signum] = signal.getsignal(signum)
             signal.signal(signum, cleanup_signal)
@@ -426,6 +448,11 @@ def main() -> int:
                     flush=True,
                 )
             print(f"Hosted page: http://{pattern.removeprefix('*.')}/", flush=True)
+            if https_server:
+                print(
+                    f"TLS page: https://{pattern.removeprefix('*.')}/ · self-signed certificate warning expected",
+                    flush=True,
+                )
         total, spoofed = serve_dns(server, pattern, address, upstream, log_path, time.monotonic() + seconds)
         print(f"DNS spoof stopped · {total} queries · {spoofed} spoofed", flush=True)
         return 0
@@ -438,6 +465,9 @@ def main() -> int:
         if http_server:
             http_server.shutdown()
             http_server.server_close()
+        if https_server:
+            https_server.shutdown()
+            https_server.server_close()
         if http_thread:
             http_thread.join(timeout=3)
         stop_process(arp_client)
