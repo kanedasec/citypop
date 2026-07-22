@@ -799,7 +799,10 @@ def on_disconnect():
 
 
 if __name__ == "__main__":
+    # Development fallback only. Installed deployments use nginx TLS in front
+    # of a threaded Gunicorn worker; keeping TLS out of Werkzeug avoids a slow
+    # or incomplete handshake blocking the entire administration interface.
     socketio.run(
         app, host=config["bind"], port=int(config["port"]),
-        ssl_context=tls_context(config), allow_unsafe_werkzeug=True,
+        allow_unsafe_werkzeug=True,
     )

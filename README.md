@@ -157,8 +157,9 @@ The installer:
 4. Creates `/opt/city-pop/.venv` with access to Kali's system Python packages.
 5. Installs Python dependencies without attempting large ARM source builds where avoidable.
 6. Generates a random City Pop authentication token.
-7. Enables and starts `city-pop.service` as root.
-8. Prints the primary and all available IPv4 web URLs plus the token location.
+7. Configures nginx as the TLS/WebSocket reverse proxy and runs City Pop behind it with one threaded Gunicorn worker.
+8. Enables and starts `nginx.service` and `city-pop.service` as root.
+9. Prints the primary and all available IPv4 web URLs plus the token location.
 
 An unrelated broken APT repository may cause `apt update` to warn. The installer continues using indexes that did refresh, but required package installation can still fail if Kali cannot fetch them.
 
@@ -248,7 +249,9 @@ On the Pi Zero 2 W, compiling NumPy can take a long time and exhaust memory. The
 
 ```bash
 sudo systemctl status city-pop --no-pager
+sudo systemctl status nginx --no-pager
 sudo journalctl -u city-pop -n 100 --no-pager
+sudo nginx -t
 sudo ss -lntp | grep 8080
 ```
 
@@ -281,7 +284,7 @@ City Pop is a privileged administration surface, not a hardened internet service
 
 - The service runs payloads as root.
 - The optional command bar executes shell commands as root.
-- The installer enables HTTPS with a locally generated self-signed certificate. Verify its fingerprint before trusting it on a management device.
+- The installer enables HTTPS with a locally generated self-signed certificate. Nginx terminates TLS and WebSockets, then proxies only to Gunicorn on `127.0.0.1:18080`. Verify the certificate fingerprint before trusting it on a management device.
 - Keep port `8080` on a trusted, private phone-to-Pi link.
 - Do not expose it through public Wi-Fi, router forwarding, cloud tunnels, or an untrusted VPN.
 - Treat the token like a root password and rotate it if it is disclosed.

@@ -43,7 +43,7 @@ if [ "$(id -u)" = 0 ]; then
     python3-cryptography python3-serial python3-requests python3-scapy
     python3-bleak python3-pyudev python3-pyzbar python3-qrcode python3-evdev
     libbluetooth-dev libffi-dev libglib2.0-dev libnfc-dev libusb-1.0-0-dev
-    nmap iw iproute2 iputils-ping iperf3 whois curl openssl wget unzip usbutils avahi-utils
+    nmap iw iproute2 iputils-ping iperf3 whois curl openssl nginx wget unzip usbutils avahi-utils
     bluez wireless-tools rfkill aircrack-ng hostapd dnsmasq
     gpsd gpsd-clients rtl-sdr rtl-433 multimon-ng i2c-tools alsa-utils
     modemmanager sshpass hydra john hashcat gobuster reaver hcxtools hping3 dsniff
@@ -138,7 +138,7 @@ fi
 "$VENV_PYTHON" - <<'PY'
 import importlib
 
-required = ("flask", "flask_socketio", "simple_websocket")
+required = ("flask", "flask_socketio", "gunicorn", "simple_websocket")
 for module in required:
     importlib.import_module(module)
 print("City Pop web runtime imports: OK")
@@ -170,6 +170,7 @@ if c.get('auth_token') in ('CHANGE_ME_ON_INSTALL',''): c['auth_token']=secrets.t
 c.setdefault('tls', {'enabled': True, 'certfile': 'state/tls/cert.pem', 'keyfile': 'state/tls/key.pem'})
 json.dump(c,open(p,'w'),indent=2); open(p,'a').write('\n'); print('City Pop token:',c['auth_token'])
 PY
+CITYPOP_PORT="$($VENV_PYTHON -c 'import json,sys; print(int(json.load(open(sys.argv[1]))["port"]))' "$INSTALL_DIR/config.json")"
 TLS_DIR="$INSTALL_DIR/state/tls"
 install -d -m 700 "$TLS_DIR"
 if [ ! -s "$TLS_DIR/cert.pem" ] || [ ! -s "$TLS_DIR/key.pem" ]; then
@@ -187,11 +188,20 @@ EOF
   chmod 644 "$TLS_DIR/cert.pem"
 fi
 if [ "$(id -u)" = 0 ]; then
+  sed \
+    -e "s|__CITYPOP_PORT__|$CITYPOP_PORT|g" \
+    -e "s|__CITYPOP_CERT__|$TLS_DIR/cert.pem|g" \
+    -e "s|__CITYPOP_KEY__|$TLS_DIR/key.pem|g" \
+    "$INSTALL_DIR/city-pop.nginx.conf" > /etc/nginx/conf.d/city-pop.conf
+  nginx -t
+  systemctl stop city-pop.service 2>/dev/null || true
+  systemctl enable nginx.service
+  systemctl restart nginx.service
   sed 's/^User=.*/User=root/' "$INSTALL_DIR/city-pop.service" > /etc/systemd/system/city-pop.service
   systemctl daemon-reload
   systemctl enable city-pop.service
   systemctl restart city-pop.service
-  echo "City Pop service enabled and started as root"
+  echo "City Pop enabled: nginx TLS on port $CITYPOP_PORT → Gunicorn on 127.0.0.1:18080"
 else
   echo "The venv is ready, but no server was started."
   echo "Run now: $INSTALL_DIR/.venv/bin/python $INSTALL_DIR/app.py"
@@ -200,16 +210,16 @@ fi
 PRIMARY_IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i == "src") {print $(i+1); exit}}')"
 ALL_IPS="$(ip -o -4 addr show scope global 2>/dev/null | awk '{split($4, address, "/"); print address[1]}')"
 if [ -n "$PRIMARY_IP" ]; then
-  echo "Primary URL: https://${PRIMARY_IP}:8080"
+  echo "Primary URL: https://${PRIMARY_IP}:${CITYPOP_PORT}"
 fi
 if [ -n "$ALL_IPS" ]; then
   echo "Available URLs:"
   while IFS= read -r address; do
-    [ -n "$address" ] && echo "  https://${address}:8080"
+    [ -n "$address" ] && echo "  https://${address}:${CITYPOP_PORT}"
   done <<EOF
 $ALL_IPS
 EOF
 else
-  echo "URL: https://192.168.43.254:8080 (fallback; verify the Pi address with: ip -4 addr)"
+  echo "URL: https://192.168.43.254:${CITYPOP_PORT} (fallback; verify the Pi address with: ip -4 addr)"
 fi
 [ "$(id -u)" = 0 ] && echo "Token file: $INSTALL_DIR/config.json" || echo "Token file: $BASE/config.json"
