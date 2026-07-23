@@ -188,7 +188,9 @@ header::after {
 }
 
 .target span { min-width: 0; color: var(--cyan-soft); overflow-wrap: anywhere; }
-.mini { min-height: 30px; margin-left: auto; padding: 4px 8px; font-size: 10px; }
+.mini { min-height: 30px; padding: 4px 8px; font-size: 10px; }
+#accountBtn { margin-left: auto; }
+.header-power { border-color: rgb(255 79 154 / 55%); color: #ff9bc6; }
 
 .card {
   max-width: 520px;
@@ -663,11 +665,6 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
 .interface-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .interface-actions button { min-height: 30px; padding: 5px 9px; font-size: 8px; }
 #hardwareStatus { min-height: 18px; margin-top: 10px; color: var(--cyan-soft); font-size: 9px; }
-.power-zone { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px; border: 1px solid rgb(255 75 128 / 35%); border-radius: var(--radius-sm); background: rgb(255 75 128 / 6%); }
-.power-zone b, .power-zone small { display: block; }
-.power-zone b { color: #ff91c0; font: 650 10px var(--display); }
-.power-zone small { margin-top: 3px; color: var(--dim); font-size: 8px; }
-.power-zone button { flex: 0 0 auto; }
 
 #executionsList { max-height: 58vh; overflow: auto; }
 .execution-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--edge); }

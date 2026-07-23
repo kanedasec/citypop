@@ -130,6 +130,7 @@ async function login() {
     $('login').hidden = true;
     $('app').hidden = false;
     $('accountBtn').hidden = false;
+    $('poweroffBtn').hidden = false;
     if (!data.acknowledged && !$('ack').open) $('ack').showModal();
     connect();
     await migrateLocalEngagements();
@@ -465,7 +466,7 @@ async function showHardware() {
   const data = await response.json();
   const system = data.system || {};
   const wirelessInterfaces = (data.interfaces || []).filter(item => item.wireless);
-  $('hardwareBody').innerHTML = `<div class="system-vitals"><div><b>${escapeHtml(system.hostname)}</b><small>HOST</small></div><div><b>${system.temperature_c == null ? '—' : `${system.temperature_c}°C`}</b><small>CPU</small></div><div><b>${formatBytes(system.memory?.available)}</b><small>RAM FREE</small></div><div><b>${formatBytes(system.disk?.free)}</b><small>DISK FREE</small></div></div><div class="hardware-flags"><span class="${system.bluetooth ? 'ok' : ''}">BT</span><span class="${system.gps ? 'ok' : ''}">GPS</span><span class="${system.sdr ? 'ok' : ''}">SDR</span><span class="${system.nfc ? 'ok' : ''}">NFC</span></div><h3>WI-FI INTERFACES</h3>${wirelessInterfaces.map(item => `<div class="interface-row ${item.default_route ? 'protected' : ''}"><div><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.driver || 'virtual')} · ${escapeHtml(item.mode || 'mode unknown')}</small></div><div><span class="admin-state ${item.admin_up ? 'ok' : ''}">${item.admin_up ? 'ENABLED' : 'DISABLED'}</span><span class="connection-state ${item.state === 'up' ? 'ok' : ''}">${item.state === 'up' ? 'CONNECTED' : item.state === 'dormant' ? 'DORMANT' : 'DISCONNECTED'}</span><small>${escapeHtml((item.addresses || []).join(', ') || item.mac || 'no address')}</small></div>${item.default_route ? '<em>PROTECTED ROUTE · CONTROLS LOCKED</em>' : `<div class="interface-actions"><button type="button" class="interface-link" data-interface="${escapeHtml(item.name)}" data-state="${item.admin_up ? 'down' : 'up'}">BRING ${item.admin_up ? 'DOWN' : 'UP'}</button><button type="button" class="interface-mode" data-interface="${escapeHtml(item.name)}" data-mode="${item.mode === 'monitor' ? 'managed' : 'monitor'}">${item.mode === 'monitor' ? 'DISABLE MONITOR' : 'ENABLE MONITOR'}</button></div>`}</div>`).join('') || '<div class="empty-state">No Wi-Fi interfaces detected.</div>'}<div id="hardwareStatus" role="status" aria-live="polite"></div><section class="power-zone"><div><b>SAFE POWEROFF</b><small>Flush storage and halt the Raspberry Pi.</small></div><button type="button" id="poweroffBtn" class="danger">POWER OFF</button></section>`;
+  $('hardwareBody').innerHTML = `<div class="system-vitals"><div><b>${escapeHtml(system.hostname)}</b><small>HOST</small></div><div><b>${system.temperature_c == null ? '—' : `${system.temperature_c}°C`}</b><small>CPU</small></div><div><b>${formatBytes(system.memory?.available)}</b><small>RAM FREE</small></div><div><b>${formatBytes(system.disk?.free)}</b><small>DISK FREE</small></div></div><div class="hardware-flags"><span class="${system.bluetooth ? 'ok' : ''}">BT</span><span class="${system.gps ? 'ok' : ''}">GPS</span><span class="${system.sdr ? 'ok' : ''}">SDR</span><span class="${system.nfc ? 'ok' : ''}">NFC</span></div><h3>WI-FI INTERFACES</h3>${wirelessInterfaces.map(item => `<div class="interface-row ${item.default_route ? 'protected' : ''}"><div><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.driver || 'virtual')} · ${escapeHtml(item.mode || 'mode unknown')}</small></div><div><span class="admin-state ${item.admin_up ? 'ok' : ''}">${item.admin_up ? 'ENABLED' : 'DISABLED'}</span><span class="connection-state ${item.state === 'up' ? 'ok' : ''}">${item.state === 'up' ? 'CONNECTED' : item.state === 'dormant' ? 'DORMANT' : 'DISCONNECTED'}</span><small>${escapeHtml((item.addresses || []).join(', ') || item.mac || 'no address')}</small></div>${item.default_route ? '<em>PROTECTED ROUTE · CONTROLS LOCKED</em>' : `<div class="interface-actions"><button type="button" class="interface-link" data-interface="${escapeHtml(item.name)}" data-state="${item.admin_up ? 'down' : 'up'}">BRING ${item.admin_up ? 'DOWN' : 'UP'}</button><button type="button" class="interface-mode" data-interface="${escapeHtml(item.name)}" data-mode="${item.mode === 'monitor' ? 'managed' : 'monitor'}">${item.mode === 'monitor' ? 'DISABLE MONITOR' : 'ENABLE MONITOR'}</button></div>`}</div>`).join('') || '<div class="empty-state">No Wi-Fi interfaces detected.</div>'}<div id="hardwareStatus" role="status" aria-live="polite"></div>`;
 }
 
 $('hardwareBody').onclick = async event => {
@@ -490,14 +491,6 @@ $('hardwareBody').onclick = async event => {
     $('hardwareStatus').textContent = data.detail || data.error || 'Interface change failed.';
     if (response.ok) setTimeout(showHardware, 500); else modeButton.disabled = false;
     return;
-  }
-  if (event.target.id === 'poweroffBtn') {
-    if (!confirm('Safely power off this Raspberry Pi now? The web interface will disconnect.')) return;
-    event.target.disabled = true;
-    const response = await fetch('/api/system/poweroff', {method: 'POST', headers: authHeaders()});
-    const data = await response.json();
-    $('hardwareStatus').textContent = data.detail || data.error || 'Poweroff request failed.';
-    if (!response.ok) event.target.disabled = false;
   }
 };
 
@@ -637,6 +630,18 @@ $('accountBtn').onclick = async () => {
   $('accountDialog').showModal();
 };
 $('accountCancel').onclick = () => $('accountDialog').close();
+$('poweroffBtn').onclick = async event => {
+  if (!confirm('Safely power off this Raspberry Pi now? The web interface will disconnect.')) return;
+  event.currentTarget.disabled = true;
+  const response = await fetch('/api/system/poweroff', {method: 'POST', headers: authHeaders()});
+  const data = await response.json();
+  if (!response.ok) {
+    event.currentTarget.disabled = false;
+    alert(data.error || 'Poweroff request failed.');
+    return;
+  }
+  event.currentTarget.textContent = 'SHUTTING DOWN';
+};
 $('logoutBtn').onclick = async () => { await fetch('/api/logout', {method: 'POST', headers: authHeaders()}); location.reload(); };
 $('accountForm').onsubmit = async event => {
   event.preventDefault();
@@ -922,6 +927,7 @@ async function initializeAuthentication() {
       $('login').hidden = true;
       $('app').hidden = false;
       $('accountBtn').hidden = false;
+      $('poweroffBtn').hidden = false;
       connect();
       await migrateLocalEngagements();
       await loadPayloads();

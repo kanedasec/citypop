@@ -354,8 +354,6 @@ requirements.txt        optional payload Python dependencies
 constraints-arm.txt     ARM dependency compatibility constraints
 constraints-web.txt     human-readable exact web dependency versions
 config.example.json     safe configuration template
-misc/                   development documentation (not installed)
-tools/                  local migration tooling (not installed or committed)
 ```
 
 ## Documentation
