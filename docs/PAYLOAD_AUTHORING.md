@@ -14,10 +14,32 @@ Place a script in `payloads/<category>/`. Its `@category` must match the directo
 # @category: reconnaissance
 # @danger: false
 # @web: true
+# @maturity: limited
 # @inputs: [{"name":"seconds","label":"Duration","type":"number","default":"60"}]
 ```
 
 Supported static input types are `text`, `password`, `number`, and `select`. A select input requires a nonempty `choices` array. Arguments are passed to the script in metadata order.
+
+### Maturity
+
+`@maturity` communicates the payload's current verification level:
+
+- `not tested` — the payload has not yet been validated through its complete
+  City Pop workflow on representative hardware;
+- `limited` — the primary workflow has been exercised, but hardware,
+  environment, driver, or edge-case coverage remains limited; and
+- `functional` — the complete web workflow, expected output, stopping, and
+  cleanup have been validated in its supported environment.
+
+The tag is optional. A payload without `@maturity` is automatically treated as
+`not tested`. Values are case-insensitive when parsed, normalized to lowercase,
+and must be one of the three values above. Maturity describes verification
+coverage—not safety, authorization, or operational impact. Keep using
+`@danger` independently.
+
+Payload cards display this label, and the catalog orders payloads by maturity:
+`functional`, then `limited`, then `not tested`. Update the value only when
+testing evidence supports the new level.
 
 ## Runtime choices
 
