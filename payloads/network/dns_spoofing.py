@@ -25,7 +25,7 @@ import threading
 import time
 import re
 from datetime import datetime, timezone
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -39,6 +39,7 @@ TEMPLATE_ROOT = Path(__file__).resolve().parents[2] / "templates" / "dns"
 stop_event = threading.Event()
 event_log_lock = threading.Lock()
 FIELD_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
+SENSITIVE_FIELD_PARTS = {}
 
 
 def normalize_domain(value: str) -> str:
@@ -57,7 +58,7 @@ def normalize_domain(value: str) -> str:
 def domain_matches(query: str, pattern: str) -> bool:
     query = query.lower().rstrip(".")
     if pattern.startswith("*."):
-        suffix = pattern[1:]  # includes the separating dot
+        suffix = pattern[1:]  
         return query.endswith(suffix) and query != pattern[2:]
     return query == pattern
 
@@ -82,7 +83,12 @@ def allowed_submission_fields(value) -> list[str]:
     for item in value[:12]:
         name = str(item).strip().lower()
         tokens = set(name.split("_"))
+        sensitive = any(
+            part in tokens or (len(part) >= 5 and part in name)
+            for part in SENSITIVE_FIELD_PARTS
+        )
         if (FIELD_NAME_RE.fullmatch(name)
+                and not sensitive
                 and name not in fields):
             fields.append(name)
     return fields
@@ -137,6 +143,39 @@ def local_ipv4_addresses() -> set[str]:
 def append_event(log_path: Path, event: dict) -> None:
     with event_log_lock, log_path.open("a", encoding="utf-8") as output:
         output.write(json.dumps(event, ensure_ascii=False) + "\n")
+
+
+def redirect_handler(fallback_host: str, event_log: Path):
+    class RedirectHandler(BaseHTTPRequestHandler):
+        def redirect_to_https(self):
+            host = self.headers.get("Host", "").split(":", 1)[0].strip().lower()
+            if not re.fullmatch(r"[a-z0-9.-]+", host):
+                host = fallback_host
+            parsed = urlsplit(self.path)
+            target = parsed.path or "/"
+            if parsed.query:
+                target += "?" + parsed.query
+            location = f"https://{host}{target}"
+            append_event(event_log, {
+                "event": "https_redirect",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "client": self.client_address[0], "method": self.command,
+                "path": target, "location": location,
+            })
+            self.send_response(308)
+            self.send_header("Location", location)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+        do_GET = redirect_to_https
+        do_HEAD = redirect_to_https
+        do_POST = redirect_to_https
+
+        def log_message(self, _fmt, *_args):
+            return
+
+    return RedirectHandler
 
 
 def template_handler(directory: Path, event_log: Path, submission_fields: list[str]):
@@ -372,8 +411,8 @@ def main() -> int:
     ]
     arp_client = arp_gateway = None
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    http_server = None
-    http_thread = None
+    http_redirect_server = None
+    http_redirect_thread = None
     https_server = None
     https_thread = None
     previous_handlers = {}
@@ -386,11 +425,6 @@ def main() -> int:
             handler = template_handler(
                 template_path, log_path, selected_template.get("submission_fields", []),
             )
-            http_server = ThreadingHTTPServer(
-                ("0.0.0.0", 80), handler,
-            )
-            http_thread = threading.Thread(target=http_server.serve_forever, daemon=True)
-            http_thread.start()
             certfile = Path(os.environ.get(
                 "CITYPOP_TLS_CERT", Path(os.environ["CITYPOP_ROOT"]) / "state/tls/cert.pem"
             ))
@@ -408,8 +442,18 @@ def main() -> int:
                     target=https_server.serve_forever, daemon=True,
                 )
                 https_thread.start()
+                http_redirect_server = ThreadingHTTPServer(
+                    ("0.0.0.0", 80),
+                    redirect_handler(pattern.removeprefix("*."), log_path),
+                )
+                http_redirect_thread = threading.Thread(
+                    target=http_redirect_server.serve_forever, daemon=True,
+                )
+                http_redirect_thread.start()
             else:
-                print("Template HTTPS unavailable · rerun install.sh to generate the TLS certificate", flush=True)
+                raise RuntimeError(
+                    "Template HTTPS requires the City Pop TLS certificate; rerun install.sh"
+                )
         for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
             previous_handlers[signum] = signal.getsignal(signum)
             signal.signal(signum, cleanup_signal)
@@ -442,12 +486,12 @@ def main() -> int:
                     f"Awareness fields in unified log: {', '.join(selected_template['submission_fields'])}",
                     flush=True,
                 )
-            print(f"Hosted page: http://{pattern.removeprefix('*.')}/", flush=True)
             if https_server:
                 print(
-                    f"TLS page: https://{pattern.removeprefix('*.')}/ · self-signed certificate warning expected",
+                    f"Hosted page: https://{pattern.removeprefix('*.')}/ · self-signed certificate warning expected",
                     flush=True,
                 )
+                print("HTTP port 80 redirects matching visitors to HTTPS port 443", flush=True)
         total, spoofed = serve_dns(server, pattern, address, upstream, log_path, time.monotonic() + seconds)
         print(f"DNS spoof stopped · {total} queries · {spoofed} spoofed", flush=True)
         return 0
@@ -457,14 +501,16 @@ def main() -> int:
     finally:
         stop_event.set()
         server.close()
-        if http_server:
-            http_server.shutdown()
-            http_server.server_close()
+        if http_redirect_server:
+            http_redirect_server.shutdown()
+            http_redirect_server.server_close()
         if https_server:
             https_server.shutdown()
             https_server.server_close()
-        if http_thread:
-            http_thread.join(timeout=3)
+        if https_thread:
+            https_thread.join(timeout=3)
+        if http_redirect_thread:
+            http_redirect_thread.join(timeout=3)
         stop_process(arp_client)
         stop_process(arp_gateway)
         if redirect_added:

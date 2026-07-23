@@ -285,6 +285,7 @@ City Pop is a privileged administration surface, not a hardened internet service
 - The service runs payloads as root.
 - The optional command bar executes shell commands as root.
 - The installer enables HTTPS with a locally generated self-signed certificate. Nginx terminates TLS and WebSockets, then proxies only to Gunicorn on `127.0.0.1:18080`. Verify the certificate fingerprint before trusting it on a management device.
+- Nginx does not listen on port 80. While a DNS Spoof template is active, its managed redirector temporarily owns port 80 and sends visitors to the same hostname on HTTPS port 443.
 - Keep port `8080` on a trusted, private phone-to-Pi link.
 - Do not expose it through public Wi-Fi, router forwarding, cloud tunnels, or an untrusted VPN.
 - Treat the token like a root password and rotate it if it is disclosed.

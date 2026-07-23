@@ -1,4 +1,5 @@
 import json
+import http.client
 import tempfile
 import threading
 import unittest
@@ -12,7 +13,7 @@ from scapy.all import DNS, DNSQR
 
 from payloads.network.dns_spoofing import (
     allowed_submission_fields, build_spoof_response, discover_templates,
-    domain_matches, normalize_domain, parse_query, template_handler,
+    domain_matches, normalize_domain, parse_query, redirect_handler, template_handler,
 )
 
 
@@ -78,6 +79,29 @@ class DnsSpoofingTests(unittest.TestCase):
                 with self.assertRaises(HTTPError) as error:
                     urlopen(prohibited, timeout=3)
                 self.assertEqual(error.exception.code, 400)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=3)
+
+    def test_http_redirect_preserves_host_path_and_query(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            event_log = Path(temporary) / "events.jsonl"
+            server = ThreadingHTTPServer(
+                ("127.0.0.1", 0), redirect_handler("fallback.test", event_log),
+            )
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                connection = http.client.HTTPConnection("127.0.0.1", server.server_port)
+                connection.request("GET", "/notice?id=7", headers={"Host": "portal.test"})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 308)
+                self.assertEqual(response.getheader("Location"), "https://portal.test/notice?id=7")
+                response.read()
+                connection.close()
+                event = json.loads(event_log.read_text(encoding="utf-8"))
+                self.assertEqual(event["event"], "https_redirect")
             finally:
                 server.shutdown()
                 server.server_close()

@@ -188,6 +188,12 @@ EOF
   chmod 644 "$TLS_DIR/cert.pem"
 fi
 if [ "$(id -u)" = 0 ]; then
+  NGINX_DEFAULT=/etc/nginx/sites-enabled/default
+  if [ -L "$NGINX_DEFAULT" ] && \
+      [ "$(readlink -f "$NGINX_DEFAULT")" = "/etc/nginx/sites-available/default" ]; then
+    unlink "$NGINX_DEFAULT"
+    echo "Disabled nginx's packaged default site; City Pop now owns the port 80 redirect."
+  fi
   sed \
     -e "s|__CITYPOP_PORT__|$CITYPOP_PORT|g" \
     -e "s|__CITYPOP_CERT__|$TLS_DIR/cert.pem|g" \

@@ -17,6 +17,7 @@ class DeploymentTests(unittest.TestCase):
     def test_nginx_terminates_tls_and_proxies_websockets(self):
         nginx = (ROOT / "city-pop.nginx.conf").read_text(encoding="utf-8")
         self.assertIn("listen __CITYPOP_PORT__ ssl", nginx)
+        self.assertNotIn("listen 80", nginx)
         self.assertIn("proxy_pass http://127.0.0.1:18080", nginx)
         self.assertIn("proxy_set_header Upgrade $http_upgrade", nginx)
         self.assertIn("proxy_set_header Connection $citypop_connection_upgrade", nginx)
