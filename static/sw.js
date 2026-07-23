@@ -1,5 +1,5 @@
-const CACHE = 'city-pop-shell-v7';
-const SHELL = ['/', '/style.css', '/app.js', '/input.js', '/manifest.webmanifest', '/citypop-icon.png'];
+const CACHE = 'city-pop-shell-v8';
+const SHELL = ['/', '/style.css', '/vendor/socket.io.min.js', '/app.js', '/input.js', '/manifest.webmanifest', '/citypop-icon.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));

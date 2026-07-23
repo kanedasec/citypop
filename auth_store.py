@@ -48,6 +48,12 @@ class AuthStore:
     def username(self) -> str:
         return str(self._read().get("username", ""))
 
+    def version(self) -> int:
+        try:
+            return max(1, int(self._read().get("auth_version", 1)))
+        except (TypeError, ValueError):
+            return 1
+
     def setup(self, username: str, password: str) -> None:
         self.validate(username, password)
         with self._lock:
@@ -56,6 +62,7 @@ class AuthStore:
             self._write({
                 "username": username,
                 "password_hash": generate_password_hash(password, method="scrypt"),
+                "auth_version": 1,
             })
 
     def verify(self, username: str, password: str) -> bool:
@@ -86,4 +93,30 @@ class AuthStore:
                     generate_password_hash(new_password, method="scrypt")
                     if new_password else password_hash
                 ),
+                "auth_version": self.version() + 1,
             })
+
+
+class PairingStore:
+    def __init__(self, path: Path):
+        self.path = Path(path)
+        self._lock = threading.Lock()
+
+    def required(self) -> bool:
+        try:
+            data = json.loads(self.path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return False
+        return bool(data.get("code_hash"))
+
+    def verify_and_consume(self, code: str) -> bool:
+        with self._lock:
+            try:
+                data = json.loads(self.path.read_text(encoding="utf-8"))
+                code_hash = str(data.get("code_hash", ""))
+            except (OSError, json.JSONDecodeError):
+                return False
+            if not code_hash or not check_password_hash(code_hash, code):
+                return False
+            self.path.unlink(missing_ok=True)
+            return True

@@ -156,12 +156,13 @@ The installer:
 3. Copies runtime files to `/opt/city-pop`.
 4. Creates `/opt/city-pop/.venv` with access to Kali's system Python packages.
 5. Installs Python dependencies without attempting large ARM source builds where avoidable.
-6. Generates a private session-signing secret; the administrator account is created on first access.
+6. Generates a private session-signing secret and a one-time first-access
+   pairing code. Only the pairing-code hash is retained.
 7. Configures nginx for management TLS/WebSockets on port `8080`, with no nginx
    listener on ports `80` or `443`, and proxies to one threaded Gunicorn worker
    bound only to `127.0.0.1:18080`.
 8. Enables and starts `nginx.service` and `city-pop.service` as root.
-9. Prints the primary and all available IPv4 web URLs.
+9. Prints the one-time pairing code and all available management HTTPS URLs.
 
 An unrelated broken APT repository may cause `apt update` to warn. The installer continues using indexes that did refresh, but required package installation can still fail if Kali cannot fetch them.
 
@@ -176,8 +177,10 @@ https://<pi-tail-ip>:8080
 The Pi-Tail default is often `192.168.43.254`, but hotspot vendors and USB tethering modes may assign another address.
 
 On first access, City Pop asks you to create its local administrator username
-and password. Passwords must contain at least 15 characters. The password is
-stored only as a salted scrypt hash in `/opt/city-pop/state/auth.json`.
+and password using the one-time code printed by `install.sh`. Passwords must
+contain at least 15 characters. Password and pairing-code material is stored
+only as salted scrypt hashes; the pairing record is deleted after successful
+setup.
 
 ## Usage
 
@@ -292,6 +295,10 @@ City Pop is a privileged administration surface, not a hardened internet service
 - Keep port `8080` on a trusted, private phone-to-Pi link.
 - Do not expose it through public Wi-Fi, router forwarding, cloud tunnels, or an untrusted VPN.
 - Use a unique administrator passphrase and change it from **Account** if it is disclosed.
+- Password or username changes invalidate every existing browser and WebSocket
+  session. Login and first-access attempts are rate-limited.
+- The management UI uses a locally bundled, checksum-verified Socket.IO client,
+  CSRF/origin validation, and a restrictive Content Security Policy.
 - Do not commit `/opt/city-pop/config.json`, loot, logs, captures, or credentials.
 - Review third-party payload behavior and dependencies before use.
 
@@ -302,8 +309,12 @@ the web interface to first-access setup:
 ```bash
 sudo systemctl stop city-pop
 sudo mv /opt/city-pop/state/auth.json /opt/city-pop/state/auth.json.backup
-sudo systemctl restart city-pop
+cd ~/citypop
+sudo ./install.sh
 ```
+
+The installer prints a new one-time pairing code. It preserves the backed-up
+account file until you remove it deliberately.
 
 ## Legal and ethical use
 

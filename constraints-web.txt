@@ -1,0 +1,18 @@
+# Security-reviewed web runtime resolution. Keep direct requirements and their
+# transitive dependencies exact so installer upgrades are deliberate.
+Flask==3.1.1
+Flask-SocketIO==5.5.1
+gunicorn==23.0.0
+simple-websocket==1.1.0
+Werkzeug==3.1.8
+Jinja2==3.1.6
+MarkupSafe==3.0.2
+itsdangerous==2.2.0
+click==8.4.2
+blinker==1.9.0
+python-socketio==5.16.3
+python-engineio==4.13.3
+bidict==0.23.1
+wsproto==1.3.2
+h11==0.16.0
+packaging==25.0

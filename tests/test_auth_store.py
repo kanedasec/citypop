@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from auth_store import AuthStore
+from auth_store import AuthStore, PairingStore
 
 
 class AuthStoreTests(unittest.TestCase):
@@ -33,6 +33,27 @@ class AuthStoreTests(unittest.TestCase):
         self.store.setup("operator", "a sufficiently long passphrase")
         with self.assertRaisesRegex(RuntimeError, "already configured"):
             self.store.setup("attacker", "another sufficient passphrase")
+
+    def test_auth_version_increments_after_account_change(self):
+        self.store.setup("operator", "a sufficiently long passphrase")
+        self.assertEqual(self.store.version(), 1)
+        self.store.update(
+            "a sufficiently long passphrase", "operator",
+            "a different sufficiently long passphrase",
+        )
+        self.assertEqual(self.store.version(), 2)
+
+    def test_pairing_code_is_single_use(self):
+        pairing_path = Path(self.temp.name) / "setup.json"
+        from werkzeug.security import generate_password_hash
+        pairing_path.write_text(json.dumps({
+            "code_hash": generate_password_hash("ABC-123-PAIR", method="scrypt"),
+        }))
+        pairing = PairingStore(pairing_path)
+        self.assertTrue(pairing.required())
+        self.assertFalse(pairing.verify_and_consume("wrong"))
+        self.assertTrue(pairing.verify_and_consume("ABC-123-PAIR"))
+        self.assertFalse(pairing.required())
 
 
 if __name__ == "__main__":

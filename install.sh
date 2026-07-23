@@ -94,7 +94,8 @@ fi
 python3 -m venv --system-site-packages "$INSTALL_DIR/.venv"
 VENV_PYTHON="$INSTALL_DIR/.venv/bin/python"
 "$VENV_PYTHON" -m pip install --upgrade --no-cache-dir pip setuptools wheel
-"$VENV_PYTHON" -m pip install --no-cache-dir -r "$INSTALL_DIR/requirements-core.txt"
+"$VENV_PYTHON" -m pip install --no-cache-dir --require-hashes \
+  -r "$INSTALL_DIR/requirements-core.lock"
 
 if $IS_ARM; then
   # Debian-family ARM distributions, including Kali and Raspberry Pi OS,
@@ -173,6 +174,45 @@ c.setdefault('tls', {'enabled': True, 'certfile': 'state/tls/cert.pem', 'keyfile
 json.dump(c,open(p,'w'),indent=2); open(p,'a').write('\n')
 print('Authentication: create the administrator account on first access.')
 PY
+install -d -m 700 "$INSTALL_DIR/state" "$INSTALL_DIR/loot"
+chmod 600 "$INSTALL_DIR/config.json"
+chmod 700 "$INSTALL_DIR/state" "$INSTALL_DIR/loot"
+
+SOCKETIO_ASSET="$INSTALL_DIR/static/vendor/socket.io.min.js"
+SOCKETIO_SHA256="b0e735814f8dcfecd6cdb8a7ce95a297a7e1e5f2727a29e6f5901801d52fa0c5"
+if [ ! -f "$SOCKETIO_ASSET" ] || \
+   [ "$(sha256sum "$SOCKETIO_ASSET" | awk '{print $1}')" != "$SOCKETIO_SHA256" ]; then
+  echo "Refusing to install: bundled Socket.IO asset failed SHA-256 verification." >&2
+  exit 1
+fi
+
+PAIRING_CODE="$("$VENV_PYTHON" - "$INSTALL_DIR/state/auth.json" "$INSTALL_DIR/state/setup.json" <<'PY'
+import json
+import os
+import secrets
+import sys
+from pathlib import Path
+from werkzeug.security import generate_password_hash
+
+auth_path, setup_path = map(Path, sys.argv[1:])
+if auth_path.is_file():
+    setup_path.unlink(missing_ok=True)
+elif not setup_path.is_file():
+    code = "-".join(secrets.token_hex(3).upper() for _ in range(3))
+    setup_path.write_text(json.dumps({
+        "code_hash": generate_password_hash(code, method="scrypt"),
+    }, indent=2) + "\n", encoding="utf-8")
+    os.chmod(setup_path, 0o600)
+    print(code)
+PY
+)"
+if [ -n "$PAIRING_CODE" ]; then
+  echo "ONE-TIME FIRST-ACCESS PAIRING CODE: $PAIRING_CODE"
+  echo "This code is shown once and expires when the administrator account is created."
+elif [ ! -f "$INSTALL_DIR/state/auth.json" ]; then
+  echo "First-access pairing is pending. The existing one-time code remains valid."
+  echo "If it was lost, remove state/setup.json over SSH and rerun install.sh."
+fi
 CITYPOP_PORT="$($VENV_PYTHON -c 'import json,sys; print(int(json.load(open(sys.argv[1]))["port"]))' "$INSTALL_DIR/config.json")"
 TLS_DIR="$INSTALL_DIR/state/tls"
 install -d -m 700 "$TLS_DIR"

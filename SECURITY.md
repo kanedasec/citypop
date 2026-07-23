@@ -26,6 +26,11 @@ Never include real session secrets, credentials, captures, personal data, or una
 - Keep port `8080` on a trusted phone-to-Pi network.
 - Use a unique administrator passphrase of at least 15 characters and protect
   `config.json` because it contains the internal session-signing secret.
+- Protect the one-time first-access pairing code printed by the installer.
+  Account changes revoke older sessions; repeated login and setup attempts are
+  rate-limited.
+- Keep the locally bundled Socket.IO asset and CSP enabled. Do not replace it
+  with a runtime CDN dependency.
 - Nginx exposes management HTTPS on port `8080` and proxies to Gunicorn on
   loopback port `18080`; do not expose the Gunicorn endpoint.
 - Ports `80` and `443` are normally unused by nginx. A DNS-spoof template

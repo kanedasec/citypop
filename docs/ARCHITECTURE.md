@@ -43,6 +43,13 @@ The Flask application serves static assets, authenticates administrator sessions
 The systemd service launches one threaded Gunicorn worker bound only to
 `127.0.0.1:18080`. Nginx is the sole public management listener.
 
+First access requires the one-time pairing code printed by the installer.
+Passwords and pairing codes are stored only as salted scrypt hashes, and the
+pairing record is consumed after account creation. Every session carries the
+current authentication version and a CSRF token. Account changes increment the
+version, immediately invalidating older HTTP and Socket.IO sessions. Login and
+setup attempts are limited by nginx and a bounded application limiter.
+
 ### `payload_runner.py`
 
 The runner discovers metadata, resolves payload paths safely, launches Python or shell processes, injects City Pop environment variables, maintains a bounded terminal buffer, persists execution history, and detects dashboard links and new artifacts. It deliberately permits only one active payload or command.
@@ -59,7 +66,7 @@ The engagement registry persists names, dates, and authorized scopes in `state/e
 
 ### `static/`
 
-The vanilla HTML/CSS/JavaScript client is optimized for a phone. It owns engagement information stored in browser storage, catalog filtering, guide/preflight dialogs, terminal presentation, live prompts, loot controls, and report actions. The service worker caches only the application shell; APIs and Socket.IO are never cached.
+The vanilla HTML/CSS/JavaScript client is optimized for a phone. It owns engagement information stored in browser storage, catalog filtering, guide/preflight dialogs, terminal presentation, live prompts, loot controls, and report actions. Socket.IO is bundled locally and checksum-verified during installation. The service worker caches only the application shell and local client assets; APIs are never cached.
 
 ### `payloads/`
 
@@ -84,6 +91,12 @@ The runner supplies:
 - The administrator session protects a root-capable interface. Passwords are
   salted scrypt hashes; an internal signing secret protects HTTP-only, Secure,
   SameSite session cookies.
+- State-changing HTTP requests require same-origin CSRF validation. Privileged
+  Socket.IO events revalidate both the session generation and CSRF token.
+- Nginx applies a restrictive CSP, framing/content-type/referrer/permissions
+  headers, a 1 MiB request limit, and authentication endpoint rate limits.
+- Core web dependencies are exact-version and SHA-256 locked. The locally
+  bundled Socket.IO client is also checksum-verified by the installer.
 - Nginx provides management TLS on port 8080 using a locally generated
   self-signed certificate. The DNS-spoof template server reuses that
   certificate on port 443, so browsers should expect a trust warning.

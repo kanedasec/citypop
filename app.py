@@ -10,15 +10,19 @@ import shutil
 import socket
 import subprocess
 import hashlib
+import threading
+import time
+from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_from_directory, session
 from flask_socketio import SocketIO, disconnect, emit
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from payload_analysis import analyze_payload
-from auth_store import AuthStore
+from auth_store import AuthStore, PairingStore
 from engagement_store import EngagementStore
 from payload_runner import PayloadRunner, discover, parse_metadata, safe_slug
 
@@ -55,6 +59,7 @@ def tls_context(settings: dict):
 
 config = load_config()
 app = Flask(__name__, static_folder="static", static_url_path="")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 app.secret_key = os.environ.get("CITYPOP_SESSION_KEY") or config.get("session_secret") or secrets.token_hex(32)
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
@@ -62,14 +67,76 @@ app.config.update(
     SESSION_COOKIE_SECURE=bool((config.get("tls") or {}).get("enabled")),
     PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
 )
-socketio = SocketIO(app, async_mode="threading", cors_allowed_origins=[])
+socketio = SocketIO(app, async_mode="threading")
 runner = PayloadRunner(PAYLOADS, LOOT, BASE / "state")
 engagements = EngagementStore(BASE / "state" / "engagements.json")
 auth_store = AuthStore(BASE / "state" / "auth.json")
+pairing_store = PairingStore(BASE / "state" / "setup.json")
+
+
+class LoginLimiter:
+    def __init__(self, attempts: int = 5, window: int = 60):
+        self.attempts = attempts
+        self.window = window
+        self.failures = defaultdict(deque)
+        self.lock = threading.Lock()
+
+    def retry_after(self, key: str) -> int:
+        now = time.monotonic()
+        with self.lock:
+            rows = self.failures[key]
+            while rows and now - rows[0] >= self.window:
+                rows.popleft()
+            return max(0, int(self.window - (now - rows[0])) + 1) if len(rows) >= self.attempts else 0
+
+    def fail(self, key: str) -> None:
+        with self.lock:
+            if key not in self.failures and len(self.failures) >= 256:
+                self.failures.pop(next(iter(self.failures)))
+            self.failures[key].append(time.monotonic())
+
+    def clear(self, key: str) -> None:
+        with self.lock:
+            self.failures.pop(key, None)
+
+
+login_limiter = LoginLimiter()
+
+
+def client_key() -> str:
+    return request.remote_addr or "unknown"
+
+
+def session_csrf() -> str:
+    token = session.get("csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["csrf_token"] = token
+    return token
 
 
 def authorized():
-    return bool(session.get("authorized") and auth_store.initialized())
+    return bool(
+        session.get("authorized")
+        and auth_store.initialized()
+        and session.get("auth_version") == auth_store.version()
+    )
+
+
+@app.before_request
+def validate_browser_request():
+    origin = request.headers.get("Origin")
+    if origin and origin.rstrip("/") != request.host_url.rstrip("/"):
+        return jsonify(error="request origin is not allowed"), 403
+    if (
+        request.method in {"POST", "PUT", "PATCH", "DELETE"}
+        and request.path not in {"/api/login", "/api/auth/setup"}
+        and authorized()
+    ):
+        supplied = request.headers.get("X-CityPop-CSRF", "")
+        expected = str(session.get("csrf_token", ""))
+        if not expected or not secrets.compare_digest(supplied, expected):
+            return jsonify(error="CSRF validation failed"), 403
 
 
 def require_auth(fn):
@@ -92,17 +159,31 @@ def auth_status():
         initialized=auth_store.initialized(),
         authenticated=authorized(),
         username=session.get("username", "") if authorized() else "",
+        pairing_required=not auth_store.initialized(),
+        pairing_available=pairing_store.required() if not auth_store.initialized() else False,
+        csrf_token=session_csrf() if authorized() else "",
     )
 
 
 @app.post("/api/auth/setup")
 def auth_setup():
     data = request.get_json(silent=True) or {}
+    key = client_key()
+    retry_after = login_limiter.retry_after(key)
+    if retry_after:
+        return jsonify(error="too many setup attempts", retry_after=retry_after), 429
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", ""))
+    pairing_code = str(data.get("pairing_code", "")).strip()
     if password != str(data.get("password_confirm", "")):
         return jsonify(error="password confirmation does not match"), 400
     try:
+        auth_store.validate(username, password)
+        if not pairing_store.required():
+            return jsonify(error="pairing is unavailable; rerun install.sh on the Pi"), 503
+        if not pairing_store.verify_and_consume(pairing_code):
+            login_limiter.fail(key)
+            return jsonify(error="invalid one-time pairing code"), 401
         auth_store.setup(username, password)
     except ValueError as error:
         return jsonify(error=str(error)), 400
@@ -112,23 +193,38 @@ def auth_setup():
     session.permanent = True
     session["authorized"] = True
     session["username"] = username
-    return jsonify(ok=True, acknowledged=config.get("acknowledged", False)), 201
+    session["auth_version"] = auth_store.version()
+    login_limiter.clear(key)
+    return jsonify(
+        ok=True, acknowledged=config.get("acknowledged", False),
+        csrf_token=session_csrf(),
+    ), 201
 
 
 @app.post("/api/login")
 def login():
     data = request.get_json(silent=True) or {}
+    key = client_key()
+    retry_after = login_limiter.retry_after(key)
+    if retry_after:
+        return jsonify(error="too many login attempts", retry_after=retry_after), 429
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", ""))
     if not auth_store.initialized():
         return jsonify(error="administrator account is not configured"), 409
     if not auth_store.verify(username, password):
+        login_limiter.fail(key)
         return jsonify(error="invalid username or password"), 401
     session.clear()
     session.permanent = True
     session["authorized"] = True
     session["username"] = username
-    return jsonify(ok=True, acknowledged=config.get("acknowledged", False))
+    session["auth_version"] = auth_store.version()
+    login_limiter.clear(key)
+    return jsonify(
+        ok=True, acknowledged=config.get("acknowledged", False),
+        csrf_token=session_csrf(),
+    )
 
 
 @app.post("/api/logout")
@@ -161,7 +257,9 @@ def account_update():
     except RuntimeError as error:
         return jsonify(error=str(error)), 409
     session["username"] = username
-    return jsonify(ok=True, username=username)
+    session["auth_version"] = auth_store.version()
+    session["csrf_token"] = secrets.token_urlsafe(32)
+    return jsonify(ok=True, username=username, csrf_token=session["csrf_token"])
 
 
 @app.post("/api/acknowledge")
@@ -797,7 +895,19 @@ def loot_delete_all():
 
 
 def socket_authorized(auth):
-    return authorized()
+    supplied = str((auth or {}).get("csrf_token", ""))
+    expected = str(session.get("csrf_token", ""))
+    return bool(
+        authorized() and expected and secrets.compare_digest(supplied, expected)
+    )
+
+
+def require_socket_auth(data=None) -> bool:
+    if not socket_authorized(data):
+        emit("error", {"message": "Authentication expired. Sign in again."})
+        disconnect()
+        return False
+    return True
 
 
 @socketio.on("connect")
@@ -818,6 +928,8 @@ def engagement_name(data):
 
 @socketio.on("run_payload")
 def run_payload(data):
+    if not require_socket_auth(data):
+        return
     if not validate_consent(data or {}):
         emit("error", {"message": "Authorization, in-scope confirmation, and a target/context are required."})
         return
@@ -839,6 +951,8 @@ def run_payload(data):
 
 @socketio.on("run_command")
 def run_command(data):
+    if not require_socket_auth(data):
+        return
     if not validate_consent(data or {}) or data.get("unlocked") is not True:
         emit("error", {"message": "Unlock and confirm authorization/scope first."})
         return
@@ -853,6 +967,8 @@ def run_command(data):
 @socketio.on("input_response")
 def input_response(data):
     data = data or {}
+    if not require_socket_auth(data):
+        return
     request_id = str(data.get("request_id", ""))[:128]
     value = data.get("value")
     if isinstance(value, str):
@@ -862,7 +978,9 @@ def input_response(data):
 
 
 @socketio.on("stop")
-def stop():
+def stop(data=None):
+    if not require_socket_auth(data or {}):
+        return
     emit("stopped", {"ok": runner.stop(request.sid)})
 
 

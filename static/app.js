@@ -8,6 +8,7 @@ let engagement = null;
 let engagementRows = [];
 let loginPending = false;
 let setupMode = false;
+let csrfToken = '';
 let connectionAnnounced = false;
 let lastSeq = 0;
 let terminalPaused = false;
@@ -24,7 +25,7 @@ $('linkHost').textContent = `kali@${location.hostname || 'localhost'}`;
 $('linkPort').textContent = location.port || ({'http:': '80', 'https:': '443'}[location.protocol] || '—');
 
 function authHeaders(json = false) {
-  const headers = {};
+  const headers = {'X-CityPop-CSRF': csrfToken};
   if (json) headers['Content-Type'] = 'application/json';
   return headers;
 }
@@ -111,12 +112,21 @@ async function login() {
     const password = $('loginPassword').value;
     const endpoint = setupMode ? '/api/auth/setup' : '/api/login';
     const body = {username, password};
-    if (setupMode) body.password_confirm = $('loginPasswordConfirm').value;
+    if (setupMode) {
+      body.password_confirm = $('loginPasswordConfirm').value;
+      body.pairing_code = $('pairingCode').value.trim();
+    }
     const response = await fetch(endpoint, {
       method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
     });
     const data = await response.json();
-    if (!response.ok) { $('loginMsg').textContent = data.error || 'Authentication failed'; return; }
+    if (!response.ok) {
+      $('loginMsg').textContent = data.retry_after
+        ? `${data.error || 'Too many attempts'}. Try again in ${data.retry_after}s.`
+        : data.error || 'Authentication failed';
+      return;
+    }
+    csrfToken = data.csrf_token || '';
     $('login').hidden = true;
     $('app').hidden = false;
     $('accountBtn').hidden = false;
@@ -133,7 +143,7 @@ async function login() {
 
 function connect() {
   if (socket) return;
-  socket = io();
+  socket = io({auth: {csrf_token: csrfToken}});
   window.socket = socket;
   socket.on('connect', async () => {
     $('status').textContent = 'LINKED';
@@ -378,7 +388,7 @@ function runPayload(id, args = []) {
   $('payloadCatalog').open = false;
   socket.emit('run_payload', {
     id, args: args.map(String), target: engagement.scope, engagement: engagement.name,
-    authorized: true, in_scope: true,
+    authorized: true, in_scope: true, csrf_token: csrfToken,
   });
   setRunning({payload_id: id, name: payloads.find(item => item.id === id)?.name || id, engagement: engagement.name, args, started_at: new Date().toISOString(), elapsed_seconds: 0, log: 'pending'});
   const runtimePrompts = activeWorkflow?.payload.id === id ? activeWorkflow.capabilities.runtime_inputs : 0;
@@ -611,7 +621,7 @@ function renderWorkflowTracker() {
 function stopCurrent() {
   if (!socket) return;
   if (activeWorkflow) activeWorkflow.stopRequested = true;
-  socket.emit('stop');
+  socket.emit('stop', {csrf_token: csrfToken});
   line('» stop requested', 'line-warn');
 }
 
@@ -627,7 +637,7 @@ $('accountBtn').onclick = async () => {
   $('accountDialog').showModal();
 };
 $('accountCancel').onclick = () => $('accountDialog').close();
-$('logoutBtn').onclick = async () => { await fetch('/api/logout', {method: 'POST'}); location.reload(); };
+$('logoutBtn').onclick = async () => { await fetch('/api/logout', {method: 'POST', headers: authHeaders()}); location.reload(); };
 $('accountForm').onsubmit = async event => {
   event.preventDefault();
   const body = {
@@ -639,6 +649,8 @@ $('accountForm').onsubmit = async event => {
   const response = await fetch('/api/account', {method: 'PUT', headers: authHeaders(true), body: JSON.stringify(body)});
   const data = await response.json();
   if (!response.ok) { $('accountMsg').textContent = data.error || 'Account update failed'; return; }
+  csrfToken = data.csrf_token || csrfToken;
+  if (socket) { socket.disconnect(); socket = null; connect(); }
   $('accountDialog').close();
   line(`» administrator account updated · ${data.username}`, 'line-ok');
 };
@@ -883,7 +895,7 @@ $('command').onsubmit = event => {
   const command = $('cmd').value.trim();
   if (!command || !requireEngagement()) return;
   if (!$('unlock').checked) { line('! unlock and confirm authorization before using the command bar', 'line-warn'); return; }
-  socket.emit('run_command', {command, target: engagement.scope, engagement: engagement.name, authorized: true, in_scope: true, unlocked: true});
+  socket.emit('run_command', {command, target: engagement.scope, engagement: engagement.name, authorized: true, in_scope: true, unlocked: true, csrf_token: csrfToken});
   $('cmd').value = '';
   setRunning({payload_id: 'command', name: 'command', engagement: engagement.name, started_at: new Date().toISOString(), log: 'pending'});
   line(`# ${command}`, 'line-hot');
@@ -906,6 +918,7 @@ async function initializeAuthentication() {
     const response = await fetch('/api/auth/status');
     const data = await response.json();
     if (data.authenticated) {
+      csrfToken = data.csrf_token || '';
       $('login').hidden = true;
       $('app').hidden = false;
       $('accountBtn').hidden = false;
@@ -917,10 +930,12 @@ async function initializeAuthentication() {
     setupMode = !data.initialized;
     $('loginTitle').textContent = setupMode ? 'CREATE ADMINISTRATOR' : 'SECURE LINK';
     $('loginHelp').textContent = setupMode
-      ? 'First access: create the local administrator account. Passwords require 15 or more characters.'
+      ? `First access: create the local administrator account. Passwords require 15 or more characters.${data.pairing_available ? ' Enter the one-time code printed by install.sh.' : ' Pairing is unavailable; rerun install.sh on the Pi.'}`
       : 'Sign in with the local City Pop administrator account.';
     $('loginConfirmRow').hidden = !setupMode;
     $('loginPasswordConfirm').required = setupMode;
+    $('pairingCodeRow').hidden = !(setupMode && data.pairing_required);
+    $('pairingCode').required = setupMode && data.pairing_required;
     $('loginBtn').textContent = setupMode ? 'CREATE ACCOUNT' : 'AUTHENTICATE';
     $('loginUsername').focus();
   } catch (error) {

@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import app as citypop
-from auth_store import AuthStore
+from auth_store import AuthStore, PairingStore
 from engagement_store import EngagementStore
 
 
@@ -21,7 +21,7 @@ class WebApiTests(unittest.TestCase):
             json={"username": "test_admin", "password": "correct horse battery staple"},
         )
         assert response.status_code == 200
-        cls.headers = {}
+        cls.headers = {"X-CityPop-CSRF": response.get_json()["csrf_token"]}
 
     @classmethod
     def tearDownClass(cls):
@@ -36,8 +36,9 @@ class WebApiTests(unittest.TestCase):
             "current_password": "correct horse battery staple",
             "new_password": "another long test passphrase",
             "new_password_confirm": "another long test passphrase",
-        })
+        }, headers=self.headers)
         self.assertEqual(response.status_code, 200)
+        self.headers["X-CityPop-CSRF"] = response.get_json()["csrf_token"]
         stored = (Path(self.auth_dir.name) / "auth.json").read_text()
         self.assertNotIn("another long test passphrase", stored)
         # Restore the shared fixture for tests that may run after this one.
@@ -46,8 +47,73 @@ class WebApiTests(unittest.TestCase):
             "current_password": "another long test passphrase",
             "new_password": "correct horse battery staple",
             "new_password_confirm": "correct horse battery staple",
-        })
+        }, headers=self.headers)
         self.assertEqual(response.status_code, 200)
+        self.headers["X-CityPop-CSRF"] = response.get_json()["csrf_token"]
+
+    def test_password_change_revokes_an_existing_session(self):
+        stale = citypop.app.test_client()
+        login = stale.post("/api/login", json={
+            "username": "test_admin", "password": "correct horse battery staple",
+        })
+        self.assertEqual(login.status_code, 200)
+        response = self.client.put("/api/account", headers=self.headers, json={
+            "username": "test_admin",
+            "current_password": "correct horse battery staple",
+            "new_password": "temporary security test password",
+            "new_password_confirm": "temporary security test password",
+        })
+        self.headers["X-CityPop-CSRF"] = response.get_json()["csrf_token"]
+        self.assertEqual(stale.get("/api/payloads").status_code, 401)
+        response = self.client.put("/api/account", headers=self.headers, json={
+            "username": "test_admin",
+            "current_password": "temporary security test password",
+            "new_password": "correct horse battery staple",
+            "new_password_confirm": "correct horse battery staple",
+        })
+        self.headers["X-CityPop-CSRF"] = response.get_json()["csrf_token"]
+
+    def test_state_change_requires_csrf_header(self):
+        self.assertEqual(self.client.post("/api/acknowledge").status_code, 403)
+
+    def test_cross_origin_login_is_rejected(self):
+        response = citypop.app.test_client().post(
+            "/api/login",
+            headers={"Origin": "https://attacker.invalid"},
+            json={"username": "test_admin", "password": "correct horse battery staple"},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_first_access_requires_and_consumes_pairing_code(self):
+        from werkzeug.security import generate_password_hash
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            auth = AuthStore(root / "auth.json")
+            setup_path = root / "setup.json"
+            setup_path.write_text(
+                '{"code_hash": "' + generate_password_hash(
+                    "PAIR-TEST-CODE", method="scrypt"
+                ) + '"}'
+            )
+            pairing = PairingStore(setup_path)
+            client = citypop.app.test_client()
+            with patch.object(citypop, "auth_store", auth), \
+                    patch.object(citypop, "pairing_store", pairing):
+                rejected = client.post("/api/auth/setup", json={
+                    "username": "new_admin",
+                    "password": "a strong first access password",
+                    "password_confirm": "a strong first access password",
+                    "pairing_code": "wrong",
+                })
+                self.assertEqual(rejected.status_code, 401)
+                created = client.post("/api/auth/setup", json={
+                    "username": "new_admin",
+                    "password": "a strong first access password",
+                    "password_confirm": "a strong first access password",
+                    "pairing_code": "PAIR-TEST-CODE",
+                })
+                self.assertEqual(created.status_code, 201)
+                self.assertFalse(setup_path.exists())
 
     def test_payload_catalog_is_available_when_authenticated(self):
         response = self.client.get("/api/payloads", headers=self.headers)

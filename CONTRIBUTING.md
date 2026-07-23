@@ -91,6 +91,8 @@ The Pi Zero 2 W should not compile large scientific packages when a compatible K
 - keep Gunicorn loopback-only on `127.0.0.1:18080`;
 - leave ports `80` and `443` free for payload-managed services; and
 - print all reachable management HTTPS URLs and explain first-access account setup.
+- preserve one-time pairing, hardened runtime permissions, the verified local
+  Socket.IO asset, and exact web dependency constraints.
 
 ## Validation
 

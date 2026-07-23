@@ -39,7 +39,8 @@ TEMPLATE_ROOT = Path(__file__).resolve().parents[2] / "templates" / "dns"
 stop_event = threading.Event()
 event_log_lock = threading.Lock()
 FIELD_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
-SENSITIVE_FIELD_PARTS = {}
+SENSITIVE_FIELD_PARTS = {
+}
 
 
 def normalize_domain(value: str) -> str:
