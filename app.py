@@ -10,7 +10,7 @@ import shutil
 import socket
 import subprocess
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 
@@ -18,6 +18,7 @@ from flask import Flask, abort, jsonify, request, send_from_directory, session
 from flask_socketio import SocketIO, disconnect, emit
 
 from payload_analysis import analyze_payload
+from auth_store import AuthStore
 from engagement_store import EngagementStore
 from payload_runner import PayloadRunner, discover, parse_metadata, safe_slug
 
@@ -54,15 +55,21 @@ def tls_context(settings: dict):
 
 config = load_config()
 app = Flask(__name__, static_folder="static", static_url_path="")
-app.secret_key = os.environ.get("CITYPOP_SESSION_KEY", secrets.token_hex(32))
+app.secret_key = os.environ.get("CITYPOP_SESSION_KEY") or config.get("session_secret") or secrets.token_hex(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Strict",
+    SESSION_COOKIE_SECURE=bool((config.get("tls") or {}).get("enabled")),
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+)
 socketio = SocketIO(app, async_mode="threading", cors_allowed_origins=[])
 runner = PayloadRunner(PAYLOADS, LOOT, BASE / "state")
 engagements = EngagementStore(BASE / "state" / "engagements.json")
+auth_store = AuthStore(BASE / "state" / "auth.json")
 
 
 def authorized():
-    token = request.headers.get("X-CityPop-Token") or request.args.get("token")
-    return bool(session.get("authorized") or (token and secrets.compare_digest(token, config["auth_token"])))
+    return bool(session.get("authorized") and auth_store.initialized())
 
 
 def require_auth(fn):
@@ -79,13 +86,82 @@ def index():
     return app.send_static_file("index.html")
 
 
+@app.get("/api/auth/status")
+def auth_status():
+    return jsonify(
+        initialized=auth_store.initialized(),
+        authenticated=authorized(),
+        username=session.get("username", "") if authorized() else "",
+    )
+
+
+@app.post("/api/auth/setup")
+def auth_setup():
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+    password = str(data.get("password", ""))
+    if password != str(data.get("password_confirm", "")):
+        return jsonify(error="password confirmation does not match"), 400
+    try:
+        auth_store.setup(username, password)
+    except ValueError as error:
+        return jsonify(error=str(error)), 400
+    except RuntimeError as error:
+        return jsonify(error=str(error)), 409
+    session.clear()
+    session.permanent = True
+    session["authorized"] = True
+    session["username"] = username
+    return jsonify(ok=True, acknowledged=config.get("acknowledged", False)), 201
+
+
 @app.post("/api/login")
 def login():
-    supplied = (request.get_json(silent=True) or {}).get("token", "")
-    if not secrets.compare_digest(supplied, config["auth_token"]):
-        return jsonify(error="invalid token"), 401
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+    password = str(data.get("password", ""))
+    if not auth_store.initialized():
+        return jsonify(error="administrator account is not configured"), 409
+    if not auth_store.verify(username, password):
+        return jsonify(error="invalid username or password"), 401
+    session.clear()
+    session.permanent = True
     session["authorized"] = True
+    session["username"] = username
     return jsonify(ok=True, acknowledged=config.get("acknowledged", False))
+
+
+@app.post("/api/logout")
+def logout():
+    session.clear()
+    return jsonify(ok=True)
+
+
+@app.get("/api/account")
+@require_auth
+def account_get():
+    return jsonify(username=auth_store.username())
+
+
+@app.put("/api/account")
+@require_auth
+def account_update():
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+    current_password = str(data.get("current_password", ""))
+    new_password = str(data.get("new_password", ""))
+    if new_password and new_password != str(data.get("new_password_confirm", "")):
+        return jsonify(error="new password confirmation does not match"), 400
+    try:
+        auth_store.update(current_password, username, new_password)
+    except ValueError as error:
+        return jsonify(error=str(error)), 400
+    except PermissionError as error:
+        return jsonify(error=str(error)), 403
+    except RuntimeError as error:
+        return jsonify(error=str(error)), 409
+    session["username"] = username
+    return jsonify(ok=True, username=username)
 
 
 @app.post("/api/acknowledge")
@@ -721,8 +797,7 @@ def loot_delete_all():
 
 
 def socket_authorized(auth):
-    token = (auth or {}).get("token", "")
-    return bool(session.get("authorized") or (token and secrets.compare_digest(token, config["auth_token"])))
+    return authorized()
 
 
 @socketio.on("connect")

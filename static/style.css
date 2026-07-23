@@ -211,8 +211,10 @@ dialog h2 {
 
 .card p,
 dialog p { color: var(--dim); line-height: 1.65; }
+.card label { display: block; margin-top: 13px; color: var(--dim); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; }
 .card input,
 .card button { width: 100%; margin-top: 12px; min-height: 48px; }
+.card label input { width: 100%; margin-top: 6px; min-height: 48px; text-transform: none; }
 
 input,
 select,

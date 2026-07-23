@@ -19,12 +19,18 @@ Use [GitHub private vulnerability reporting](https://github.com/kanedasec/citypo
 - suggested mitigation, if known; and
 - whether the issue has been disclosed elsewhere.
 
-Never include real tokens, credentials, captures, personal data, or unauthorized targets. Allow maintainers reasonable time to investigate and release a fix before public disclosure.
+Never include real session secrets, credentials, captures, personal data, or unauthorized targets. Allow maintainers reasonable time to investigate and release a fix before public disclosure.
 
 ## Deployment expectations
 
 - Keep port `8080` on a trusted phone-to-Pi network.
-- Treat the City Pop token as a root credential.
+- Use a unique administrator passphrase of at least 15 characters and protect
+  `config.json` because it contains the internal session-signing secret.
+- Nginx exposes management HTTPS on port `8080` and proxies to Gunicorn on
+  loopback port `18080`; do not expose the Gunicorn endpoint.
+- Ports `80` and `443` are normally unused by nginx. A DNS-spoof template
+  temporarily uses port 80 for HTTP-to-HTTPS redirects and port 443 for its
+  self-signed HTTPS site.
 - Do not publish the service through router forwarding or public tunnels.
 - Change default Kali credentials and keep the Pi-Tail image updated.
 - Review payloads and dependencies before using them on real engagements.

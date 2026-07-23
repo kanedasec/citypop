@@ -7,6 +7,7 @@ let currentCat = 'all';
 let engagement = null;
 let engagementRows = [];
 let loginPending = false;
+let setupMode = false;
 let connectionAnnounced = false;
 let lastSeq = 0;
 let terminalPaused = false;
@@ -23,7 +24,7 @@ $('linkHost').textContent = `kali@${location.hostname || 'localhost'}`;
 $('linkPort').textContent = location.port || ({'http:': '80', 'https:': '443'}[location.protocol] || '—');
 
 function authHeaders(json = false) {
-  const headers = {'X-CityPop-Token': localStorage.cityToken || ''};
+  const headers = {};
   if (json) headers['Content-Type'] = 'application/json';
   return headers;
 }
@@ -106,15 +107,19 @@ async function login() {
   if (loginPending) return;
   loginPending = true;
   try {
-    const token = $('token').value.trim();
-    const response = await fetch('/api/login', {
-      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token}),
+    const username = $('loginUsername').value.trim();
+    const password = $('loginPassword').value;
+    const endpoint = setupMode ? '/api/auth/setup' : '/api/login';
+    const body = {username, password};
+    if (setupMode) body.password_confirm = $('loginPasswordConfirm').value;
+    const response = await fetch(endpoint, {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
     });
-    if (!response.ok) { $('loginMsg').textContent = 'Invalid token'; return; }
-    localStorage.cityToken = token;
     const data = await response.json();
+    if (!response.ok) { $('loginMsg').textContent = data.error || 'Authentication failed'; return; }
     $('login').hidden = true;
     $('app').hidden = false;
+    $('accountBtn').hidden = false;
     if (!data.acknowledged && !$('ack').open) $('ack').showModal();
     connect();
     await migrateLocalEngagements();
@@ -128,7 +133,7 @@ async function login() {
 
 function connect() {
   if (socket) return;
-  socket = io({auth: {token: localStorage.cityToken}});
+  socket = io();
   window.socket = socket;
   socket.on('connect', async () => {
     $('status').textContent = 'LINKED';
@@ -208,7 +213,7 @@ function addRuntimeItem(type, value, label) {
   if (type === 'link') {
     link.href = value; link.target = '_blank'; link.rel = 'noopener'; link.textContent = 'OPEN';
   } else {
-    link.href = `/api/loot/download/${encodeURIComponent(value)}?token=${encodeURIComponent(localStorage.cityToken)}`;
+    link.href = `/api/loot/download/${encodeURIComponent(value)}`;
     link.textContent = 'GET';
   }
   row.append(title, link);
@@ -439,7 +444,7 @@ async function showLoot() {
   const query = currentOnly ? `?engagement=${encodeURIComponent(engagement.name)}` : '';
   const response = await fetch(`/api/loot${query}`, {headers: authHeaders()});
   const data = await response.json();
-  $('lootList').innerHTML = (data.files || []).map(file => `<div class="lootrow"><span>${escapeHtml(file.path)}<br><small>${formatBytes(file.size)}</small></span><span><a href="/api/loot/preview/${encodeURIComponent(file.path)}?token=${encodeURIComponent(localStorage.cityToken)}">view</a> · <a href="/api/loot/download/${encodeURIComponent(file.path)}?token=${encodeURIComponent(localStorage.cityToken)}">get</a> · <button type="button" class="lootdelete" data-loot="${encodeURIComponent(file.path)}">delete</button></span></div>`).join('') || 'No artifacts yet.';
+  $('lootList').innerHTML = (data.files || []).map(file => `<div class="lootrow"><span>${escapeHtml(file.path)}<br><small>${formatBytes(file.size)}</small></span><span><a href="/api/loot/preview/${encodeURIComponent(file.path)}">view</a> · <a href="/api/loot/download/${encodeURIComponent(file.path)}">get</a> · <button type="button" class="lootdelete" data-loot="${encodeURIComponent(file.path)}">delete</button></span></div>`).join('') || 'No artifacts yet.';
   if (!$('loot').open) $('loot').showModal();
 }
 
@@ -501,7 +506,7 @@ async function loadReports() {
   try {
     const response = await fetch('/api/reports', {headers: authHeaders()});
     const data = await response.json();
-    $('reportList').innerHTML = (data.reports || []).map(report => `<article class="report-row"><div><b>${escapeHtml(report.engagement)}</b><small>${new Date(report.modified).toLocaleString()} · ${formatBytes(report.size)}</small><small>${escapeHtml(report.path)}</small></div><div class="report-actions"><button type="button" data-report-preview="${encodeURIComponent(report.path)}">VIEW</button><a href="/api/loot/download/${encodeURIComponent(report.path)}?token=${encodeURIComponent(localStorage.cityToken)}">GET</a><button type="button" class="danger" data-report-delete="${encodeURIComponent(report.path)}">DELETE</button></div></article>`).join('') || '<div class="empty-state">No engagement reports have been generated.</div>';
+    $('reportList').innerHTML = (data.reports || []).map(report => `<article class="report-row"><div><b>${escapeHtml(report.engagement)}</b><small>${new Date(report.modified).toLocaleString()} · ${formatBytes(report.size)}</small><small>${escapeHtml(report.path)}</small></div><div class="report-actions"><button type="button" data-report-preview="${encodeURIComponent(report.path)}">VIEW</button><a href="/api/loot/download/${encodeURIComponent(report.path)}">GET</a><button type="button" class="danger" data-report-delete="${encodeURIComponent(report.path)}">DELETE</button></div></article>`).join('') || '<div class="empty-state">No engagement reports have been generated.</div>';
   } catch (error) {
     $('reportList').innerHTML = '<p class="preflight-warning">Unable to load engagement reports.</p>';
   }
@@ -610,9 +615,33 @@ function stopCurrent() {
   line('» stop requested', 'line-warn');
 }
 
-$('loginBtn').onclick = login;
-$('token').addEventListener('keydown', event => { if (event.key === 'Enter') login(); });
-$('disconnect').onclick = () => { localStorage.removeItem('cityToken'); location.reload(); };
+$('loginForm').onsubmit = event => { event.preventDefault(); login(); };
+$('accountBtn').onclick = async () => {
+  $('accountMsg').textContent = '';
+  $('accountCurrentPassword').value = '';
+  $('accountNewPassword').value = '';
+  $('accountNewPasswordConfirm').value = '';
+  const response = await fetch('/api/account');
+  if (!response.ok) { location.reload(); return; }
+  $('accountUsername').value = (await response.json()).username;
+  $('accountDialog').showModal();
+};
+$('accountCancel').onclick = () => $('accountDialog').close();
+$('logoutBtn').onclick = async () => { await fetch('/api/logout', {method: 'POST'}); location.reload(); };
+$('accountForm').onsubmit = async event => {
+  event.preventDefault();
+  const body = {
+    username: $('accountUsername').value.trim(),
+    current_password: $('accountCurrentPassword').value,
+    new_password: $('accountNewPassword').value,
+    new_password_confirm: $('accountNewPasswordConfirm').value,
+  };
+  const response = await fetch('/api/account', {method: 'PUT', headers: authHeaders(true), body: JSON.stringify(body)});
+  const data = await response.json();
+  if (!response.ok) { $('accountMsg').textContent = data.error || 'Account update failed'; return; }
+  $('accountDialog').close();
+  line(`» administrator account updated · ${data.username}`, 'line-ok');
+};
 $('tabs').onclick = event => {
   const button = event.target.closest('[data-cat]');
   if (!button) return;
@@ -811,7 +840,7 @@ $('reportForm').onsubmit = async event => {
   const response = await fetch('/api/report', {method: 'POST', headers: authHeaders(true), body: JSON.stringify({engagement: engagement.name, notes: $('reportNotes').value})});
   const data = await response.json();
   if (!response.ok) { $('reportResult').textContent = data.error || 'Report generation failed.'; return; }
-  $('reportResult').innerHTML = `Report created: <a href="/api/loot/download/${encodeURIComponent(data.path)}?token=${encodeURIComponent(localStorage.cityToken)}">${escapeHtml(data.path)}</a>`;
+  $('reportResult').innerHTML = `Report created: <a href="/api/loot/download/${encodeURIComponent(data.path)}">${escapeHtml(data.path)}</a>`;
   addRuntimeItem('artifact', data.path, data.path);
   await loadReports();
   previewReport(data.path);
@@ -872,5 +901,31 @@ setInterval(() => {
 
 try { if (sessionStorage.engagement) engagement = JSON.parse(sessionStorage.engagement); } catch (error) { engagement = null; }
 renderEngagement();
-if (localStorage.cityToken) { $('token').value = localStorage.cityToken; setTimeout(login, 0); }
+async function initializeAuthentication() {
+  try {
+    const response = await fetch('/api/auth/status');
+    const data = await response.json();
+    if (data.authenticated) {
+      $('login').hidden = true;
+      $('app').hidden = false;
+      $('accountBtn').hidden = false;
+      connect();
+      await migrateLocalEngagements();
+      await loadPayloads();
+      return;
+    }
+    setupMode = !data.initialized;
+    $('loginTitle').textContent = setupMode ? 'CREATE ADMINISTRATOR' : 'SECURE LINK';
+    $('loginHelp').textContent = setupMode
+      ? 'First access: create the local administrator account. Passwords require 15 or more characters.'
+      : 'Sign in with the local City Pop administrator account.';
+    $('loginConfirmRow').hidden = !setupMode;
+    $('loginPasswordConfirm').required = setupMode;
+    $('loginBtn').textContent = setupMode ? 'CREATE ACCOUNT' : 'AUTHENTICATE';
+    $('loginUsername').focus();
+  } catch (error) {
+    $('loginHelp').textContent = 'City Pop is unreachable.';
+  }
+}
+initializeAuthentication();
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));

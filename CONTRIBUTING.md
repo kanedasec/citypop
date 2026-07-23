@@ -19,6 +19,8 @@ Security vulnerabilities must follow [SECURITY.md](SECURITY.md), not the public 
 Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before changing execution or authentication.
 
 - `app.py` owns authenticated HTTP and Socket.IO APIs.
+- nginx owns public management TLS on configured port `8080`; Gunicorn owns
+  only `127.0.0.1:18080`. Nginx must not claim ports `80` or `443`.
 - `payload_runner.py` owns discovery, one-at-a-time execution, logs, history, prompts, and reconnect recovery.
 - `static/` is the phone-first client. Keep controls usable at narrow mobile widths and with touch.
 - `payloads/` contains web-native scripts and shared helpers.
@@ -68,7 +70,7 @@ Required behavior:
 
 ## Web interface changes
 
-- Preserve token authentication and engagement requirements.
+- Preserve administrator session authentication and engagement requirements.
 - Do not remove, add, or materially relocate controls without explaining the UX reason.
 - Keep touch targets at least 44 px and preserve keyboard focus indicators.
 - Escape untrusted payload and loot text before inserting it into HTML.
@@ -85,7 +87,10 @@ The Pi Zero 2 W should not compile large scientific packages when a compatible K
 - prefer binary packages and compatible wheels on ARM;
 - retain board/radio system bindings through the project virtual environment;
 - remain safe to rerun; and
-- print all reachable IPv4 URLs and the token location.
+- install nginx as the TLS/WebSocket proxy on the configured management port;
+- keep Gunicorn loopback-only on `127.0.0.1:18080`;
+- leave ports `80` and `443` free for payload-managed services; and
+- print all reachable management HTTPS URLs and explain first-access account setup.
 
 ## Validation
 

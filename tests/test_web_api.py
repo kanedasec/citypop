@@ -5,17 +5,49 @@ from pathlib import Path
 from unittest.mock import patch
 
 import app as citypop
+from auth_store import AuthStore
 from engagement_store import EngagementStore
 
 
 class WebApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls.auth_dir = tempfile.TemporaryDirectory()
+        citypop.auth_store = AuthStore(Path(cls.auth_dir.name) / "auth.json")
+        citypop.auth_store.setup("test_admin", "correct horse battery staple")
         cls.client = citypop.app.test_client()
-        cls.headers = {"X-CityPop-Token": citypop.config["auth_token"]}
+        response = cls.client.post(
+            "/api/login",
+            json={"username": "test_admin", "password": "correct horse battery staple"},
+        )
+        assert response.status_code == 200
+        cls.headers = {}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.auth_dir.cleanup()
 
     def test_protected_api_rejects_anonymous_request(self):
-        self.assertEqual(self.client.get("/api/payloads").status_code, 401)
+        self.assertEqual(citypop.app.test_client().get("/api/payloads").status_code, 401)
+
+    def test_account_password_can_be_changed_without_storing_plaintext(self):
+        response = self.client.put("/api/account", json={
+            "username": "test_admin",
+            "current_password": "correct horse battery staple",
+            "new_password": "another long test passphrase",
+            "new_password_confirm": "another long test passphrase",
+        })
+        self.assertEqual(response.status_code, 200)
+        stored = (Path(self.auth_dir.name) / "auth.json").read_text()
+        self.assertNotIn("another long test passphrase", stored)
+        # Restore the shared fixture for tests that may run after this one.
+        response = self.client.put("/api/account", json={
+            "username": "test_admin",
+            "current_password": "another long test passphrase",
+            "new_password": "correct horse battery staple",
+            "new_password_confirm": "correct horse battery staple",
+        })
+        self.assertEqual(response.status_code, 200)
 
     def test_payload_catalog_is_available_when_authenticated(self):
         response = self.client.get("/api/payloads", headers=self.headers)

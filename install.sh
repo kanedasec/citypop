@@ -81,7 +81,8 @@ if [ "$(id -u)" = 0 ]; then
     tar -C "$BASE" \
       --exclude='./.venv' --exclude='./.git' --exclude='./__pycache__' \
       --exclude='*/__pycache__' --exclude='./misc' --exclude='./tools' \
-      --exclude='./loot' -cf - . | tar -C "$INSTALL_DIR" -xf -
+      --exclude='./loot' --exclude='./state' --exclude='./config.json' \
+      -cf - . | tar -C "$INSTALL_DIR" -xf -
   fi
 else
   INSTALL_DIR="$BASE"
@@ -166,9 +167,11 @@ fi
 "$INSTALL_DIR/.venv/bin/python" - "$INSTALL_DIR/config.json" <<'PY'
 import json,secrets,sys
 p=sys.argv[1]; c=json.load(open(p));
-if c.get('auth_token') in ('CHANGE_ME_ON_INSTALL',''): c['auth_token']=secrets.token_urlsafe(24)
+c.pop('auth_token', None)
+if c.get('session_secret') in ('CHANGE_ME_ON_INSTALL','',None): c['session_secret']=secrets.token_urlsafe(48)
 c.setdefault('tls', {'enabled': True, 'certfile': 'state/tls/cert.pem', 'keyfile': 'state/tls/key.pem'})
-json.dump(c,open(p,'w'),indent=2); open(p,'a').write('\n'); print('City Pop token:',c['auth_token'])
+json.dump(c,open(p,'w'),indent=2); open(p,'a').write('\n')
+print('Authentication: create the administrator account on first access.')
 PY
 CITYPOP_PORT="$($VENV_PYTHON -c 'import json,sys; print(int(json.load(open(sys.argv[1]))["port"]))' "$INSTALL_DIR/config.json")"
 TLS_DIR="$INSTALL_DIR/state/tls"
@@ -192,7 +195,7 @@ if [ "$(id -u)" = 0 ]; then
   if [ -L "$NGINX_DEFAULT" ] && \
       [ "$(readlink -f "$NGINX_DEFAULT")" = "/etc/nginx/sites-available/default" ]; then
     unlink "$NGINX_DEFAULT"
-    echo "Disabled nginx's packaged default site; City Pop now owns the port 80 redirect."
+    echo "Disabled nginx's packaged default site so ports 80/443 remain available to payload-managed services."
   fi
   sed \
     -e "s|__CITYPOP_PORT__|$CITYPOP_PORT|g" \
@@ -228,4 +231,5 @@ EOF
 else
   echo "URL: https://192.168.43.254:${CITYPOP_PORT} (fallback; verify the Pi address with: ip -4 addr)"
 fi
-[ "$(id -u)" = 0 ] && echo "Token file: $INSTALL_DIR/config.json" || echo "Token file: $BASE/config.json"
+echo "Authentication: open City Pop to create or use the local administrator account."
+echo "Internal session-signing secret: stored privately in $INSTALL_DIR/config.json (not a login credential)."

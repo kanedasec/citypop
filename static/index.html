@@ -13,14 +13,18 @@
   <header>
     <div class="brand">CITY<span>POP</span><small> // PI-TAIL DECK</small></div>
     <div class="status" aria-live="polite"><i id="led" aria-hidden="true"></i><b id="status">OFFLINE</b><em id="signal" aria-hidden="true">▂▅▇█</em></div>
-    <div class="target">link · <span id="linkHost">kali@—</span> : <span id="linkPort">—</span> <button id="disconnect" class="mini" hidden>DISCONNECT</button></div>
+    <div class="target">link · <span id="linkHost">kali@—</span> : <span id="linkPort">—</span> <button id="accountBtn" class="mini" hidden>ACCOUNT</button></div>
   </header>
 
   <section id="login" class="card" aria-labelledby="loginTitle">
     <h2 id="loginTitle">SECURE LINK</h2>
-    <p>Enter the City Pop token printed by install.sh.</p>
-    <input id="token" type="password" aria-label="City Pop token" placeholder="shared token" autocomplete="current-password">
-    <button id="loginBtn" class="primary">AUTHENTICATE</button>
+    <p id="loginHelp">Checking authentication state…</p>
+    <form id="loginForm">
+      <label>Username<input id="loginUsername" required minlength="3" maxlength="32" autocomplete="username"></label>
+      <label>Password<input id="loginPassword" required minlength="15" maxlength="256" type="password" autocomplete="current-password"></label>
+      <label id="loginConfirmRow" hidden>Confirm password<input id="loginPasswordConfirm" minlength="15" maxlength="256" type="password" autocomplete="new-password"></label>
+      <button id="loginBtn" class="primary">AUTHENTICATE</button>
+    </form>
     <div id="loginMsg" class="error" role="alert"></div>
   </section>
 
@@ -83,6 +87,7 @@
   <dialog id="executionsDialog"><form method="dialog"><h2>EXECUTION HISTORY</h2><div id="executionsList">Loading…</div><div class="actions"><button type="button" id="deleteAllExecutions" class="danger">DELETE ALL</button><button>CLOSE</button></div></form></dialog>
   <dialog id="reportDialog" class="report-dialog"><form id="reportForm"><h2>ENGAGEMENT REPORTS</h2><p id="reportContext">Generate a Markdown timeline with artifact hashes.</p><label>Operator notes<textarea id="reportNotes" placeholder="Findings, context, limitations…"></textarea></label><div id="reportResult"></div><div class="actions"><button type="button" id="reportCancel">CLOSE</button><button id="reportGenerate" class="primary">GENERATE CURRENT</button></div><section class="report-manager" aria-labelledby="generatedReportsTitle"><h3 id="generatedReportsTitle">GENERATED REPORTS</h3><div id="reportList">Loading…</div><pre id="reportPreview" hidden aria-label="Report preview"></pre></section></form></dialog>
   <dialog id="workflowDialog"><form method="dialog"><h2>GUIDED WORKFLOW</h2><div id="workflowBody"></div><div class="actions"><button value="cancel">CLOSE</button><button type="button" id="workflowNext" class="primary">NEXT STEP</button></div></form></dialog>
+  <dialog id="accountDialog"><form id="accountForm"><h2>ADMINISTRATOR ACCOUNT</h2><p>Change the local administrator identity. Leave the new password blank to keep it unchanged.</p><label>Username<input id="accountUsername" required minlength="3" maxlength="32" autocomplete="username"></label><label>Current password<input id="accountCurrentPassword" required type="password" minlength="15" maxlength="256" autocomplete="current-password"></label><label>New password<input id="accountNewPassword" type="password" minlength="15" maxlength="256" autocomplete="new-password" placeholder="15 or more characters"></label><label>Confirm new password<input id="accountNewPasswordConfirm" type="password" minlength="15" maxlength="256" autocomplete="new-password"></label><div id="accountMsg" class="error" role="alert"></div><div class="actions"><button type="button" id="logoutBtn" class="danger">LOG OUT</button><button type="button" id="accountCancel">CANCEL</button><button class="primary">SAVE</button></div></form></dialog>
 
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
   <script src="/app.js"></script>

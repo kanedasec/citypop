@@ -22,7 +22,7 @@
 
 > A phone-first field interface for Kali Pi-Tail—inspired by RaspyJack, rebuilt for a Raspberry Pi Zero 2 W that lives in your pocket instead of behind an LCD HAT.
 
-City Pop turns a Kali Pi-Tail into a compact, browser-operated security deck. The phone supplies power and tethering, displays the interface, stores the access token, and provides the primary controls. The Pi runs the tools, talks to attached radios and boards, and saves results into a central loot directory.
+City Pop turns a Kali Pi-Tail into a compact, browser-operated security deck. The phone supplies power and tethering, displays the interface, and provides the primary controls. The Pi runs the tools, talks to attached radios and boards, and saves results into a central loot directory.
 
 This is an independent web adaptation of [7h30th3r0n3/Raspyjack](https://github.com/7h30th3r0n3/Raspyjack). RaspyJack is an LCD-driven portable offensive toolkit; City Pop preserves much of its payload spirit while replacing joystick, button, and display flows with phone-friendly forms and live web prompts. It is not an official RaspyJack or Kali Linux project.
 
@@ -54,7 +54,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 ## Highlights
 
 - Phone-first, responsive web interface
-- Token-authenticated HTTP and WebSocket control
+- Administrator-authenticated HTTP and WebSocket control
 - 153 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
 - Structured launch forms and dynamic adapter/target selectors
 - Payload preflight checks, protected-route warnings, and live hardware/interface status
@@ -94,13 +94,13 @@ cd citypop
 sudo ./install.sh
 ```
 
-When installation finishes, open one of the printed URLs on the connected phone and authenticate with the printed token:
+When installation finishes, open one of the printed URLs on the connected phone. On first access, create the local administrator account:
 
 ```text
 https://<pi-tail-address>:8080
 ```
 
-For hardware preparation, installer behavior, updates, and token recovery, continue to [Installation](#installation).
+For hardware preparation, installer behavior, updates, and account recovery, continue to [Installation](#installation).
 
 ## Intended build
 
@@ -156,10 +156,12 @@ The installer:
 3. Copies runtime files to `/opt/city-pop`.
 4. Creates `/opt/city-pop/.venv` with access to Kali's system Python packages.
 5. Installs Python dependencies without attempting large ARM source builds where avoidable.
-6. Generates a random City Pop authentication token.
-7. Configures nginx as the TLS/WebSocket reverse proxy and runs City Pop behind it with one threaded Gunicorn worker.
+6. Generates a private session-signing secret; the administrator account is created on first access.
+7. Configures nginx for management TLS/WebSockets on port `8080`, with no nginx
+   listener on ports `80` or `443`, and proxies to one threaded Gunicorn worker
+   bound only to `127.0.0.1:18080`.
 8. Enables and starts `nginx.service` and `city-pop.service` as root.
-9. Prints the primary and all available IPv4 web URLs plus the token location.
+9. Prints the primary and all available IPv4 web URLs.
 
 An unrelated broken APT repository may cause `apt update` to warn. The installer continues using indexes that did refresh, but required package installation can still fail if Kali cannot fetch them.
 
@@ -173,15 +175,13 @@ https://<pi-tail-ip>:8080
 
 The Pi-Tail default is often `192.168.43.254`, but hotspot vendors and USB tethering modes may assign another address.
 
-Enter the token printed during installation. You can retrieve it later over SSH:
-
-```bash
-sudo python3 -c 'import json; print(json.load(open("/opt/city-pop/config.json"))["auth_token"])'
-```
+On first access, City Pop asks you to create its local administrator username
+and password. Passwords must contain at least 15 characters. The password is
+stored only as a salted scrypt hash in `/opt/city-pop/state/auth.json`.
 
 ## Usage
 
-1. Authenticate with the City Pop token.
+1. Sign in with the City Pop administrator account.
 2. Read and accept the authorized-use notice.
 3. Select **+ Engagement**.
 4. Give the engagement a name and date.
@@ -285,27 +285,23 @@ City Pop is a privileged administration surface, not a hardened internet service
 - The service runs payloads as root.
 - The optional command bar executes shell commands as root.
 - The installer enables HTTPS with a locally generated self-signed certificate. Nginx terminates TLS and WebSockets, then proxies only to Gunicorn on `127.0.0.1:18080`. Verify the certificate fingerprint before trusting it on a management device.
-- Nginx does not listen on port 80. While a DNS Spoof template is active, its managed redirector temporarily owns port 80 and sends visitors to the same hostname on HTTPS port 443.
+- Nginx does not listen on ports 80 or 443. While a DNS Spoof template is
+  active, the payload itself temporarily owns port 80 for HTTP redirects and
+  port 443 for its self-signed HTTPS template server. Both are released during
+  payload cleanup.
 - Keep port `8080` on a trusted, private phone-to-Pi link.
 - Do not expose it through public Wi-Fi, router forwarding, cloud tunnels, or an untrusted VPN.
-- Treat the token like a root password and rotate it if it is disclosed.
+- Use a unique administrator passphrase and change it from **Account** if it is disclosed.
 - Do not commit `/opt/city-pop/config.json`, loot, logs, captures, or credentials.
 - Review third-party payload behavior and dependencies before use.
 
-To rotate the token:
+To recover access when the administrator password is lost, reset the local
+account over SSH. This preserves the old account file as a backup and returns
+the web interface to first-access setup:
 
 ```bash
-sudo python3 - <<'PY'
-import json, secrets
-path = "/opt/city-pop/config.json"
-with open(path, encoding="utf-8") as source:
-    config = json.load(source)
-config["auth_token"] = secrets.token_urlsafe(24)
-with open(path, "w", encoding="utf-8") as destination:
-    json.dump(config, destination, indent=2)
-    destination.write("\n")
-print(config["auth_token"])
-PY
+sudo systemctl stop city-pop
+sudo mv /opt/city-pop/state/auth.json /opt/city-pop/state/auth.json.backup
 sudo systemctl restart city-pop
 ```
 

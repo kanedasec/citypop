@@ -6,7 +6,7 @@
     "certfile": "state/tls/cert.pem",
     "keyfile": "state/tls/key.pem"
   },
-  "auth_token": "CHANGE_ME_ON_INSTALL",
+  "session_secret": "CHANGE_ME_ON_INSTALL",
   "acknowledged": false,
   "category_order": [
     "reconnaissance",

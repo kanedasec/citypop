@@ -4,23 +4,44 @@ City Pop separates the privileged Pi runtime from a phone-first browser client w
 
 ```text
 Phone browser
+  │ HTTPS + WebSocket :8080 (default)
+  ▼
+nginx (TLS termination; no listener on :80 or :443)
+  │ HTTP + WebSocket proxy
+  ▼
+Gunicorn gthread · 127.0.0.1:18080 · one worker
+  │
+Flask + Socket.IO · app.py
   ├─ authenticated REST ───── payload catalog, preflight, hardware, loot, reports
   └─ authenticated Socket.IO ─ output, prompts, stop, artifacts, live endpoints
                                   │
-                              Flask app.py
-                                  │
-                           PayloadRunner
-                         ┌────────┴────────┐
-                    payload process    state/history
-                         │                   │
-                 Kali tools + boards   engagement loot
+                             PayloadRunner
+                           ┌──────┴────────┐
+                      payload process  state/history
+                           │                 │
+                   Kali tools + boards  engagement loot
 ```
+
+The installed management path is always `browser → nginx → Gunicorn`; it does
+not use Flask's development server. Nginx listens with TLS on the configured
+City Pop port (`8080` by default), proxies to loopback-only Gunicorn, and
+carries Socket.IO WebSocket upgrades.
+
+Nginx intentionally does not own ports `80` or `443`. When
+`network/dns_spoofing.py` runs with a selected template, that payload
+temporarily starts its own HTTP redirect server on `0.0.0.0:80` and HTTPS
+template server on `0.0.0.0:443`. Port 80 redirects to the same spoofed
+hostname and path on port 443. Both listeners stop during payload cleanup; the
+management UI remains on nginx at port 8080.
 
 ## Runtime components
 
 ### `app.py`
 
-The Flask application serves static assets, authenticates token or session requests, exposes hardware and preflight information, manages loot/report generation, listing, preview, download, and deletion APIs, and validates authorization context before starting work.
+The Flask application serves static assets, authenticates administrator sessions, exposes hardware and preflight information, manages loot/report generation, listing, preview, download, and deletion APIs, and validates authorization context before starting work.
+
+The systemd service launches one threaded Gunicorn worker bound only to
+`127.0.0.1:18080`. Nginx is the sole public management listener.
 
 ### `payload_runner.py`
 
@@ -60,7 +81,14 @@ The runner supplies:
 ## Trust boundaries
 
 - The web service runs as root because payloads need packet, radio, GPIO, and device access.
-- The token protects a root-capable interface but HTTP does not encrypt it.
+- The administrator session protects a root-capable interface. Passwords are
+  salted scrypt hashes; an internal signing secret protects HTTP-only, Secure,
+  SameSite session cookies.
+- Nginx provides management TLS on port 8080 using a locally generated
+  self-signed certificate. The DNS-spoof template server reuses that
+  certificate on port 443, so browsers should expect a trust warning.
+- Ports 80 and 443 are payload-owned only while a DNS-spoof template is active;
+  nginx must not listen on either port.
 - Engagement scope is operator-provided context, not an automatic authorization system.
 - Payload subprocesses and third-party tools remain privileged and must be reviewed.
 - Loot may contain sensitive information and stays outside Git.
