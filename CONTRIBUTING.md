@@ -34,12 +34,20 @@ Do not add LCD, joystick, desktop-window, or attached-keyboard dependencies. Do 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements-core.txt
+python -m pip install --require-hashes -r requirements-core.lock
 cp config.example.json config.json
+# For the direct development server only, set bind to 127.0.0.1 and
+# tls.enabled to false in the ignored config.json.
 python app.py
 ```
 
-Use only synthetic or authorized test data. Many payload dependencies are intentionally optional and are normally supplied by Kali or attached hardware.
+Open `http://127.0.0.1:8080`. Direct Flask execution is a loopback-only
+development fallback; installed deployments must use nginx TLS and Gunicorn.
+The installer creates first-access pairing state, so local authentication tests
+should use isolated test stores or explicitly generate development pairing
+state. Use only synthetic or authorized test data. Many payload dependencies
+are intentionally optional and are normally supplied by Kali or attached
+hardware.
 
 ## Payload contract
 
@@ -71,6 +79,11 @@ Required behavior:
 ## Web interface changes
 
 - Preserve administrator session authentication and engagement requirements.
+- Preserve authentication-generation checks, CSRF/origin validation,
+  per-event Socket.IO reauthorization, login/setup throttling, and one-time
+  pairing.
+- Keep browser dependencies local and compatible with the nginx CSP; do not add
+  runtime CDN scripts or inline JavaScript.
 - Do not remove, add, or materially relocate controls without explaining the UX reason.
 - Keep touch targets at least 44 px and preserve keyboard focus indicators.
 - Escape untrusted payload and loot text before inserting it into HTML.
@@ -86,11 +99,11 @@ The Pi Zero 2 W should not compile large scientific packages when a compatible K
 - tolerate unrelated broken APT sources where safe;
 - prefer binary packages and compatible wheels on ARM;
 - retain board/radio system bindings through the project virtual environment;
-- remain safe to rerun; and
+- remain safe to rerun;
 - install nginx as the TLS/WebSocket proxy on the configured management port;
 - keep Gunicorn loopback-only on `127.0.0.1:18080`;
 - leave ports `80` and `443` free for payload-managed services; and
-- print all reachable management HTTPS URLs and explain first-access account setup.
+- print all reachable management HTTPS URLs and explain first-access account setup; and
 - preserve one-time pairing, hardened runtime permissions, the verified local
   Socket.IO asset, and exact web dependency constraints.
 

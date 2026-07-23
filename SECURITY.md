@@ -31,8 +31,14 @@ Never include real session secrets, credentials, captures, personal data, or una
   rate-limited.
 - Keep the locally bundled Socket.IO asset and CSP enabled. Do not replace it
   with a runtime CDN dependency.
+- Preserve same-origin and CSRF validation for every state-changing request,
+  and reauthorize every privileged Socket.IO event.
+- Keep `/opt/city-pop/config.json` and authentication files at mode `0600`;
+  keep state and loot directories at `0700`.
 - Nginx exposes management HTTPS on port `8080` and proxies to Gunicorn on
   loopback port `18080`; do not expose the Gunicorn endpoint.
+- Preserve nginx security headers, the 1 MiB request limit, authentication rate
+  limits, and the exact SHA-256-locked core web dependency set.
 - Ports `80` and `443` are normally unused by nginx. A DNS-spoof template
   temporarily uses port 80 for HTTP-to-HTTPS redirects and port 443 for its
   self-signed HTTPS site.

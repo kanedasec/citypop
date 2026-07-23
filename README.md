@@ -94,7 +94,9 @@ cd citypop
 sudo ./install.sh
 ```
 
-When installation finishes, open one of the printed URLs on the connected phone. On first access, create the local administrator account:
+When installation finishes, keep the one-time pairing code shown in the
+terminal and open one of the printed URLs on the connected phone. On first
+access, enter that code and create the local administrator account:
 
 ```text
 https://<pi-tail-address>:8080
@@ -335,18 +337,22 @@ The maintainers and upstream authors are not responsible for misuse, damage, dat
 
 ```text
 app.py                  Flask + Socket.IO web application
+auth_store.py           scrypt credentials, auth generations, one-time pairing
 payload_runner.py       payload discovery, persistent execution, prompts, history
 payloads/               web-native payload catalog and shared helpers
-static/                 phone UI, styles, service worker, manifest, client logic
+static/                 phone UI, service worker, and verified local Socket.IO client
 docs/                   architecture and payload-authoring references
 tests/                  catalog-contract and authenticated API tests
 .github/                CI, issue forms, and pull-request template
 state/                  local execution history (generated, excluded from Git)
 install.sh              Kali/ARM-aware installer
 city-pop.service        systemd service template
+city-pop.nginx.conf     TLS, WebSocket, CSP, headers, limits, and proxy template
 requirements-core.txt   required web runtime
+requirements-core.lock  exact, SHA-256-locked web dependency closure
 requirements.txt        optional payload Python dependencies
 constraints-arm.txt     ARM dependency compatibility constraints
+constraints-web.txt     human-readable exact web dependency versions
 config.example.json     safe configuration template
 misc/                   development documentation (not installed)
 tools/                  local migration tooling (not installed or committed)
