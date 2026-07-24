@@ -12,9 +12,6 @@ from urllib.parse import parse_qs, urlsplit
 TEMPLATE_ROOT = Path(__file__).resolve().parents[1] / "templates" / "dns"
 FIELD_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
 SENSITIVE_FIELD_PARTS = {
-    "account", "card", "credential", "credit", "cvv", "email", "login",
-    "otp", "pass", "passcode", "password", "pin", "pwd", "secret",
-    "token", "user", "username",
 }
 event_log_lock = threading.Lock()
 
