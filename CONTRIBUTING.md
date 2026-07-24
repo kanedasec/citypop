@@ -19,8 +19,14 @@ Security vulnerabilities must follow [SECURITY.md](SECURITY.md), not the public 
 Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before changing execution or authentication.
 
 - `citypop/app.py` owns authenticated HTTP and Socket.IO APIs.
+- Gunicorn imports `citypop.app:app`; do not restore root-level compatibility
+  copies of the application modules.
 - nginx owns public management TLS on configured port `8080`; Gunicorn owns
   only `127.0.0.1:18080`. Nginx must not claim ports `80` or `443`.
+- `deploy/city-pop.service` and `deploy/city-pop.nginx.conf` are the systemd
+  and nginx source templates used by `install.sh`.
+- `config/config.example.json` is the committed configuration template;
+  root-level `config.json` is generated locally and must remain untracked.
 - `citypop/payload_runner.py` owns discovery, one-at-a-time execution, logs, history, prompts, and reconnect recovery.
 - `static/` is the phone-first client. Keep controls usable at narrow mobile widths and with touch.
 - `payloads/` contains web-native scripts and shared helpers.

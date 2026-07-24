@@ -340,22 +340,34 @@ The maintainers and upstream authors are not responsible for misuse, damage, dat
 ## Project layout
 
 ```text
-citypop/                Flask + Socket.IO application and internal Python modules
-payloads/               web-native payload catalog and shared helpers
-static/                 phone UI, service worker, and verified local Socket.IO client
-config/                 safe configuration template
-deploy/                 nginx and systemd deployment templates
-docs/                   architecture and payload-authoring references
-tests/                  catalog-contract and authenticated API tests
-.github/                CI, issue forms, and pull-request template
-state/                  local execution history (generated, excluded from Git)
-install.sh              Kali/ARM-aware installer
-requirements-core.txt   required web runtime
-requirements-core.lock  exact, SHA-256-locked web dependency closure
-requirements.txt        optional payload Python dependencies
-constraints-arm.txt     ARM dependency compatibility constraints
-constraints-web.txt     human-readable exact web dependency versions
+citypop/                      Python application package
+├── app.py                    authenticated Flask + Socket.IO API
+├── auth_store.py             credentials, auth generations, and pairing
+├── engagement_store.py       persistent engagement metadata
+├── payload_analysis.py       payload capability and dependency analysis
+└── payload_runner.py         discovery, execution, prompts, and history
+config/
+└── config.example.json       safe configuration template
+deploy/
+├── city-pop.nginx.conf       TLS, WebSocket, headers, limits, and proxy template
+└── city-pop.service          Gunicorn systemd service template
+payloads/                     web-native payload catalog and shared helpers
+templates/                    reusable DNS-spoof and captive-portal content
+static/                       phone UI and verified local browser dependencies
+docs/                         architecture and payload-authoring references
+tests/                        catalog-contract, deployment, and API tests
+.github/                      CI, issue forms, and pull-request template
+install.sh                    Kali/ARM-aware installation entry point
+requirements-core.txt         required web runtime
+requirements-core.lock        exact, SHA-256-locked web dependency closure
+requirements.txt              optional payload Python dependencies
+constraints-arm.txt           ARM dependency compatibility constraints
+constraints-web.txt           human-readable exact web dependency versions
 ```
+
+The installer deploys this layout beneath `/opt/city-pop`. Runtime-only
+`config.json`, `state/`, `loot/`, caches, and the virtual environment are
+generated beside these directories and remain excluded from Git.
 
 ## Documentation
 

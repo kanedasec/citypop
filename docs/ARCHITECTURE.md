@@ -27,6 +27,13 @@ not use Flask's development server. Nginx listens with TLS on the configured
 City Pop port (`8080` by default), proxies to loopback-only Gunicorn, and
 carries Socket.IO WebSocket upgrades.
 
+The repository keeps application code in the `citypop/` Python package.
+Gunicorn imports `citypop.app:app` using `deploy/city-pop.service`. The
+installer renders `deploy/city-pop.nginx.conf` into nginx's system
+configuration and creates the runtime `config.json` from
+`config/config.example.json`. These source templates remain separate from
+generated state, authentication data, TLS keys, loot, and logs.
+
 Nginx intentionally does not own ports `80` or `443`. When
 `network/dns_spoofing.py` runs with a selected template, that payload
 temporarily starts its own HTTP redirect server on `0.0.0.0:80` and HTTPS
