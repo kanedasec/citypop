@@ -91,6 +91,14 @@ def template_handler(directory: Path, event_log: Path, submission_fields: list[s
                 return f"{content_type}; charset=utf-8"
             return content_type
 
+        def copyfile(self, source, outputfile):
+            try:
+                super().copyfile(source, outputfile)
+            except (ConnectionResetError, BrokenPipeError):
+                # Captive-portal probes routinely abandon parallel responses
+                # after another request succeeds. This is not a server failure.
+                return
+
         def do_POST(self):
             if urlsplit(self.path).path != "/submit":
                 self.send_error(404, "Submission endpoint not found")

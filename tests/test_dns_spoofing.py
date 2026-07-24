@@ -1,5 +1,6 @@
 import json
 import http.client
+import io
 import tempfile
 import threading
 import unittest
@@ -83,6 +84,21 @@ class DnsSpoofingTests(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=3)
+
+    def test_template_server_silences_expected_client_disconnects(self):
+        class DisconnectedClient:
+            def __init__(self, error):
+                self.error = error
+
+            def write(self, _data):
+                raise self.error
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            handler_type = template_handler(root, root / "events.jsonl", [])
+            handler = handler_type.__new__(handler_type)
+            for error in (ConnectionResetError(104, "reset"), BrokenPipeError(32, "pipe")):
+                handler.copyfile(io.BytesIO(b"portal response"), DisconnectedClient(error))
 
     def test_http_redirect_preserves_host_path_and_query(self):
         with tempfile.TemporaryDirectory() as temporary:
