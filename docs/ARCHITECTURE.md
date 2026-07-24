@@ -34,6 +34,16 @@ template server on `0.0.0.0:443`. Port 80 redirects to the same spoofed
 hostname and path on port 443. Both listeners stop during payload cleanup; the
 management UI remains on nginx at port 8080.
 
+`wifi/captive_portal.py` owns its isolated AP address on port 80 while active.
+At launch, the operator chooses either a repository template from
+`templates/dns/` or a previously validated image uploaded by the launch form.
+Templates share the DNS-spoof server's UTF-8 handling and declared,
+non-sensitive submission-field allowlist. Image mode creates a temporary,
+responsive display-only site and accepts no form submissions. Portal requests
+and permitted awareness responses use one engagement-scoped JSONL event log.
+Uploaded source images are stored with opaque names and mode `0600` beneath
+the mode-`0700` `state/uploads/` directory.
+
 ## Runtime components
 
 ### `app.py`

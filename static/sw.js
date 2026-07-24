@@ -1,4 +1,4 @@
-const CACHE = 'city-pop-shell-v9';
+const CACHE = 'city-pop-shell-v13';
 const SHELL = ['/', '/style.css', '/vendor/socket.io.min.js', '/app.js', '/input.js', '/manifest.webmanifest', '/citypop-icon.png'];
 
 self.addEventListener('install', event => {

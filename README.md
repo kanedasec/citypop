@@ -57,6 +57,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 - Administrator-authenticated HTTP and WebSocket control
 - 153 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
 - Structured launch forms and dynamic adapter/target selectors
+- Captive-portal template selection or responsive uploaded-image display
 - Payload preflight checks, protected-route warnings, and live hardware/interface status
 - All-payload catalog with toggleable categories, search, impact/capability filters, and favorites
 - Category-filtered guided launch workflow for every payload
@@ -302,6 +303,9 @@ City Pop is a privileged administration surface, not a hardened internet service
 - The management UI uses a locally bundled, checksum-verified Socket.IO client,
   CSRF/origin validation, and a restrictive Content Security Policy.
 - Do not commit `/opt/city-pop/config.json`, loot, logs, captures, or credentials.
+- Captive-portal image uploads are signature-validated, limited to 900 KB, and
+  stored under protected state; template forms log only fields explicitly
+  declared as non-sensitive in `template.json`.
 - Review third-party payload behavior and dependencies before use.
 
 To recover access when the administrator password is lost, reset the local

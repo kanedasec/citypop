@@ -30,6 +30,21 @@ BASE = Path(__file__).resolve().parent
 CONFIG_PATH = BASE / "config.json"
 PAYLOADS = BASE / "payloads"
 LOOT = BASE / "loot"
+UPLOADS = BASE / "state" / "uploads"
+MAX_PORTAL_IMAGE_BYTES = 900_000
+
+
+def portal_image_extension(data: bytes) -> str | None:
+    """Recognize the small set of image formats accepted by portal uploads."""
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+    if data.startswith((b"GIF87a", b"GIF89a")):
+        return ".gif"
+    if len(data) >= 12 and data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        return ".webp"
+    return None
 
 
 def load_config():
@@ -684,6 +699,29 @@ def runtime_status():
 def execution_history():
     engagement = request.args.get("engagement")
     return jsonify(executions=runner.execution_history(engagement))
+
+
+@app.post("/api/uploads/portal-image")
+@require_auth
+def portal_image_upload():
+    image = request.files.get("image")
+    if image is None or not image.filename:
+        return jsonify(error="select an image to upload"), 400
+    data = image.stream.read(MAX_PORTAL_IMAGE_BYTES + 1)
+    if not data:
+        return jsonify(error="the selected image is empty"), 400
+    if len(data) > MAX_PORTAL_IMAGE_BYTES:
+        return jsonify(error="portal images must be 900 KB or smaller"), 413
+    extension = portal_image_extension(data)
+    if extension is None:
+        return jsonify(error="portal images must be PNG, JPEG, WebP, or GIF"), 415
+    UPLOADS.mkdir(parents=True, exist_ok=True, mode=0o700)
+    UPLOADS.chmod(0o700)
+    token = f"{secrets.token_hex(16)}{extension}"
+    destination = UPLOADS / token
+    destination.write_bytes(data)
+    destination.chmod(0o600)
+    return jsonify(ok=True, token=token)
 
 
 @app.delete("/api/executions/<run_id>")

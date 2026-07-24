@@ -18,7 +18,11 @@ Place a script in `payloads/<category>/`. Its `@category` must match the directo
 # @inputs: [{"name":"seconds","label":"Duration","type":"number","default":"60"}]
 ```
 
-Supported static input types are `text`, `password`, `number`, and `select`. A select input requires a nonempty `choices` array. Arguments are passed to the script in metadata order.
+Supported static input types are `text`, `password`, `number`, `select`, and
+`file`. A select input requires a nonempty `choices` array. A file input uploads
+a validated portal image to protected City Pop state and passes its opaque token
+to the payload; it may include an `accept` hint such as `image/png,image/jpeg`.
+Arguments are passed to the script in metadata order.
 
 ### Maturity
 

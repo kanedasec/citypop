@@ -4,12 +4,12 @@ import unittest
 from pathlib import Path
 
 from payload_runner import discover, parse_metadata
-from app import tls_context
+from app import portal_image_extension, tls_context
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PAYLOADS = ROOT / "payloads"
-SUPPORTED_INPUTS = {"text", "password", "number", "select"}
+SUPPORTED_INPUTS = {"text", "password", "number", "select", "file"}
 
 
 class PayloadCatalogTests(unittest.TestCase):
@@ -69,6 +69,8 @@ class PayloadCatalogTests(unittest.TestCase):
                             self.assertIn("value", choice)
                             self.assertTrue(choice.get("label"))
                             self.assertNotEqual(str(choice["value"]), choice["label"])
+                    if spec["type"] == "file":
+                        self.assertTrue(str(spec.get("accept", "")).startswith("image/"))
 
     def test_runtime_input_types_are_supported(self):
         for path in PAYLOADS.glob("*/*.py"):
@@ -108,6 +110,13 @@ class PayloadCatalogTests(unittest.TestCase):
 
     def test_tls_can_be_disabled_without_certificate_files(self):
         self.assertIsNone(tls_context({"tls": {"enabled": False}}))
+
+    def test_portal_image_uploads_use_file_signatures(self):
+        self.assertEqual(portal_image_extension(b"\x89PNG\r\n\x1a\npayload"), ".png")
+        self.assertEqual(portal_image_extension(b"\xff\xd8\xffpayload"), ".jpg")
+        self.assertEqual(portal_image_extension(b"GIF89apayload"), ".gif")
+        self.assertEqual(portal_image_extension(b"RIFF1234WEBPpayload"), ".webp")
+        self.assertIsNone(portal_image_extension(b"<html>not an image</html>"))
 
 
 if __name__ == "__main__":

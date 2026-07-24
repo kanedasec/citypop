@@ -355,6 +355,12 @@ function openPayloadOptions(payload) {
   context.className = 'payload-option-context';
   context.textContent = payload.desc || 'Review each argument before running this payload.';
   box.append(context);
+  const formError = document.createElement('p');
+  formError.className = 'payload-option-error';
+  formError.setAttribute('role', 'alert');
+  formError.setAttribute('aria-live', 'polite');
+  formError.hidden = true;
+  box.append(formError);
   specs.forEach(spec => {
     const label = document.createElement('label');
     label.append(document.createTextNode(spec.label || spec.name || 'Value'));
@@ -367,17 +373,35 @@ function openPayloadOptions(payload) {
         option.textContent = typeof choice === 'object' ? choice.label : choice;
         control.append(option);
       });
+    } else if (spec.type === 'file') {
+      control = document.createElement('input');
+      control.type = 'file';
+      control.accept = spec.accept || '';
     } else {
       control = document.createElement('input');
       control.type = spec.type === 'number' ? 'number' : spec.type === 'password' ? 'password' : 'text';
       control.placeholder = spec.placeholder || '';
     }
     control.dataset.payloadInput = '1';
+    control.dataset.payloadName = spec.name || '';
     control.required = spec.required !== false;
     if (spec.default != null) control.value = spec.default;
     label.append(control);
     box.append(label);
   });
+  const mode = box.querySelector('[data-payload-name="content_mode"]');
+  const image = box.querySelector('[data-payload-name="portal_image"]');
+  if (mode && image) {
+    const imageLabel = image.closest('label');
+    const syncImageRequirement = () => {
+      const enabled = mode.value === 'image';
+      image.required = enabled;
+      imageLabel.hidden = !enabled;
+      if (!enabled) image.value = '';
+    };
+    mode.addEventListener('change', syncImageRequirement);
+    syncImageRequirement();
+  }
   if (specs.length) {
     updateWorkflowStage('configuration', 'current');
     $('payloadDialog').showModal();
@@ -685,11 +709,62 @@ $('preflightRun').onclick = () => {
   if (preflightPayload) openPayloadOptions(preflightPayload);
 };
 $('payloadCancel').onclick = () => $('payloadDialog').close();
-$('payloadForm').onsubmit = event => {
+$('payloadForm').onsubmit = async event => {
   event.preventDefault();
-  if (!event.currentTarget.reportValidity()) return;
-  const args = [...$('payloadInputs').querySelectorAll('[data-payload-input]')].map(input => input.value);
-  const id = event.currentTarget.dataset.id;
+  const form = event.currentTarget;
+  const id = form.dataset.id;
+  if (!form.reportValidity()) return;
+  const controls = [...$('payloadInputs').querySelectorAll('[data-payload-input]')];
+  const formError = $('payloadInputs').querySelector('.payload-option-error');
+  formError.hidden = true;
+  formError.textContent = '';
+  const args = [];
+  const submit = form.querySelector('button.primary');
+  submit.disabled = true;
+  submit.textContent = 'PREPARING…';
+  try {
+    for (const input of controls) {
+      if (input.type !== 'file') {
+        args.push(input.value);
+        continue;
+      }
+      if (!input.files.length) {
+        args.push('');
+        continue;
+      }
+      const file = input.files[0];
+      const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+      if (!allowedTypes.has(file.type)) {
+        throw new Error('Choose a PNG, JPEG, WebP, or GIF image.');
+      }
+      if (file.size > 900000) {
+        throw new Error(`The selected image is ${Math.ceil(file.size / 1000)} KB; the maximum is 900 KB.`);
+      }
+      const body = new FormData();
+      body.append('image', file);
+      const response = await fetch('/api/uploads/portal-image', {
+        method: 'POST',
+        headers: {'X-CityPop-CSRF': csrfToken},
+        body,
+      });
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = {error: `Image upload failed with HTTP ${response.status}.`};
+      }
+      if (!response.ok) throw new Error(data.error || 'Image upload failed');
+      args.push(data.token);
+    }
+  } catch (error) {
+    formError.textContent = error.message;
+    formError.hidden = false;
+    line(`! ${error.message}`, 'line-warn');
+    return;
+  } finally {
+    submit.disabled = false;
+    submit.textContent = 'RUN';
+  }
   $('payloadDialog').close();
   runPayload(id, args);
 };
