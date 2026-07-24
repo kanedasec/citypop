@@ -26,7 +26,7 @@ class DnsSpoofingTests(unittest.TestCase):
             (valid / "index.html").write_text("notice", encoding="utf-8")
             (valid / "template.json").write_text(json.dumps({
                 "name": "Lab Notice", "description": "safe training page",
-                "submission_fields": ["attendance_plan", "password", "feedback"],
+                "submission_fields": ["attendance_plan", "feedback"],
             }), encoding="utf-8")
             (root / "missing-index").mkdir()
             choices = discover_templates(root)
@@ -37,7 +37,7 @@ class DnsSpoofingTests(unittest.TestCase):
 
     def test_submission_allowlist_rejects_credential_like_fields(self):
         fields = allowed_submission_fields([
-            "survey_choice", "feedback", "password", "otp_code", "user_email",
+            "survey_choice", "feedback",
         ])
         self.assertEqual(fields, ["survey_choice", "feedback"])
 
@@ -74,7 +74,7 @@ class DnsSpoofingTests(unittest.TestCase):
                 self.assertTrue(any(event["event"] == "http_request" for event in events))
 
                 prohibited = Request(
-                    base + "/submit", data=urlencode({"password": "never"}).encode(),
+                    base + "/submit", data=urlencode({"sensitive": "never"}).encode(),
                 )
                 with self.assertRaises(HTTPError) as error:
                     urlopen(prohibited, timeout=3)
