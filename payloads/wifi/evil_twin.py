@@ -546,7 +546,7 @@ def main():
     global _iface
     choices = [{"value": x["name"], "label": x["name"]} for x in list_interfaces("wifi") if x.get("supports_monitor")]
     if not choices: print("No monitor-capable Wi-Fi interface found", flush=True); return 1
-    _iface = str(request_input("Select Wi-Fi interface", input_type="select", choices=choices))
+    _iface = str(request_input("Select an unused/unconnected monitor/AP-capable external Wi-Fi adapter — it will be reconfigured and must not carry City Pop management access", input_type="select", choices=choices))
     duration = min(3600, max(10, int(sys.argv[1]) if len(sys.argv)>1 else 300))
     try:
         do_scan()

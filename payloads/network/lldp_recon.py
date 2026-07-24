@@ -15,7 +15,7 @@ from payloads._web_input import request_input
 
 def main() -> int:
     interfaces = sorted(p.name for p in Path("/sys/class/net").iterdir() if p.name != "lo")
-    interface = str(request_input("Select network interface", input_type="select", choices=interfaces))
+    interface = str(request_input("Select connected network interface — use the interface attached to the authorized local segment; monitor mode is not required", input_type="select", choices=interfaces))
     try:
         seconds = max(1, min(int(sys.argv[1] if len(sys.argv) > 1 else "60"), 3600))
     except ValueError:

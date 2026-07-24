@@ -410,7 +410,7 @@ def main():
     global _selected_iface
     choices=[{"value":x["name"],"label":x["name"]} for x in list_interfaces("wifi") if x.get("supports_monitor")]
     if not choices: print("No monitor-capable Wi-Fi interface found", flush=True); return 1
-    _selected_iface=str(request_input("Select Wi-Fi interface",input_type="select",choices=choices))
+    _selected_iface=str(request_input("Select an unused/unconnected monitor-mode-capable external Wi-Fi adapter — it will leave managed mode and must not carry City Pop management access",input_type="select",choices=choices))
     duration=min(3600,max(5,int(sys.argv[1]) if len(sys.argv)>1 else 60)); _load_config()
     extra=sys.argv[2:] 
     for name in extra: _add_ssid(name)

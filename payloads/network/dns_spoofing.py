@@ -70,7 +70,7 @@ def interface_choices() -> list[dict]:
         kind = "Wi-Fi" if item.get("is_wifi") else "Ethernet"
         choices.append({
             "value": item["name"],
-            "label": f"{item['name']} — {kind}, {state}, {address}",
+            "label": f"{item['name']} — {kind}, {state}, {address} · must be connected to the target LAN",
         })
     return choices
 
@@ -241,7 +241,7 @@ def main() -> int:
         print("No physical network interface was detected.", flush=True)
         return 1
     interface = str(request_input(
-        "Interface carrying traffic for the authorized client and gateway",
+        "Select the connected interface with access to the authorized client and gateway — it must already be connected to the target LAN; monitor mode is not required",
         input_type="select", choices=choices,
     ))
     if interface not in {choice["value"] for choice in choices}:

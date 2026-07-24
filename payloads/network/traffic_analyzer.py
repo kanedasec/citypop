@@ -27,7 +27,7 @@ def main() -> int:
     if not interfaces:
         print("No capture interfaces were found.")
         return 1
-    interface = str(request_input("Select capture interface", input_type="select", choices=interfaces))
+    interface = str(request_input("Select connected capture interface — use the interface carrying the traffic to inspect; monitor mode is not required", input_type="select", choices=interfaces))
     view = sys.argv[1] if len(sys.argv) > 1 else "protocols"
     try:
         seconds = max(1, min(int(sys.argv[2] if len(sys.argv) > 2 else "60"), 3600))

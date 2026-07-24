@@ -54,7 +54,7 @@ def _select_interface(iface_type="any"):
         print(f"  [{idx}] {info['name']} driver={info['driver']} "
               f"ip={info['ip'] or '-'} up={info['is_up']}", flush=True)
     while True:
-        choice = request_input("Select interface number: ").strip()
+        choice = request_input("Select an unused/unconnected AP-facing external Wi-Fi adapter — the portal reconfigures it, so it must not carry City Pop management access: ").strip()
         if choice.isdigit() and 0 <= int(choice) < len(ifaces):
             return ifaces[int(choice)]["name"]
         print("Invalid selection.", flush=True)

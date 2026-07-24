@@ -245,7 +245,7 @@ def _prompt_interface():
         print(f"  {i}. {ifc['name']} ({state}, {ifc['ip'] or 'no ip'})", flush=True)
 
     while True:
-        choice = request_input("Select interface number (blank to cancel): ").strip()
+        choice = request_input("Select connected traffic interface (blank to cancel) — choose the bridge or route being shaped; modifying the City Pop route can affect the web app: ").strip()
         if not choice:
             return None
         if choice.isdigit() and 1 <= int(choice) <= len(ifaces):

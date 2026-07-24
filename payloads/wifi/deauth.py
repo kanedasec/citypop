@@ -522,7 +522,7 @@ def stop_all(stop_event, threads, iface):
 def main():
     choices=[{"value":x["name"],"label":x["name"]} for x in list_interfaces("wifi") if x.get("supports_monitor")]
     if not choices: print("No monitor-capable Wi-Fi interface found",flush=True); return 1
-    iface=str(request_input("Select Wi-Fi interface",input_type="select",choices=choices))
+    iface=str(request_input("Select an unused/unconnected monitor-mode-capable external Wi-Fi adapter — it must not carry City Pop management access",input_type="select",choices=choices))
     duration=min(600,max(5,int(sys.argv[1]) if len(sys.argv)>1 else 30)); capture=(sys.argv[2].lower()=="true") if len(sys.argv)>2 else False
     ok,iface=validate_setup(iface)
     if not ok: print("Failed to enable monitor mode",flush=True); return 1

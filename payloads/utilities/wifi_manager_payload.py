@@ -46,7 +46,7 @@ def choose_interface() -> str:
     if len(interfaces) == 1:
         print(f"Wi-Fi interface: {interfaces[0]}", flush=True)
         return interfaces[0]
-    return str(request_input("Select Wi-Fi interface", input_type="select", choices=interfaces))
+    return str(request_input("Select managed Wi-Fi interface — use the adapter intended for normal network access; changing the City Pop route can disconnect the web app", input_type="select", choices=interfaces))
 
 
 def backend() -> str:

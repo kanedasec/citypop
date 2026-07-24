@@ -198,7 +198,7 @@ def _select_iface(iface_arg):
         print(f"  [{i}] {ifc['name']}  ip={ifc['ip'] or '?'}  "
               f"{'UP' if ifc['is_up'] else 'DOWN'}", flush=True)
     while True:
-        choice = request_input(f"Select interface [0-{len(ifaces) - 1}]: ").strip()
+        choice = request_input(f"Select connected interface [0-{len(ifaces) - 1}] — use the interface attached to the authorized switch segment; monitor mode is not required: ").strip()
         if choice.isdigit() and 0 <= int(choice) < len(ifaces):
             return ifaces[int(choice)]["name"]
         print("Invalid selection, try again.", flush=True)

@@ -423,7 +423,7 @@ def _select_wifi_interface():
         print(f"  [{i}] {ifc['name']}  {tag}  {state}", flush=True)
 
     while True:
-        choice = request_input(f"Select interface [0-{len(ifaces) - 1}]: ").strip()
+        choice = request_input(f"Select an unused/unconnected monitor-mode-capable external Wi-Fi adapter [0-{len(ifaces) - 1}] — it will leave managed mode and must not carry City Pop management access: ").strip()
         if choice.isdigit() and 0 <= int(choice) < len(ifaces):
             return ifaces[int(choice)]["name"]
         print("Invalid selection, try again.", flush=True)

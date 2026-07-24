@@ -61,7 +61,7 @@ def choose_interface() -> str:
         for interface in interfaces
         if interface != MONITOR_INTERFACE
     )
-    return str(request_input("Select wireless interface", input_type="select", choices=choices))
+    return str(request_input("Select monitor-mode-capable wireless interface — prefer a separate external adapter; changing the City Pop route can disconnect the web app", input_type="select", choices=choices))
 
 
 def monitor_state(interface: str) -> tuple[bool | None, str]:

@@ -28,7 +28,7 @@ def main() -> int:
         print("Client, gateway, or duration is invalid.")
         return 2
     interfaces = sorted(p.name for p in Path("/sys/class/net").iterdir() if p.name != "lo")
-    interface = str(request_input("Select network interface", input_type="select", choices=interfaces))
+    interface = str(request_input("Select connected network interface — it must carry both authorized endpoints; monitor mode is not required", input_type="select", choices=interfaces))
     forwarding = Path("/proc/sys/net/ipv4/ip_forward")
     previous = forwarding.read_text().strip()
     processes = []

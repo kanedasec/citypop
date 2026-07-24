@@ -25,7 +25,7 @@ def main() -> int:
         print("The response name must end in .local.")
         return 2
     interfaces = sorted(p.name for p in Path("/sys/class/net").iterdir() if p.name != "lo")
-    interface = str(request_input("Select network interface", input_type="select", choices=interfaces))
+    interface = str(request_input("Select connected network interface — use the interface carrying the authorized .local network; monitor mode is not required", input_type="select", choices=interfaces))
     responses = 0
 
     def answer(packet):

@@ -1069,7 +1069,7 @@ def draw_ble_pwn(lcd, target, step, payload_idx, result):
 def main():
     choices=[{"value":x["name"],"label":x["name"]} for x in list_interfaces("wifi")]
     if not choices: print("No Wi-Fi interface found",flush=True); return 1
-    iface=str(request_input("Select Wi-Fi interface",input_type="select",choices=choices))
+    iface=str(request_input("Select managed Wi-Fi interface — use an external adapter for target connections so City Pop management remains online; monitor mode is not required",input_type="select",choices=choices))
     mode=sys.argv[1] if len(sys.argv)>1 else "recon"
     if mode=="scan":
         rows=scan_unitree_wifi(iface); path=save_loot(rows,"wifi_scan"); print(f"Found {len(rows)} networks; saved {path}",flush=True); return 0

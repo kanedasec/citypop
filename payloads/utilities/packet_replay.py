@@ -32,7 +32,7 @@ def main() -> int:
     cap_index = int(request_input("Select capture", input_type="select", choices=[
         {"value": str(i), "label": str(p.relative_to(LOOT))} for i, p in enumerate(captures)
     ]))
-    interface = str(request_input("Select output interface", input_type="select", choices=interfaces))
+    interface = str(request_input("Select connected output interface — use the interface attached to the authorized replay segment; monitor mode is required only for raw 802.11 captures", input_type="select", choices=interfaces))
     speed = sys.argv[1] if len(sys.argv) > 1 else "realtime"
     try:
         loops = max(1, min(int(sys.argv[2] if len(sys.argv) > 2 else "1"), 100))

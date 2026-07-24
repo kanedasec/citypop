@@ -46,8 +46,8 @@ def choose_interface():
     if not items:
         print("No AP-capable Wi-Fi interface found", flush=True)
         return None
-    choices = [{"value": x["name"], "label": f"{x['name']} · {x.get('bus') or 'unknown'} · AP capable"} for x in items]
-    return str(request_input("Select AP-capable Wi-Fi interface", input_type="select", choices=choices))
+    choices = [{"value": x["name"], "label": f"{x['name']} · {x.get('bus') or 'unknown'} · AP capable · must be unused/unconnected"} for x in items]
+    return str(request_input("Select an unused/unconnected AP-capable external Wi-Fi adapter — do not select the interface connected to City Pop or the current network", input_type="select", choices=choices))
 
 
 def run(cmd, check=True, timeout=15):

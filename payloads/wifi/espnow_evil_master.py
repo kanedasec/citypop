@@ -472,7 +472,7 @@ def main():
     if not SCAPY_OK: print("scapy is required",flush=True); return 127
     choices=[{"value":x["name"],"label":x["name"]} for x in list_interfaces("wifi") if x.get("supports_monitor")]
     if not choices: print("No monitor-capable Wi-Fi interface found",flush=True); return 1
-    iface=str(request_input("Select Wi-Fi interface",input_type="select",choices=choices)); duration=min(3600,max(5,int(sys.argv[1]) if len(sys.argv)>1 else 60))
+    iface=str(request_input("Select an unused/unconnected monitor-mode-capable external Wi-Fi adapter — it must not carry City Pop management access",input_type="select",choices=choices)); duration=min(3600,max(5,int(sys.argv[1]) if len(sys.argv)>1 else 60))
     ok,err=set_monitor_mode(iface,ESPNOW_CHANNEL)
     if not ok: print(f"Monitor mode failed: {err}",flush=True); return 1
     gps=GpsReader(); sniffer=EspNowSniffer(iface,gps)

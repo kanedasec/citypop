@@ -17,7 +17,7 @@ from payloads._web_input import request_input
 
 def main() -> int:
     interfaces = sorted(p.name for p in Path("/sys/class/net").iterdir() if p.name != "lo")
-    interface = str(request_input("Select trunk interface", input_type="select", choices=interfaces))
+    interface = str(request_input("Select connected trunk or mirror interface — it must receive the authorized VLAN traffic; monitor mode is not required", input_type="select", choices=interfaces))
     try:
         seconds = max(1, min(int(sys.argv[1] if len(sys.argv) > 1 else "60"), 3600))
         limit = max(1, min(int(sys.argv[2] if len(sys.argv) > 2 else "10000"), 1_000_000))

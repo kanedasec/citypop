@@ -30,7 +30,7 @@ def main() -> int:
         print("Port, duration, or packet rate is invalid.")
         return 2
     interfaces = sorted(p.name for p in Path("/sys/class/net").iterdir() if p.name != "lo")
-    interface = str(request_input("Select output interface", input_type="select", choices=interfaces))
+    interface = str(request_input("Select connected output interface — it must route to the authorized target; monitor mode is not required", input_type="select", choices=interfaces))
     count = seconds * pps
     interval_us = max(1000, 1_000_000 // pps)
     print(f"Sending {count} SYN packets to {target}:{port} through {interface} at up to {pps} pps…", flush=True)

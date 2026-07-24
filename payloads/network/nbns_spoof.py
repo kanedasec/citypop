@@ -37,7 +37,7 @@ def main() -> int:
         print("NetBIOS name must contain 1–15 characters.")
         return 2
     interfaces = sorted(p.name for p in Path("/sys/class/net").iterdir() if p.name != "lo")
-    interface = str(request_input("Select network interface", input_type="select", choices=interfaces))
+    interface = str(request_input("Select connected network interface — use the interface carrying the authorized NetBIOS network; monitor mode is not required", input_type="select", choices=interfaces))
     responses = 0
 
     def answer(packet):

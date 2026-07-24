@@ -20,7 +20,7 @@ def main() -> int:
     if not wireless:
         print("No Wi-Fi interfaces were found.")
         return 1
-    interface = str(request_input("Select Wi-Fi adapter", input_type="select", choices=wireless))
+    interface = str(request_input("Select Wi-Fi adapter to inspect — choose the connected adapter for live link statistics; monitor mode is not required", input_type="select", choices=wireless))
     for title, command in (("Link", ["iw", "dev", interface, "link"]), ("Driver", ["ethtool", "-i", interface]), ("Survey", ["iw", "dev", interface, "survey", "dump"])):
         result = subprocess.run(command, capture_output=True, text=True, timeout=20)
         print(f"\n{title}\n{'-' * len(title)}\n{result.stdout.strip() or result.stderr.strip()}")

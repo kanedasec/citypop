@@ -20,7 +20,7 @@ def main() -> int:
     if not interfaces:
         print("No network interfaces were found.")
         return 1
-    interface = str(request_input("Select network interface", input_type="select", choices=interfaces))
+    interface = str(request_input("Select interface to manage — changing the City Pop or default-route interface can disconnect the web app", input_type="select", choices=interfaces))
     action = sys.argv[1] if len(sys.argv) > 1 else "inspect"
     if action == "inspect":
         result = subprocess.run(["ip", "-j", "address", "show", "dev", interface], capture_output=True, text=True)

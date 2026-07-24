@@ -442,7 +442,7 @@ def main():
         for i, ifc in enumerate(ifaces, 1):
             ip = f" ({ifc['ip']})" if ifc["ip"] else ""
             print(f"  {i}. {ifc['name']}{ip}", flush=True)
-        choice = request_input(f"Select an interface [1-{len(ifaces)}]: ").strip()
+        choice = request_input(f"Select connected interface [1-{len(ifaces)}] — use the interface carrying the authorized target network; monitor mode is not required: ").strip()
         try:
             idx = int(choice) - 1
             if idx < 0 or idx >= len(ifaces):

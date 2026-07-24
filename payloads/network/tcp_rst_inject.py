@@ -23,7 +23,7 @@ def main() -> int:
         print("Target, port, or duration is invalid.")
         return 2
     interfaces = sorted(p.name for p in Path("/sys/class/net").iterdir() if p.name != "lo")
-    interface = str(request_input("Select capture interface", input_type="select", choices=interfaces))
+    interface = str(request_input("Select connected capture interface — it must observe the authorized TCP flow; monitor mode is not required", input_type="select", choices=interfaces))
     sent = 0
 
     def reset(packet):

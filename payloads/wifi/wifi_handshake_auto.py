@@ -104,7 +104,7 @@ def _select_monitor_interface():
         print(f"  {name}: {bus}, {state}", flush=True)
         choices.append({"value": name, "label": f"{name} · {bus} · {state}"})
     selected = str(request_input(
-        "Select monitor-capable Wi-Fi interface",
+        "Select an unused/unconnected monitor-mode-capable external Wi-Fi adapter — it will leave managed mode and must not carry City Pop management access",
         input_type="select",
         choices=choices,
     ))

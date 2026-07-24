@@ -376,7 +376,7 @@ def _select_interface_cli(iface_type="wifi", require_monitor=False):
         cap_str = f" [{'+'.join(caps)}]" if caps else ""
         print(f"  {i}) {ifc['name']} ({src}){cap_str}", flush=True)
 
-    choice = request_input("Select interface number: ").strip()
+    choice = request_input("Select an unused/unconnected monitor-mode-capable external Wi-Fi adapter — it will leave managed mode and must not carry City Pop management access: ").strip()
     try:
         idx = int(choice)
         if 0 <= idx < len(ifaces):

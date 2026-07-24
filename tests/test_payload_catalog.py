@@ -88,6 +88,113 @@ class PayloadCatalogTests(unittest.TestCase):
                     if input_type == "select":
                         self.assertIn("choices", keywords)
 
+    def test_network_interface_prompts_describe_the_required_interface(self):
+        requirement_terms = (
+            "connected", "external", "managed", "management",
+            "monitor-mode", "monitor mode", "default-route", "to inspect",
+        )
+        missing = []
+        for path in PAYLOADS.glob("*/*.py"):
+            if path.parent.name == "bluetooth" or path.name == "bt_scan_classic.py":
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                function = node.func
+                name = function.id if isinstance(function, ast.Name) else getattr(function, "attr", "")
+                if name != "request_input" or not node.args:
+                    continue
+                label_node = node.args[0]
+                if isinstance(label_node, ast.Constant) and isinstance(label_node.value, str):
+                    label = label_node.value
+                elif isinstance(label_node, ast.JoinedStr):
+                    label = "".join(
+                        part.value
+                        for part in label_node.values
+                        if isinstance(part, ast.Constant) and isinstance(part.value, str)
+                    )
+                else:
+                    continue
+                lowered = label.lower()
+                if (
+                    "select" in lowered
+                    and ("interface" in lowered or "wi-fi adapter" in lowered)
+                    and not any(term in lowered for term in requirement_terms)
+                ):
+                    missing.append(f"{path.relative_to(ROOT)}: {label}")
+        self.assertEqual(
+            missing, [],
+            "Network-interface prompts must state whether they require a "
+            f"connected, external, managed, or monitor-mode interface: {missing}",
+        )
+
+    def test_interface_prompt_requirements_match_payload_lifecycle(self):
+        unused_external = {
+            "network/goodportal.py",
+            "wifi/captive_portal.py",
+            "wifi/ciw_zeroclick.py",
+            "wifi/dead_drop.py",
+            "wifi/deauth.py",
+            "wifi/espnow_evil_master.py",
+            "wifi/evil_twin.py",
+            "wifi/handshake_hunter.py",
+            "wifi/karma_ap.py",
+            "wifi/pmkid_grab.py",
+            "wifi/raspygotchi.py",
+            "wifi/ssid_pool.py",
+            "wifi/wifi_alert.py",
+            "wifi/wifi_handshake_auto.py",
+            "wifi/wifi_probe_dump.py",
+            "wifi/wifi_survey.py",
+            "wifi/wpa_enterprise_evil.py",
+            "wifi/wps_pixie.py",
+        }
+        connected = {
+            "ai/network_anomaly.py",
+            "credentials/default_creds_scanner.py",
+            "evasion/timing_evasion.py",
+            "evasion/traffic_shaper.py",
+            "network/arp_dos.py",
+            "network/arp_mitm.py",
+            "network/dhcp_snoop.py",
+            "network/dns_spoofing.py",
+            "network/igmp_snoop.py",
+            "network/lldp_recon.py",
+            "network/mdns_poison.py",
+            "network/nbns_spoof.py",
+            "network/syn_flood.py",
+            "network/tcp_rst_inject.py",
+            "network/traffic_analyzer.py",
+            "network/trunk_dump.py",
+            "reconnaissance/mdns_scanner.py",
+            "reconnaissance/passive_os_detect.py",
+            "utilities/packet_replay.py",
+        }
+        monitor = {
+            path for path in unused_external
+            if path not in {
+                "network/goodportal.py",
+                "wifi/captive_portal.py",
+                "wifi/ciw_zeroclick.py",
+                "wifi/dead_drop.py",
+            }
+        }
+        for relative in sorted(unused_external):
+            source = (PAYLOADS / relative).read_text(encoding="utf-8", errors="replace")
+            with self.subTest(payload=relative, requirement="unused external"):
+                self.assertIn("unused/unconnected", source)
+                self.assertIn("external Wi-Fi adapter", source)
+        for relative in sorted(connected):
+            source = (PAYLOADS / relative).read_text(encoding="utf-8", errors="replace")
+            with self.subTest(payload=relative, requirement="connected"):
+                self.assertIn("connected", source)
+                self.assertIn("interface", source)
+        for relative in sorted(monitor):
+            source = (PAYLOADS / relative).read_text(encoding="utf-8", errors="replace")
+            with self.subTest(payload=relative, requirement="monitor"):
+                self.assertIn("monitor", source.lower())
+
     def test_all_discoverable_files_parse_directly(self):
         for payload in self.payloads:
             path = PAYLOADS / payload["id"]

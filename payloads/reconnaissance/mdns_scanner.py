@@ -11,7 +11,7 @@ from pathlib import Path
 from payloads._web_input import request_input
 def main():
     if not shutil.which("avahi-browse"): print("avahi-browse is unavailable; install avahi-utils."); return 2
-    interfaces=sorted(p.name for p in Path('/sys/class/net').iterdir() if p.name!='lo'); iface=str(request_input("Select interface",input_type="select",choices=interfaces))
+    interfaces=sorted(p.name for p in Path('/sys/class/net').iterdir() if p.name!='lo'); iface=str(request_input("Select connected interface — use the interface carrying the local mDNS network; monitor mode is not required",input_type="select",choices=interfaces))
     try: seconds=max(1,min(int(sys.argv[1] if len(sys.argv)>1 else '30'),300))
     except ValueError: return 2
     result=subprocess.run(["timeout",str(seconds),"avahi-browse","-a","-r","-p","-i",iface],text=True,timeout=seconds+10)

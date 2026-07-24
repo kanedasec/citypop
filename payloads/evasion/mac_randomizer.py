@@ -118,7 +118,7 @@ def _prompt_interface():
         print(f"  {i}. {name} (MAC {_get_mac(name)})", flush=True)
 
     while True:
-        choice = request_input("Select interface number (blank to cancel): ").strip()
+        choice = request_input("Select interface to modify (blank to cancel) — changing the City Pop or default-route interface can disconnect the web app: ").strip()
         if not choice:
             return None
         if choice.isdigit() and 1 <= int(choice) <= len(existing):

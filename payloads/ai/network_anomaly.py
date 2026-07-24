@@ -327,7 +327,7 @@ def _choose_interface():
         marker = " (default)" if name == default_iface else ""
         print(f"  {i}. {name}{marker}", flush=True)
 
-    choice = request_input(f"Select interface [1-{len(ifaces)}] (default: {default_iface}): ").strip()
+    choice = request_input(f"Select connected capture interface [1-{len(ifaces)}] — use the interface carrying traffic to evaluate; monitor mode is not required (default: {default_iface}): ").strip()
     if not choice:
         return default_iface
     try:

@@ -27,7 +27,7 @@ def choose_interface():
         print("No monitor-capable Wi-Fi interface found", flush=True)
         return None
     choices = [{"value": x["name"], "label": f"{x['name']} · {x.get('bus') or 'unknown'}"} for x in items]
-    return str(request_input("Select monitor-capable Wi-Fi interface", input_type="select", choices=choices))
+    return str(request_input("Select an unused/unconnected monitor-mode-capable external Wi-Fi adapter — it will leave managed mode and must not carry City Pop management access", input_type="select", choices=choices))
 
 
 def command(cmd, timeout=30, check=True):

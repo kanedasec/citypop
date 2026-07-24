@@ -680,7 +680,7 @@ def _select_wifi_interface():
         print(f"  [{i}] {ifc['name']}  {tag}  {state}", flush=True)
 
     while True:
-        choice = str(request_input("Select AP-capable Wi-Fi interface", input_type="select", choices=[
+        choice = str(request_input("Select an unused/unconnected AP-capable external Wi-Fi adapter — it will be reconfigured and must not carry City Pop management access", input_type="select", choices=[
             {"value": str(i), "label": f"{item['name']} · {'onboard' if item.get('is_onboard') else item.get('driver') or 'external'} · AP · {'UP' if item.get('is_up') else 'DOWN'}"}
             for i, item in enumerate(ifaces)]))
         if choice.isdigit() and 0 <= int(choice) < len(ifaces):
