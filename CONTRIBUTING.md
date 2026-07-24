@@ -18,10 +18,10 @@ Security vulnerabilities must follow [SECURITY.md](SECURITY.md), not the public 
 
 Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before changing execution or authentication.
 
-- `app.py` owns authenticated HTTP and Socket.IO APIs.
+- `citypop/app.py` owns authenticated HTTP and Socket.IO APIs.
 - nginx owns public management TLS on configured port `8080`; Gunicorn owns
   only `127.0.0.1:18080`. Nginx must not claim ports `80` or `443`.
-- `payload_runner.py` owns discovery, one-at-a-time execution, logs, history, prompts, and reconnect recovery.
+- `citypop/payload_runner.py` owns discovery, one-at-a-time execution, logs, history, prompts, and reconnect recovery.
 - `static/` is the phone-first client. Keep controls usable at narrow mobile widths and with touch.
 - `payloads/` contains web-native scripts and shared helpers.
 - `install.sh` must remain suitable for Kali Pi-Tail on a 32-bit ARM Raspberry Pi Zero 2 W with 512 MB RAM.
@@ -35,10 +35,10 @@ Do not add LCD, joystick, desktop-window, or attached-keyboard dependencies. Do 
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --require-hashes -r requirements-core.lock
-cp config.example.json config.json
+cp config/config.example.json config.json
 # For the direct development server only, set bind to 127.0.0.1 and
 # tls.enabled to false in the ignored config.json.
-python app.py
+python -m citypop.app
 ```
 
 Open `http://127.0.0.1:8080`. Direct Flask execution is a loopback-only
@@ -113,7 +113,7 @@ Run the baseline checks:
 
 ```bash
 python -m unittest discover -s tests -v
-python -m py_compile app.py payload_runner.py
+python -m compileall -q citypop
 node --check static/app.js
 node --check static/input.js
 node --check static/sw.js

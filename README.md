@@ -340,24 +340,21 @@ The maintainers and upstream authors are not responsible for misuse, damage, dat
 ## Project layout
 
 ```text
-app.py                  Flask + Socket.IO web application
-auth_store.py           scrypt credentials, auth generations, one-time pairing
-payload_runner.py       payload discovery, persistent execution, prompts, history
+citypop/                Flask + Socket.IO application and internal Python modules
 payloads/               web-native payload catalog and shared helpers
 static/                 phone UI, service worker, and verified local Socket.IO client
+config/                 safe configuration template
+deploy/                 nginx and systemd deployment templates
 docs/                   architecture and payload-authoring references
 tests/                  catalog-contract and authenticated API tests
 .github/                CI, issue forms, and pull-request template
 state/                  local execution history (generated, excluded from Git)
 install.sh              Kali/ARM-aware installer
-city-pop.service        systemd service template
-city-pop.nginx.conf     TLS, WebSocket, CSP, headers, limits, and proxy template
 requirements-core.txt   required web runtime
 requirements-core.lock  exact, SHA-256-locked web dependency closure
 requirements.txt        optional payload Python dependencies
 constraints-arm.txt     ARM dependency compatibility constraints
 constraints-web.txt     human-readable exact web dependency versions
-config.example.json     safe configuration template
 ```
 
 ## Documentation
@@ -375,7 +372,7 @@ The baseline validation is:
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 -m py_compile app.py payload_runner.py
+python3 -m compileall -q citypop
 node --check static/app.js
 node --check static/input.js
 node --check static/sw.js

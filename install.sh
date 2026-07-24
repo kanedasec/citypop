@@ -163,7 +163,7 @@ else:
 PY
 
 if [ ! -f "$INSTALL_DIR/config.json" ]; then
-  cp "$INSTALL_DIR/config.example.json" "$INSTALL_DIR/config.json"
+  cp "$INSTALL_DIR/config/config.example.json" "$INSTALL_DIR/config.json"
 fi
 "$INSTALL_DIR/.venv/bin/python" - "$INSTALL_DIR/config.json" <<'PY'
 import json,secrets,sys
@@ -241,19 +241,19 @@ if [ "$(id -u)" = 0 ]; then
     -e "s|__CITYPOP_PORT__|$CITYPOP_PORT|g" \
     -e "s|__CITYPOP_CERT__|$TLS_DIR/cert.pem|g" \
     -e "s|__CITYPOP_KEY__|$TLS_DIR/key.pem|g" \
-    "$INSTALL_DIR/city-pop.nginx.conf" > /etc/nginx/conf.d/city-pop.conf
+    "$INSTALL_DIR/deploy/city-pop.nginx.conf" > /etc/nginx/conf.d/city-pop.conf
   nginx -t
   systemctl stop city-pop.service 2>/dev/null || true
   systemctl enable nginx.service
   systemctl restart nginx.service
-  sed 's/^User=.*/User=root/' "$INSTALL_DIR/city-pop.service" > /etc/systemd/system/city-pop.service
+  sed 's/^User=.*/User=root/' "$INSTALL_DIR/deploy/city-pop.service" > /etc/systemd/system/city-pop.service
   systemctl daemon-reload
   systemctl enable city-pop.service
   systemctl restart city-pop.service
   echo "City Pop enabled: nginx TLS on port $CITYPOP_PORT → Gunicorn on 127.0.0.1:18080"
 else
   echo "The venv is ready, but no server was started."
-  echo "Run now: $INSTALL_DIR/.venv/bin/python $INSTALL_DIR/app.py"
+  echo "Run now: cd $INSTALL_DIR && $INSTALL_DIR/.venv/bin/python -m citypop.app"
   echo "For boot startup, rerun: sudo $BASE/install.sh"
 fi
 PRIMARY_IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i == "src") {print $(i+1); exit}}')"

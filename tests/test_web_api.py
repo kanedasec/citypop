@@ -4,9 +4,9 @@ import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
-import app as citypop
-from auth_store import AuthStore, PairingStore
-from engagement_store import EngagementStore
+from citypop import app as citypop
+from citypop.auth_store import AuthStore, PairingStore
+from citypop.engagement_store import EngagementStore
 
 
 class WebApiTests(unittest.TestCase):

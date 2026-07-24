@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from engagement_store import EngagementStore
+from citypop.engagement_store import EngagementStore
 
 
 class EngagementStoreTests(unittest.TestCase):

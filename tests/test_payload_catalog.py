@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from payload_runner import discover, parse_metadata
-from app import portal_image_extension, tls_context
+from citypop.app import portal_image_extension, tls_context
+from citypop.payload_runner import discover, parse_metadata
 
 
 ROOT = Path(__file__).resolve().parents[1]

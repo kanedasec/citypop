@@ -11,7 +11,7 @@ nginx (TLS termination; no listener on :80 or :443)
   ▼
 Gunicorn gthread · 127.0.0.1:18080 · one worker
   │
-Flask + Socket.IO · app.py
+Flask + Socket.IO · citypop/app.py
   ├─ authenticated REST ───── payload catalog, preflight, hardware, loot, reports
   └─ authenticated Socket.IO ─ output, prompts, stop, artifacts, live endpoints
                                   │
@@ -46,7 +46,7 @@ the mode-`0700` `state/uploads/` directory.
 
 ## Runtime components
 
-### `app.py`
+### `citypop/app.py`
 
 The Flask application serves static assets, authenticates administrator sessions, exposes hardware and preflight information, manages loot/report generation, listing, preview, download, and deletion APIs, and validates authorization context before starting work.
 
@@ -60,17 +60,17 @@ current authentication version and a CSRF token. Account changes increment the
 version, immediately invalidating older HTTP and Socket.IO sessions. Login and
 setup attempts are limited by nginx and a bounded application limiter.
 
-### `payload_runner.py`
+### `citypop/payload_runner.py`
 
 The runner discovers metadata, resolves payload paths safely, launches Python or shell processes, injects City Pop environment variables, maintains a bounded terminal buffer, persists execution history, and detects dashboard links and new artifacts. It deliberately permits only one active payload or command.
 
 Payload processes survive temporary browser disconnects. An authenticated browser retrieves the runtime snapshot and pending prompt after reconnecting.
 
-### `payload_analysis.py`
+### `citypop/payload_analysis.py`
 
 The static capability analyzer derives launch/runtime input counts, referenced executables, required and optional Python modules, system services, device/data paths, hardware classes, dashboard support, and loot behavior. The catalog uses these capabilities to construct truthful per-payload guide stages, while preflight resolves them against the running Pi.
 
-### `engagement_store.py`
+### `citypop/engagement_store.py`
 
 The engagement registry persists names, dates, and authorized scopes in `state/engagements.json`, allowing engagements to be reopened or edited from another browser. Existing execution history is surfaced as recovered engagements until its missing scope is supplied; arbitrary payload output directories are never interpreted as engagements. Permanent engagement deletion removes its registry entry, execution history, reports, logs, and loot after exact typed confirmation.
 

@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from auth_store import AuthStore, PairingStore
+from citypop.auth_store import AuthStore, PairingStore
 
 
 class AuthStoreTests(unittest.TestCase):
