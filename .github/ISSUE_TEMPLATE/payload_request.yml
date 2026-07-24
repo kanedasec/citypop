@@ -1,0 +1,55 @@
+name: Payload proposal
+description: Propose a new or substantially changed web-native payload.
+title: "[Payload]: "
+labels: [enhancement, payload]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Payload name
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Proposed category
+      options: [ai, bluetooth, credentials, evasion, exfiltration, hardware, network, nfc_rfid, reconnaissance, remote_access, sdr, usb, utilities, wifi]
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Behavior and expected output
+      description: Explain what it actually does, its terminal output, loot, and any dashboard.
+    validations:
+      required: true
+  - type: textarea
+    id: inputs
+    attributes:
+      label: Phone workflow
+      description: List static inputs, runtime choices, discovered interfaces/targets, and cancellation behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and hardware
+      description: Kali packages, Python modules, drivers, boards, radios, and ARM availability.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and authorization considerations
+      description: Expected impact, danger classification, cleanup, and management-route risks.
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: This proposal supports an authorized defensive, research, lab, or assessment workflow.
+          required: true
+        - label: The workflow can be operated from the phone without LCD, joystick, or attached keyboard controls.
+          required: true

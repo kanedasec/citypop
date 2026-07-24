@@ -19,6 +19,7 @@ config.json
 !.env.example
 loot/
 logs/
+state/
 *.log
 *.pid
 *.sock
@@ -58,3 +59,6 @@ omitted-raspyjack-payloads.txt
 
 # Stray local payload-editor scratch file
 payloads/Untitled
+
+# Local AI-agent implementation handbook
+AI_AGENT_GUIDE.md

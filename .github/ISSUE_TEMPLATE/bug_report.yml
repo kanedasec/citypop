@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible City Pop web, installer, or payload failure.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include tokens, credentials, loot, captures, personal data, or unauthorized target information.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Web interface, Payload, Installer, Service/runtime, Documentation]
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Revision
+      description: Commit hash or release used.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Pi model, Kali image/version, phone connection method, adapters, and relevant hardware.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Use synthetic or authorized targets only.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized terminal or service output
+      render: shell
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed secrets, personal data, loot, captures, and real target information.
+          required: true
+        - label: Testing was performed on systems and devices I own or was explicitly authorized to test.
+          required: true

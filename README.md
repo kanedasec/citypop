@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/github/repo-size/kanedasec/citypop?style=flat-square&color=8cf7f7" alt="Repository size">
   <img src="https://img.shields.io/badge/platform-Kali%20Pi--Tail-557C94?style=flat-square&logo=kali-linux&logoColor=white" alt="Platform: Kali Pi-Tail">
   <img src="https://img.shields.io/badge/hardware-Pi%20Zero%202%20W-C51A4A?style=flat-square&logo=raspberry-pi&logoColor=white" alt="Hardware: Raspberry Pi Zero 2 W">
-  <img src="https://img.shields.io/badge/payloads-153-ff4f9a?style=flat-square" alt="153 payloads">
+  <img src="https://img.shields.io/badge/payloads-154-ff4f9a?style=flat-square" alt="154 payloads">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-55e6a5?style=flat-square" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/use-authorized%20testing%20only-ffc45c?style=flat-square" alt="Authorized testing only">
 </p>
@@ -40,6 +40,7 @@ This is an independent web adaptation of [7h30th3r0n3/Raspyjack](https://github.
 - [Practical examples](#practical-examples)
 - [Troubleshooting](#troubleshooting)
 - [Security and safety](#web-security)
+- [Progress and roadmap](#progress-and-roadmap)
 - [Project layout](#project-layout)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
@@ -55,7 +56,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 
 - Phone-first, responsive web interface
 - Administrator-authenticated HTTP and WebSocket control
-- 153 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
+- 154 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
 - Structured launch forms and dynamic adapter/target selectors
 - Captive-portal template selection or responsive uploaded-image display
 - Payload preflight checks, protected-route warnings, and live hardware/interface status
@@ -75,7 +76,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 | On your phone | On the Pi-Tail |
 |---|---|
 | Create an engagement with mandatory name, date, and authorized scope | Keep logs and artifacts separated by engagement |
-| Browse all payloads or toggle categories, search, filter, and favorite tools | Discover 153 web-enabled payloads from their metadata |
+| Browse all payloads or toggle categories, search, filter, and favorite tools | Discover 154 web-enabled payloads from their metadata |
 | Follow a guided launch flow for any payload | Check commands, radios, adapters, and protected routes before launch |
 | Choose targets, interfaces, modes, and durations through web prompts | Run one privileged operation at a time inside the City Pop environment |
 | Watch a searchable, pausable terminal and open live dashboard links | Stream output and preserve it across temporary phone disconnects |
@@ -337,6 +338,12 @@ You are responsible for complying with applicable computer-misuse, privacy, inte
 
 The maintainers and upstream authors are not responsible for misuse, damage, data loss, service interruption, regulatory violations, or unauthorized access.
 
+## Progress and roadmap
+
+City Pop is currently in the **payload evaluation and fixing phase**. See the
+[progress chart and validation snapshot](docs/ROADMAP.md) for completed phases,
+current catalog maturity counts, evaluation criteria, and planned work.
+
 ## Project layout
 
 ```text
@@ -373,6 +380,7 @@ generated beside these directories and remain excluded from Git.
 
 - [Architecture](docs/ARCHITECTURE.md) — runtime components, data flow, environment contract, trust boundaries, and Pi-Tail constraints.
 - [Payload authoring](docs/PAYLOAD_AUTHORING.md) — metadata, phone prompts, output, loot, dashboards, dependencies, safety, and verification.
+- [Progress and roadmap](docs/ROADMAP.md) — completed phases, current payload-validation coverage, and planned work.
 - [Security policy](SECURITY.md) — supported version, private vulnerability reporting, and deployment expectations.
 - [Code of Conduct](CODE_OF_CONDUCT.md) — behavior expected in project spaces.
 

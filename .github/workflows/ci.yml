@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate catalog and web runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-core.txt
+
+      - name: Install web runtime
+        run: python -m pip install --disable-pip-version-check -r requirements-core.txt
+
+      - name: Prepare test configuration
+        run: cp config.example.json config.json
+
+      - name: Run Python tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Check Python syntax
+        run: python -m py_compile app.py payload_runner.py
+
+      - name: Check browser JavaScript syntax
+        run: |
+          node --check static/app.js
+          node --check static/input.js
+          node --check static/sw.js
+
+      - name: Check installer syntax
+        run: bash -n install.sh

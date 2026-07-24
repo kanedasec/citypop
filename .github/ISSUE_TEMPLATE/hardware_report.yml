@@ -1,0 +1,39 @@
+name: Hardware compatibility report
+description: Document working or failing Pi-Tail hardware for maintainers and users.
+title: "[Hardware]: "
+labels: [hardware]
+body:
+  - type: input
+    id: device
+    attributes:
+      label: Device and chipset
+      description: Include USB ID or driver when known.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Pi-Tail environment
+      description: Pi model, Kali image/kernel, power/OTG setup, and connection method.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Tested capabilities and result
+      description: Payloads used, modes tested, expected behavior, and actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Relevant lsusb, driver, iw, rfkill, dmesg, or terminal output without sensitive data.
+      render: shell
+  - type: checkboxes
+    id: authorization
+    attributes:
+      label: Authorization
+      options:
+        - label: Testing used my own hardware/environment or an explicitly authorized lab.
+          required: true

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private security report
+    url: https://github.com/kanedasec/citypop/security/advisories/new
+    about: Report vulnerabilities privately instead of opening a public issue.
+  - name: Kali Pi-Tail documentation
+    url: https://www.kali.org/docs/arm/raspberry-pi-zero-2-w-pi-tail/
+    about: Check upstream Pi-Tail setup and tethering documentation.
