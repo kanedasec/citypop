@@ -29,6 +29,7 @@ import select
 import time
 import threading
 from payloads._dashboard import primary_ip
+from payloads._ufw import TemporaryUfwRules
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
@@ -252,6 +253,9 @@ def main():
 
     print("TCP Port Forwarder", flush=True)
     listen_ip = primary_ip()
+    firewall = TemporaryUfwRules("port-forwarder")
+    for rule in rules:
+        firewall.allow_lan_service(listen_ip, rule["local_port"])
     for rule in rules:
         rule["active"] = True
         threading.Thread(
@@ -286,6 +290,7 @@ def main():
                 srv = rule.get("server_sock")
                 if srv:
                     _safe_close(srv)
+        firewall.close()
 
     with lock:
         rule_list = [dict(r) for r in rules]

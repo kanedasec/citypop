@@ -34,6 +34,7 @@ from datetime import datetime
 import urllib.request
 from io import BytesIO
 from http.server import SimpleHTTPRequestHandler, HTTPServer
+from payloads._ufw import TemporaryUfwRules
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
@@ -464,7 +465,10 @@ def main():
                 return 1
 
     webui_thread = None
+    firewall = None
     if start_web:
+        firewall = TemporaryUfwRules("adsb-web")
+        firewall.allow_lan_service(primary_ip(), WEBUI_PORT)
         webui_thread = threading.Thread(target=_start_webui, daemon=True)
         webui_thread.start()
         time.sleep(0.5)
@@ -505,6 +509,8 @@ def main():
         _shutdown.set()
         if _webui_server:
             _webui_server.shutdown()
+        if firewall:
+            firewall.close()
 
     with lock:
         now = time.time()

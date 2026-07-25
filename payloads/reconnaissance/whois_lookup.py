@@ -5,6 +5,8 @@
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: functional
+# @runtime_links: false
 # @inputs: [{"name":"target","label":"Domain or IP address","type":"text","required":true}]
 import re, socket, subprocess, sys
 def main():

@@ -38,6 +38,7 @@ from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads._iface_helper import list_interfaces
+from payloads._ufw import TemporaryUfwRules
 
 
 def _select_interface(iface_type="any"):
@@ -85,6 +86,7 @@ whitelist = []              # list of MAC strings
 connected_clients = []      # [{"mac": ..., "ip": ...}]
 status_msg = "Stopped"
 redirected_count = 0
+_firewall = None
 
 
 # ---------------------------------------------------------------------------
@@ -207,12 +209,16 @@ def _clear_iptables_rules():
 
 def _start_portal():
     """Start the captive portal."""
-    global portal_active, status_msg
+    global portal_active, status_msg, _firewall
 
     # Configure interface
     _run_cmd(["ip", "addr", "flush", "dev", PORTAL_IFACE])
     _run_cmd(["ip", "addr", "add", f"{PORTAL_IP}/24", "dev", PORTAL_IFACE])
     _run_cmd(["ip", "link", "set", PORTAL_IFACE, "up"])
+    _firewall = TemporaryUfwRules("goodportal")
+    _firewall.allow_ap_dhcp(PORTAL_IFACE, PORTAL_SUBNET)
+    _firewall.allow_ap_service(PORTAL_IFACE, PORTAL_SUBNET, 53, "udp")
+    _firewall.allow_ap_service(PORTAL_IFACE, PORTAL_SUBNET, REDIRECT_PORT, "tcp")
 
     # Enable IP forwarding
     _run_cmd(["sysctl", "-w", "net.ipv4.ip_forward=1"])
@@ -243,10 +249,13 @@ def _start_portal():
 
 def _stop_portal():
     """Stop the captive portal."""
-    global portal_active, status_msg
+    global portal_active, status_msg, _firewall
 
     _run_cmd(["pkill", "-f", f"dnsmasq.*{DNSMASQ_CONF}"])
     _clear_iptables_rules()
+    if _firewall:
+        _firewall.close()
+        _firewall = None
 
     with lock:
         portal_active = False

@@ -46,6 +46,7 @@ import socket
 import subprocess
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from payloads._ufw import TemporaryUfwRules
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
@@ -256,6 +257,8 @@ def main():
             print(f"Usage: {os.path.basename(__file__)} [duration_seconds]", flush=True)
             return 1
 
+    firewall = TemporaryUfwRules("mobile-gps")
+    firewall.allow_lan_service(_get_device_ip(), HTTPS_PORT)
     server_thread = threading.Thread(target=_start_server, daemon=True)
     server_thread.start()
 
@@ -268,6 +271,7 @@ def main():
     finally:
         _running = False
         _stop_server()
+        firewall.close()
         with lock:
             final_track = list(_track_log)
         if final_track:

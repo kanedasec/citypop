@@ -54,6 +54,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads._iface_helper import list_interfaces
 from payloads._dashboard import DashboardServer
+from payloads._ufw import TemporaryUfwRules
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -102,6 +103,7 @@ _last_event = ""  # last upload/download event text
 _hostapd_proc = None
 _dnsmasq_proc = None
 _http_server = None
+_firewall = None
 
 ssid = "DeadDrop"
 channel = 6
@@ -178,7 +180,7 @@ def _stream_service_output(process, label):
 
 
 def _start_services(ifc):
-    global _hostapd_proc, _dnsmasq_proc, _http_server, status_msg
+    global _hostapd_proc, _dnsmasq_proc, _http_server, status_msg, _firewall
 
     for proc_name in ("hostapd", "dnsmasq"):
         subprocess.run(["sudo", "pkill", "-f", f"rj_deaddrop.*{proc_name}"],
@@ -224,11 +226,12 @@ def _start_services(ifc):
             f"dhcp-option=6,{GATEWAY_IP}\naddress=/#/{GATEWAY_IP}\n"
             f"no-resolv\n"
         )
+    _firewall = TemporaryUfwRules("dead-drop")
+    _firewall.allow_ap_dhcp(ifc, f"{GATEWAY_IP}/24")
+    _firewall.allow_ap_service(ifc, f"{GATEWAY_IP}/24", 53, "udp")
+    _firewall.allow_ap_service(ifc, f"{GATEWAY_IP}/24", PORTAL_PORT, "tcp")
 
     for cmd in [
-        ["sudo", "iptables", "-t", "nat", "-F"],
-        ["sudo", "iptables", "-F", "FORWARD"],
-        ["sudo", "iptables", "-P", "FORWARD", "DROP"],
         ["sudo", "iptables", "-t", "nat", "-A", "PREROUTING", "-i", ifc,
          "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "--to-port", str(PORTAL_PORT)],
         ["sudo", "iptables", "-t", "nat", "-A", "PREROUTING", "-i", ifc,
@@ -268,7 +271,7 @@ def _start_services(ifc):
 
 
 def _stop_services():
-    global _hostapd_proc, _dnsmasq_proc, _http_server, status_msg
+    global _hostapd_proc, _dnsmasq_proc, _http_server, status_msg, _firewall
 
     if _http_server:
         _http_server.shutdown()
@@ -284,11 +287,17 @@ def _stop_services():
 
     _hostapd_proc = None
     _dnsmasq_proc = None
+    if _firewall:
+        _firewall.close()
+        _firewall = None
 
     for cmd in [
-        ["sudo", "iptables", "-t", "nat", "-F"],
-        ["sudo", "iptables", "-F", "FORWARD"],
-        ["sudo", "iptables", "-P", "FORWARD", "ACCEPT"],
+        ["sudo", "iptables", "-t", "nat", "-D", "PREROUTING", "-i", iface,
+         "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "--to-port", str(PORTAL_PORT)],
+        ["sudo", "iptables", "-t", "nat", "-D", "PREROUTING", "-i", iface,
+         "-p", "tcp", "--dport", "443", "-j", "REDIRECT", "--to-port", str(PORTAL_PORT)],
+        ["sudo", "iptables", "-t", "nat", "-D", "PREROUTING", "-i", iface,
+         "-p", "udp", "--dport", "53", "-j", "DNAT", "--to", f"{GATEWAY_IP}:53"],
     ]:
         subprocess.run(cmd, capture_output=True, timeout=5)
 

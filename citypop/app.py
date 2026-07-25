@@ -980,7 +980,7 @@ def run_payload(data):
         started = runner.start(
             request.sid, str(data.get("id", "")), args, socketio.emit, name
         )
-    except (OSError, ValueError) as error:
+    except (OSError, RuntimeError, ValueError) as error:
         emit("error", {"message": str(error)})
         return
     if not started:

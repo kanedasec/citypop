@@ -37,6 +37,13 @@ class PayloadCatalogTests(unittest.TestCase):
                 self.assertIn("dashboard", capabilities)
                 self.assertIn("produces_loot", capabilities)
 
+    def test_whois_output_does_not_create_runtime_links(self):
+        metadata = parse_metadata(PAYLOADS / "reconnaissance" / "whois_lookup.py")
+        self.assertFalse(metadata["runtime_links"])
+        self.assertTrue(parse_metadata(
+            PAYLOADS / "reconnaissance" / "dns_lookup.py"
+        )["runtime_links"])
+
     def test_category_matches_parent_directory(self):
         for payload in self.payloads:
             with self.subTest(payload=payload["id"]):

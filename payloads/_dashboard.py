@@ -10,6 +10,8 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
+from payloads._ufw import TemporaryUfwRules
+
 
 _PAGE = """<!doctype html><html><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
@@ -52,6 +54,7 @@ class DashboardServer:
         self.port = port or int(os.environ.get("CITYPOP_DASHBOARD_PORT", "8092"))
         self.token = secrets.token_urlsafe(12)
         self.httpd = None
+        self.firewall = None
 
     def start(self) -> str:
         owner = self
@@ -85,13 +88,24 @@ class DashboardServer:
             def log_message(self, *_args):
                 pass
 
-        self.httpd = ThreadingHTTPServer(("0.0.0.0", self.port), Handler)
-        self.httpd.daemon_threads = True
-        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
-        return f"http://{primary_ip()}:{self.port}/?token={self.token}"
+        address = primary_ip()
+        self.firewall = TemporaryUfwRules("dashboard")
+        try:
+            self.firewall.allow_lan_service(address, self.port)
+            self.httpd = ThreadingHTTPServer(("0.0.0.0", self.port), Handler)
+            self.httpd.daemon_threads = True
+            threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+            return f"http://{address}:{self.port}/?token={self.token}"
+        except Exception:
+            self.firewall.close()
+            self.firewall = None
+            raise
 
     def stop(self):
         if self.httpd:
             self.httpd.shutdown()
             self.httpd.server_close()
             self.httpd = None
+        if self.firewall:
+            self.firewall.close()
+            self.firewall = None

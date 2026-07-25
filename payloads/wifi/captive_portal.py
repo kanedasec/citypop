@@ -6,6 +6,7 @@
 # @category: wifi
 # @danger: true
 # @maturity: functional
+# @runtime_links: false
 # @inputs: [{"name":"ssid","label":"Access point SSID","type":"text","default":"FreeWiFi"},{"name":"channel","label":"Channel","type":"number","default":"6"},{"name":"seconds","label":"Run duration","type":"number","default":"300"},{"name":"content_mode","label":"Portal content","type":"select","default":"template","choices":[{"value":"template","label":"Repository template — choose after launch"},{"value":"image","label":"Uploaded image — responsive display-only page"}]},{"name":"portal_image","label":"Portal image (required only for uploaded-image mode; PNG, JPEG, WebP, or GIF, maximum 900 KB)","type":"file","accept":"image/png,image/jpeg,image/webp,image/gif","required":false}]
 
 import html
@@ -28,6 +29,7 @@ from urllib.parse import urlsplit
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 from payloads._iface_helper import list_interfaces
 from payloads._portal_content import discover_templates, template_handler
+from payloads._ufw import TemporaryUfwRules
 from payloads._web_input import request_input
 
 GATEWAY = "10.0.77.1"
@@ -298,6 +300,7 @@ def main():
     hostapd_proc = dnsmasq_proc = server = thread = None
     content_temp = None
     previous_handlers = {}
+    firewall = TemporaryUfwRules("captive-portal")
     try:
         portal_lock = acquire_portal_lock()
         iface = choose_interface()
@@ -326,6 +329,11 @@ def main():
             detail = (config_check.stderr or config_check.stdout or "invalid configuration").strip()
             raise RuntimeError(f"dnsmasq configuration failed: {detail}")
         restore_network_manager = configure_interface(iface)
+        portal_network = f"{GATEWAY}/24"
+        firewall.allow_ap_dhcp(iface, portal_network)
+        firewall.allow_ap_service(iface, portal_network, 53, "udp")
+        firewall.allow_ap_service(iface, portal_network, 53, "tcp")
+        firewall.allow_ap_service(iface, portal_network, PORT, "tcp")
         run(["sudo", "-n", "iptables", "-t", "nat", "-A", "PREROUTING", "-i", iface,
              "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "--to-ports", str(PORT)])
         hostapd_proc = subprocess.Popen(["sudo", "-n", "hostapd", str(hostapd_conf)], start_new_session=True)
@@ -365,6 +373,7 @@ def main():
         stop_process(hostapd_proc); stop_process(dnsmasq_proc)
         if iface:
             restore_interface(iface, restore_network_manager)
+        firewall.close()
         for signum, handler in previous_handlers.items():
             signal.signal(signum, handler)
         release_portal_lock(portal_lock)

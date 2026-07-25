@@ -59,6 +59,7 @@ from urllib.parse import parse_qs
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from payloads._iface_helper import list_interfaces, supports_monitor
+from payloads._ufw import TemporaryUfwRules
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -78,6 +79,7 @@ PORTAL_PORT = 80
 GATEWAY_IP = "10.0.77.1"
 DHCP_RANGE_START = "10.0.77.10"
 DHCP_RANGE_END = "10.0.77.250"
+_firewall = None
 
 # ---------------------------------------------------------------------------
 # WiFi helpers
@@ -442,7 +444,7 @@ def _portal_loop():
 
 def _start_ap(ssid):
     """Launch rogue AP with given SSID."""
-    global _hostapd_proc, _dnsmasq_proc, _portal_server
+    global _hostapd_proc, _dnsmasq_proc, _portal_server, _firewall
     global ap_running, status_msg
 
     iface = _iface
@@ -508,11 +510,13 @@ def _start_ap(ssid):
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
     time.sleep(0.5)
+    _firewall = TemporaryUfwRules("karma-ap")
+    _firewall.allow_ap_dhcp(iface, f"{GATEWAY_IP}/24")
+    _firewall.allow_ap_service(iface, f"{GATEWAY_IP}/24", 53, "udp")
+    _firewall.allow_ap_service(iface, f"{GATEWAY_IP}/24", PORTAL_PORT, "tcp")
 
     # iptables
     for cmd in [
-        ["sudo", "iptables", "-t", "nat", "-F"],
-        ["sudo", "iptables", "-F"],
         ["sudo", "iptables", "-t", "nat", "-A", "PREROUTING",
          "-i", iface, "-p", "tcp", "--dport", "80",
          "-j", "DNAT", "--to-destination", f"{GATEWAY_IP}:{PORTAL_PORT}"],
@@ -520,7 +524,7 @@ def _start_ap(ssid):
          "-i", iface, "-p", "udp", "--dport", "53",
          "-j", "DNAT", "--to-destination", f"{GATEWAY_IP}:53"],
         ["sudo", "iptables", "-t", "nat", "-A", "POSTROUTING",
-         "-j", "MASQUERADE"],
+         "-s", f"{GATEWAY_IP}/24", "-j", "MASQUERADE"],
         ["sudo", "sh", "-c", "echo 1 > /proc/sys/net/ipv4/ip_forward"],
     ]:
         subprocess.run(cmd, capture_output=True, timeout=5)
@@ -555,7 +559,7 @@ def _save_probes():
 
 def _stop_ap():
     """Stop AP and clean up all processes."""
-    global _hostapd_proc, _dnsmasq_proc, _portal_server, ap_running, status_msg
+    global _hostapd_proc, _dnsmasq_proc, _portal_server, ap_running, status_msg, _firewall
 
     with lock:
         ap_running = False
@@ -595,8 +599,14 @@ def _stop_ap():
 
     # iptables cleanup
     for cmd in [
-        ["sudo", "iptables", "-t", "nat", "-F"],
-        ["sudo", "iptables", "-F"],
+        ["sudo", "iptables", "-t", "nat", "-D", "PREROUTING",
+         "-i", _iface, "-p", "tcp", "--dport", "80",
+         "-j", "DNAT", "--to-destination", f"{GATEWAY_IP}:{PORTAL_PORT}"],
+        ["sudo", "iptables", "-t", "nat", "-D", "PREROUTING",
+         "-i", _iface, "-p", "udp", "--dport", "53",
+         "-j", "DNAT", "--to-destination", f"{GATEWAY_IP}:53"],
+        ["sudo", "iptables", "-t", "nat", "-D", "POSTROUTING",
+         "-s", f"{GATEWAY_IP}/24", "-j", "MASQUERADE"],
         ["sudo", "sh", "-c", "echo 0 > /proc/sys/net/ipv4/ip_forward"],
     ]:
         try:
@@ -608,6 +618,9 @@ def _stop_ap():
         _set_managed_mode(_iface)
         subprocess.run(["sudo", "ip", "addr", "flush", "dev", _iface],
                        capture_output=True, timeout=5)
+    if _firewall:
+        _firewall.close()
+        _firewall = None
 
     for fpath in (HOSTAPD_CONF, DNSMASQ_CONF):
         try:

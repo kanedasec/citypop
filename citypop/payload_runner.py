@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Callable
 
 from .payload_analysis import analyze_payload
+from payloads._ufw import TemporaryUfwRules, cleanup_city_pop_rules
 
 META_RE = re.compile(r"^#\s*@([a-z_]+):\s*(.*?)\s*$")
 REQUIRED = {"name", "desc", "category", "danger"}
@@ -48,6 +49,10 @@ def parse_metadata(path: Path) -> dict:
     if web not in {"true", "false"}:
         raise ValueError("@web must be true or false")
     meta["web"] = web == "true"
+    runtime_links = meta.get("runtime_links", "true").lower()
+    if runtime_links not in {"true", "false"}:
+        raise ValueError("@runtime_links must be true or false")
+    meta["runtime_links"] = runtime_links == "true"
     maturity = meta.get("maturity", "not tested").strip().lower()
     if maturity not in MATURITY_LEVELS:
         raise ValueError(
@@ -90,6 +95,7 @@ class Running:
     started_at: str
     started_monotonic: float
     log_path: Path
+    collect_runtime_links: bool = True
     artifacts_before: set[str] = field(default_factory=set)
     pending_request: str | None = None
     pending_request_data: dict | None = None
@@ -160,7 +166,10 @@ class PayloadRunner:
         for index, value in enumerate(args):
             spec = meta.get("inputs", [])[index] if index < len(meta.get("inputs", [])) else {}
             redacted.append("••••••" if spec.get("type") == "password" else value)
-        return self._spawn(owner, meta["name"], payload_id, command, redacted, emit, engagement_name)
+        return self._spawn(
+            owner, meta["name"], payload_id, command, redacted, emit,
+            engagement_name, collect_runtime_links=meta["runtime_links"],
+        )
 
     def command(self, owner: str, command: str, emit: Callable,
                 engagement_name: str = "engagement") -> bool:
@@ -170,7 +179,8 @@ class PayloadRunner:
         )
 
     def _spawn(self, owner: str, name: str, payload_id: str, command: list[str],
-               display_args: list[str], emit: Callable, engagement_name: str) -> bool:
+               display_args: list[str], emit: Callable, engagement_name: str,
+               collect_runtime_links: bool = True) -> bool:
         with self.lock:
             if self.running and self.running.process.poll() is None:
                 return False
@@ -194,18 +204,25 @@ class PayloadRunner:
             if env.get("PYTHONPATH"):
                 python_paths.append(env["PYTHONPATH"])
             env["PYTHONPATH"] = os.pathsep.join(python_paths)
-            proc = subprocess.Popen(
-                command, cwd=self.root.parent, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, stdin=subprocess.PIPE, text=True,
-                bufsize=1, start_new_session=True, env=env,
-            )
+            outbound_firewall = TemporaryUfwRules("payload-egress")
+            try:
+                outbound_firewall.add("allow", "out", "to", "any")
+                proc = subprocess.Popen(
+                    command, cwd=self.root.parent, stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT, stdin=subprocess.PIPE, text=True,
+                    bufsize=1, start_new_session=True, env=env,
+                )
+            except Exception:
+                outbound_firewall.close()
+                raise
             started_at = datetime.now(timezone.utc).isoformat()
             run = Running(
                 process=proc, run_id=uuid.uuid4().hex, owner=owner, name=name,
                 payload_id=payload_id, engagement=engagement_name,
                 engagement_slug=engagement_slug, args=display_args,
                 started_at=started_at, started_monotonic=time.monotonic(),
-                log_path=log_path, artifacts_before=self._loot_files(),
+                log_path=log_path, collect_runtime_links=collect_runtime_links,
+                artifacts_before=self._loot_files(),
             )
             self.running = run
             self.history.append({
@@ -244,12 +261,13 @@ class PayloadRunner:
                 log.flush()
                 item = self._append_output(clean)
                 emit("output", item)
-                for url in URL_RE.findall(clean):
+                for url in URL_RE.findall(clean) if run.collect_runtime_links else ():
                     normalized = url.rstrip(".,;)")
                     if normalized not in links:
                         links.add(normalized)
                         emit("runtime_link", {"url": normalized, "label": clean[:160]})
         code = run.process.wait()
+        cleanup_city_pop_rules()
         duration = round(time.monotonic() - run.started_monotonic, 2)
         created = sorted(self._loot_files() - run.artifacts_before)
         log_relative = str(run.log_path.relative_to(self.loot))
