@@ -5,5 +5,6 @@
 # @category: utilities
 # @danger: false
 # @web: true
+# @maturity: functional
 import shutil
 x=shutil.disk_usage('/');print(f"total={x.total} used={x.used} free={x.free}",flush=True)

@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"length","label":"Generated password length (8-64 characters)","type":"number","default":"16"},{"name":"charsets","label":"Character-set codes: l lowercase, u uppercase, d digits, s symbols","type":"text","default":"lud","placeholder":"Example: luds uses all character sets"},{"name":"save","label":"Password storage behavior","type":"select","choices":[{"value":"no","label":"Display only — print the password without writing it to disk"},{"value":"save","label":"Save to loot — append the password to the engagement password file"}],"default":"no"}]
 """
 RaspyJack Payload -- Password Generator

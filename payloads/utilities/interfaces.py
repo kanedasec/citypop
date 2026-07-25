@@ -5,6 +5,7 @@
 # @category: utilities
 # @danger: false
 # @web: true
+# @maturity: functional
 import os
 for name in sorted(os.listdir('/sys/class/net')):
     print(name, flush=True)

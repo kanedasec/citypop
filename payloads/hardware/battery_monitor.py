@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"seconds","label":"Monitor duration","type":"number","default":"60"}]
 """
 RaspyJack Payload -- Battery Monitor

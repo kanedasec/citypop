@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"mode","label":"Speed-test connection strategy","type":"select","choices":[{"value":"multi","label":"Multi-connection — use parallel transfers for maximum throughput"},{"value":"single","label":"Single-connection — use one transfer stream to reflect constrained links"}],"default":"multi"}]
 
 import json

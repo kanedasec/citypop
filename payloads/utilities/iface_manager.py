@@ -5,6 +5,7 @@
 # @danger: true
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"action","label":"Interface action (a detected interface is selected next)","type":"select","choices":[{"value":"inspect","label":"Inspect only — show addresses, link state, driver, and Wi-Fi mode"},{"value":"enable","label":"Enable — administratively bring the selected interface up"},{"value":"disable","label":"Disable — administratively bring the selected interface down"}],"default":"inspect"}]
 
 import json

@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"target","label":"Authorized host","type":"text","placeholder":"192.168.1.10","required":true},{"name":"ports","label":"TCP ports","type":"text","default":"22,80,443"},{"name":"seconds","label":"Monitor duration","type":"number","default":"120"},{"name":"interval","label":"Scan interval","type":"number","default":"10"}]
 
 import re

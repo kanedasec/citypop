@@ -5,5 +5,7 @@
 # @category: utilities
 # @danger: false
 # @web: true
+# @maturity: functional
+
 import shutil
 for x in ['nmap','iw','ip','ping','whois','curl','openssl']: print(f"{x}: {shutil.which(x) or 'missing'}",flush=True)

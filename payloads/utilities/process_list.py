@@ -5,5 +5,6 @@
 # @category: utilities
 # @danger: false
 # @web: true
+# @maturity: functional
 import subprocess
 subprocess.run(['ps','-eo','pid,user,comm','--sort=-%cpu'],check=False)

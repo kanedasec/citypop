@@ -5,6 +5,7 @@
 # @category: utilities
 # @danger: false
 # @web: true
+# @maturity: functional
 import os, platform, socket, subprocess
 
 def run(*cmd):

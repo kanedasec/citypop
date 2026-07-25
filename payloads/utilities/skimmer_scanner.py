@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"seconds","label":"Scan duration","type":"number","default":"15"}]
 
 import asyncio
