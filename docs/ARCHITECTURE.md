@@ -16,10 +16,10 @@ Flask + Socket.IO · citypop/app.py
   └─ authenticated Socket.IO ─ output, prompts, stop, artifacts, live endpoints
                                   │
                              PayloadRunner
-                           ┌──────┴────────┐
-                      payload process  state/history
-                           │                 │
-                   Kali tools + boards  engagement loot
+                     ┌───────────┼───────────┐
+               temporary UFW  payload process  state/history
+                    rules            │              │
+                              Kali tools + boards  engagement loot
 ```
 
 The installed management path is always `browser → nginx → Gunicorn`; it does
@@ -69,7 +69,22 @@ setup attempts are limited by nginx and a bounded application limiter.
 
 ### `citypop/payload_runner.py`
 
-The runner discovers metadata, resolves payload paths safely, launches Python or shell processes, injects City Pop environment variables, maintains a bounded terminal buffer, persists execution history, and detects dashboard links and new artifacts. It deliberately permits only one active payload or command.
+The runner discovers metadata, resolves payload paths safely, launches Python
+or shell processes, injects City Pop environment variables, maintains a
+bounded terminal buffer, persists execution history, and detects dashboard
+links and new artifacts. Payload metadata can disable runtime-link extraction
+for text such as WHOIS output whose URLs are informational rather than useful
+endpoints. The runner deliberately permits only one active payload or command.
+
+Before launch, the runner inserts a uniquely tagged, run-scoped UFW outbound
+rule so payloads remain usable under default-deny egress policies. Payloads
+that expose services use `payloads/_ufw.py` to add narrower interface,
+subnet, protocol, port, DHCP, or routed-forwarding rules. Connected-network
+prefixes and upstream interfaces come from the live kernel network state;
+AP-created networks come from the payload's own active configuration. Normal
+cleanup removes only rules carrying that run's marker. After every child
+process exit—including a forced stop—the runner performs a second orphan-rule
+cleanup.
 
 Payload processes survive temporary browser disconnects. An authenticated browser retrieves the runtime snapshot and pending prompt after reconnecting.
 
@@ -87,7 +102,11 @@ The vanilla HTML/CSS/JavaScript client is optimized for a phone. It owns engagem
 
 ### `payloads/`
 
-Payloads are independently executable scripts with comment metadata. Shared helpers provide web prompts, dashboards, interface discovery, GPS, audio, and other integrations. Payloads communicate through stdout, stdin JSON prompt responses, environment variables, and the engagement loot directory.
+Payloads are independently executable scripts with comment metadata. Shared
+helpers provide web prompts, dashboards, temporary UFW rules, interface
+discovery, GPS, audio, and other integrations. Payloads communicate through
+stdout, stdin JSON prompt responses, environment variables, and the engagement
+loot directory.
 
 ## Environment contract
 
@@ -119,6 +138,14 @@ The runner supplies:
   certificate on port 443, so browsers should expect a trust warning.
 - Ports 80 and 443 are payload-owned only while a DNS-spoof template is active;
   nginx must not listen on either port.
+- Networked payloads temporarily insert tagged UFW rules before opening
+  listeners or forwarding traffic. These rules are placed ahead of ordinary
+  UFW policy, are derived from runtime interfaces/networks where applicable,
+  and are deleted at payload exit. They do not override independent raw
+  nftables/iptables rules outside UFW.
+- AP and USB payloads use scoped iptables/NAT entries. They must never flush
+  global filter or NAT tables because doing so would dismantle UFW and
+  unrelated host policy.
 - Engagement scope is operator-provided context, not an automatic authorization system.
 - Payload subprocesses and third-party tools remain privileged and must be reviewed.
 - Loot may contain sensitive information and stays outside Git.

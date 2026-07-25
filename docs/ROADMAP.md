@@ -63,21 +63,21 @@ that the area is frozen or will never receive another correction.
 
 | Maturity | Visual | Count | Share |
 |---|---|---:|---:|
-| 🟢 Functional | `█░░░░░░░░░░░░░░░░░░░` | 4 | 2.6% |
+| 🟢 Functional | `██░░░░░░░░░░░░░░░░░░` | 15 | 9.7% |
 | 🟡 Limited | `▏░░░░░░░░░░░░░░░░░░░` | 1 | 0.6% |
-| ⚪ Not tested | `███████████████████░` | 149 | 96.8% |
+| ⚪ Not tested | `██████████████████░░` | 138 | 89.6% |
 | **Total** | | **154** | **100%** |
 
 ```mermaid
 pie showData
     title Payload maturity snapshot — 2026-07-24
-    "Functional" : 4
+    "Functional" : 15
     "Limited" : 1
-    "Not tested" : 149
+    "Not tested" : 138
 ```
 
-The reviewed count combines `functional` and `limited`: **5 of 154 payloads
-(3.2%)**. It measures catalog validation coverage—not completion of the City
+The reviewed count combines `functional` and `limited`: **16 of 154 payloads
+(10.4%)**. It measures catalog validation coverage—not completion of the City
 Pop platform. Payloads without an explicit `@maturity` tag count as
 `not tested`.
 

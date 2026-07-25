@@ -15,6 +15,7 @@ Place a script in `payloads/<category>/`. Its `@category` must match the directo
 # @danger: false
 # @web: true
 # @maturity: limited
+# @runtime_links: true
 # @inputs: [{"name":"seconds","label":"Duration","type":"number","default":"60"}]
 ```
 
@@ -23,6 +24,12 @@ Supported static input types are `text`, `password`, `number`, `select`, and
 a validated portal image to protected City Pop state and passes its opaque token
 to the payload; it may include an `accept` hint such as `image/png,image/jpeg`.
 Arguments are passed to the script in metadata order.
+
+`@runtime_links` is optional and defaults to `true`. Set it to `false` when
+URLs printed by a tool are report content rather than useful operator
+endpoints—for example, WHOIS referral and policy URLs. This prevents the web
+terminal from creating a runtime link card while retaining the original text
+in output and logs.
 
 ### Maturity
 
@@ -110,6 +117,39 @@ Do not hardcode `/opt/city-pop/loot`, write into the source tree, or reuse anoth
 
 A driver advertising monitor or AP capability does not prove that a transition succeeded. Verify the resulting mode and link state before capture.
 
+## Temporary firewall access
+
+The central runner creates a temporary outbound UFW allowance for the duration
+of every payload because many tools negotiate ports or resolve destinations at
+runtime. A payload that listens, provides DHCP/DNS, or forwards traffic must
+also use `payloads._ufw.TemporaryUfwRules` for its inbound or routed path:
+
+```python
+from payloads._dashboard import primary_ip
+from payloads._ufw import TemporaryUfwRules
+
+firewall = TemporaryUfwRules("example-service")
+try:
+    firewall.allow_lan_service(primary_ip(), 8081, "tcp")
+    # Bind and run the service.
+finally:
+    firewall.close()
+```
+
+Use `allow_ap_service()` and `allow_ap_dhcp()` for an isolated AP subnet, and
+`allow_forwarding()` only for a payload that actually routes traffic.
+Connected LAN prefixes and default-route interfaces must be discovered at
+runtime; do not copy a deployment-specific address into a payload. Rules are
+uniquely tagged and inserted ahead of ordinary UFW policy so they work with
+default allow or deny configurations. Cleanup must remove only the current
+run's marker. The central runner also removes orphaned City Pop rules after a
+forced child exit.
+
+Do not call `ufw reset`, change UFW defaults, flush global iptables/nftables
+tables, or delete rules by semantic shape. Independent firewall rules outside
+UFW can still take precedence and should be reported as an environmental
+conflict rather than overwritten.
+
 ## Dashboards
 
 Use `payloads._dashboard.DashboardServer` for small read-only live views. Bind only as broadly as required, use its tokenized endpoint, print the returned URL, and stop the server during cleanup. Dashboard state should be a snapshot and must not replace essential terminal output or saved results.
@@ -134,6 +174,8 @@ The danger flag communicates expected impact; it is not a substitute for validat
 - Invalid and missing selections fail clearly.
 - The protected route remains visible and recoverable.
 - Stop terminates child processes and cleanup restores state.
+- Temporary firewall rules appear only while required and are removed after
+  normal completion, failure, and web-app stop.
 - Dashboard URL opens from the phone.
 - Artifacts appear under the correct engagement.
 - Secrets do not appear in source, history arguments, or Git.

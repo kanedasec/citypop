@@ -63,6 +63,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 - All-payload catalog with toggleable categories, search, impact/capability filters, and favorites
 - Category-filtered guided launch workflow for every payload
 - Recoverable live output, cancellation, runtime prompts, and endpoint/artifact cards
+- Run-scoped UFW access for payload egress, listeners, AP services, and forwarding, with forced-stop cleanup
 - Engagement-scoped run history, logs, loot, and Markdown reports with artifact hashes
 - Server-persisted engagement manager for reopening, editing, and securely deleting an engagement with all associated data
 - Installable phone app shell with offline UI fallback
@@ -201,6 +202,13 @@ setup.
 
 Only one payload or command runs at a time. A temporary phone or radio disconnect does not stop it: reconnecting restores the running-operation state, buffered terminal output, and any pending prompt. Use **Stop** explicitly when an operation should end.
 
+Networked payloads add uniquely tagged UFW rules only for their active run.
+The runner provides temporary outbound access; listeners and AP/forwarding
+payloads add interface-, subnet-, protocol-, and port-scoped rules as needed.
+Normal and forced-stop cleanup remove those rules without changing unrelated
+UFW policy. This supports both default-allow and default-deny installations,
+but cannot override separate raw nftables/iptables rules outside UFW.
+
 ## Practical examples
 
 ### Survey Wi-Fi from a separate adapter
@@ -296,6 +304,9 @@ City Pop is a privileged administration surface, not a hardened internet service
   active, the payload itself temporarily owns port 80 for HTTP redirects and
   port 443 for its self-signed HTTPS template server. Both are released during
   payload cleanup.
+- Payload firewall exceptions are temporary and tagged. City Pop inserts them
+  ahead of normal UFW policy and deletes only City Pop run markers afterward.
+  AP and forwarding payloads must not flush global iptables tables.
 - Keep port `8080` on a trusted, private phone-to-Pi link.
 - Do not expose it through public Wi-Fi, router forwarding, cloud tunnels, or an untrusted VPN.
 - Use a unique administrator passphrase and change it from **Account** if it is disclosed.
