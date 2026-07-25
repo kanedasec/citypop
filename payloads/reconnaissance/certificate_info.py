@@ -5,6 +5,7 @@
 # @desc: Inspect a scoped TLS certificate subject
 # @category: reconnaissance
 # @danger: false
+# @maturity: functional
 # @inputs: [{"name":"host","label":"TLS host","type":"text","placeholder":"example.com","required":true},{"name":"port","label":"TLS port","type":"number","default":"443"}]
 import socket,ssl,sys
 from urllib.parse import urlparse

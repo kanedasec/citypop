@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"target","label":"Authorized host","type":"text","required":true}]
 import re,subprocess,sys
 def main():

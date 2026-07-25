@@ -5,6 +5,7 @@
 # @desc: Run a service/version scan against an engagement target
 # @category: reconnaissance
 # @danger: false
+# @maturity: functional
 # @inputs: [{"name":"target","label":"Authorized scan target","type":"text","placeholder":"10.0.0.5 or example.com","required":true}]
 import shutil, subprocess, sys
 if len(sys.argv) != 2:

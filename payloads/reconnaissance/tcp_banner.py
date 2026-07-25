@@ -5,6 +5,7 @@
 # @desc: Read a banner from a scoped TCP service
 # @category: reconnaissance
 # @danger: false
+# @maturity: functional
 # @inputs: [{"name":"host","label":"Target host","type":"text","placeholder":"example.com","required":true},{"name":"port","label":"TCP port","type":"number","default":"80"}]
 import socket,sys
 if len(sys.argv)!=3: print("Usage: host port",flush=True); raise SystemExit(2)

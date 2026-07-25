@@ -4,6 +4,7 @@
 # @category: reconnaissance
 # @danger: false
 # @active: true
+# @maturity: functional
 # @web: true
 """
 RaspyJack Payload -- Active Directory Reconnaissance

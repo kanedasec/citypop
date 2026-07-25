@@ -5,6 +5,7 @@
 # @desc: Resolve a scoped hostname using the local resolver
 # @category: reconnaissance
 # @danger: false
+# @maturity: functional
 # @inputs: [{"name":"target","label":"Hostname or URL","type":"text","placeholder":"example.com","required":true}]
 import socket,sys
 from urllib.parse import urlparse
