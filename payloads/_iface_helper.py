@@ -4,36 +4,23 @@
 # @category: utilities
 # @danger: false
 """
-Shared network interface detection and LCD selection helper.
+Shared network/Bluetooth interface detection for web-native payloads.
 
 Usage in a payload:
-    from payloads._iface_helper import select_interface
+    from payloads._iface_helper import list_interfaces
 
-    # WiFi only (for deauth, evil_twin, etc.)
-    iface = select_interface(lcd, font, pins, gpio, iface_type="wifi")
+    ifaces = list_interfaces(iface_type="wifi")  # or "eth" / "any"
+    # Build a request_input(..., input_type="select", choices=[...]) prompt
+    # from the returned list; each row is a dict with name, driver,
+    # is_onboard, is_wifi, is_up, ip, supports_ap, supports_monitor.
 
-    # Ethernet only (for arp_mitm, vlan_hopper, etc.)
-    iface = select_interface(lcd, font, pins, gpio, iface_type="eth")
+    from payloads._iface_helper import list_bt_interfaces
 
-    # Any network interface (for mixed payloads)
-    iface = select_interface(lcd, font, pins, gpio, iface_type="any")
-
-    # Returns iface name (str) or None if user cancelled / none found.
-    # If only 1 interface matches, auto-selects it (no menu shown).
+    bt_ifaces = list_bt_interfaces()  # each row: name, bus, mac, is_up, bt_version
 """
 
 import os
 import subprocess
-import time
-
-from payloads._input_helper import get_button
-
-try:
-    from payloads._display_helper import ScaledDraw
-    from PIL import Image
-except Exception:
-    ScaledDraw = None
-    Image = None
 
 
 # ---------------------------------------------------------------------------
@@ -193,116 +180,7 @@ def list_interfaces(iface_type="any"):
 
 
 # ---------------------------------------------------------------------------
-# LCD selector
-# ---------------------------------------------------------------------------
-
-def select_interface(lcd, font, pins, gpio, iface_type="any", title=None,
-                     require_monitor=False):
-    """
-    Detect interfaces and let the user pick one on LCD.
-
-    Returns the selected interface name (str) or None if cancelled/not found.
-    If only one interface matches, auto-selects it without showing the menu.
-
-    Parameters:
-        lcd       -- LCD object (LCD_1in44.LCD instance)
-        font      -- font from scaled_font()
-        pins      -- PINS dict
-        gpio      -- RPi.GPIO module
-        iface_type -- "wifi", "eth", or "any"
-        title     -- optional custom header text
-        require_monitor -- if True, only show interfaces that support monitor mode
-    """
-    ifaces = list_interfaces(iface_type)
-
-    if require_monitor:
-        ifaces = [i for i in ifaces if i.get("supports_monitor")]
-
-    if not ifaces:
-        if require_monitor:
-            _show_message(lcd, font, "No monitor iface!", "#FF4444")
-            _show_message(lcd, font, "Need WiFi w/ monitor", "#FFAA00")
-        else:
-            _show_message(lcd, font, "No interface found!", "#FF4444")
-        return None
-
-    # Auto-select if only one
-    if len(ifaces) == 1:
-        return ifaces[0]["name"]
-
-    # Interactive selection
-    if title is None:
-        titles = {"wifi": "SELECT WIFI", "eth": "SELECT ETHERNET", "any": "SELECT INTERFACE"}
-        title = titles.get(iface_type, "SELECT INTERFACE")
-
-    sel = 0
-    WIDTH, HEIGHT = lcd.width, lcd.height
-
-    while True:
-        btn = get_button(pins, gpio)
-        if btn == "KEY3":
-            return None
-        elif btn == "OK":
-            return ifaces[sel]["name"]
-        elif btn == "UP":
-            sel = max(0, sel - 1)
-            time.sleep(0.15)
-        elif btn == "DOWN":
-            sel = min(len(ifaces) - 1, sel + 1)
-            time.sleep(0.15)
-
-        # Draw
-        if Image is None or ScaledDraw is None:
-            time.sleep(0.05)
-            continue
-
-        img = Image.new("RGB", (WIDTH, HEIGHT), "black")
-        d = ScaledDraw(img)
-
-        # Header
-        d.rectangle((0, 0, 127, 13), fill="#111")
-        d.text((2, 1), title, font=font, fill="#58a6ff")
-
-        # Interface list
-        scroll = max(0, sel - 5)
-        visible = ifaces[scroll:scroll + 7]
-
-        for i, ifc in enumerate(visible):
-            y = 16 + i * 14
-            idx = scroll + i
-            prefix = ">" if idx == sel else " "
-            name = ifc["name"]
-
-            # Build tag: USB/onboard + AP/mon/eth
-            if ifc["is_wifi"]:
-                src = "USB" if not ifc["is_onboard"] else "RPi"
-                caps = []
-                if ifc["supports_ap"]:
-                    caps.append("AP")
-                if ifc["supports_monitor"]:
-                    caps.append("mon")
-                tag = f"{src} {'+'.join(caps)}" if caps else src
-            else:
-                tag = "ETH"
-                if ifc["ip"]:
-                    tag += f" {ifc['ip'][:12]}"
-
-            color = "#00FF00" if idx == sel else "#CCCCCC"
-            up_color = color if ifc["is_up"] else "#666666"
-
-            d.text((2, y), f"{prefix}{name}", font=font, fill=up_color)
-            d.text((62, y), tag[:12], font=font, fill="#FFAA00" if idx == sel else "#888")
-
-        # Footer
-        d.rectangle((0, 116, 127, 127), fill="#111")
-        d.text((2, 117), "OK:Select KEY3:Cancel", font=font, fill="#888")
-
-        lcd.LCD_ShowImage(img, 0, 0)
-        time.sleep(0.05)
-
-
-# ---------------------------------------------------------------------------
-# Bluetooth interface detection + selection
+# Bluetooth interface detection
 # ---------------------------------------------------------------------------
 
 def list_bt_interfaces():
@@ -342,86 +220,3 @@ def list_bt_interfaces():
         result.append(info)
     # Sort: USB first, then onboard
     return sorted(result, key=lambda x: (0 if x["bus"] == "USB" else 1, x["name"]))
-
-
-def select_bt_interface(lcd, font, pins, gpio, title="SELECT BLUETOOTH"):
-    """
-    Detect BT interfaces and let the user pick one on LCD.
-    Returns hci name (e.g. 'hci0') or None.
-    Auto-selects if only one found.
-    """
-    ifaces = list_bt_interfaces()
-
-    if not ifaces:
-        _show_message(lcd, font, "No BT adapter found!", "#FF4444")
-        return None
-
-    if len(ifaces) == 1:
-        # Auto-ensure it's UP
-        if not ifaces[0]["is_up"]:
-            subprocess.run(["sudo", "hciconfig", ifaces[0]["name"], "up"],
-                           capture_output=True, timeout=5)
-        return ifaces[0]["name"]
-
-    sel = 0
-    WIDTH, HEIGHT = lcd.width, lcd.height
-
-    while True:
-        btn = get_button(pins, gpio)
-        if btn == "KEY3":
-            return None
-        elif btn == "OK":
-            chosen = ifaces[sel]
-            if not chosen["is_up"]:
-                subprocess.run(["sudo", "hciconfig", chosen["name"], "up"],
-                               capture_output=True, timeout=5)
-            return chosen["name"]
-        elif btn == "UP":
-            sel = max(0, sel - 1)
-            time.sleep(0.15)
-        elif btn == "DOWN":
-            sel = min(len(ifaces) - 1, sel + 1)
-            time.sleep(0.15)
-
-        if Image is None or ScaledDraw is None:
-            time.sleep(0.05)
-            continue
-
-        img = Image.new("RGB", (WIDTH, HEIGHT), "black")
-        d = ScaledDraw(img)
-
-        d.rectangle((0, 0, 127, 13), fill="#111")
-        d.text((2, 1), title, font=font, fill="#0088FF")
-
-        for i, ifc in enumerate(ifaces):
-            y = 18 + i * 18
-            prefix = ">" if i == sel else " "
-            name = ifc["name"]
-            bus = ifc["bus"] or "?"
-            mac_short = ifc["mac"][-8:] if ifc["mac"] else "?"
-            up_str = "UP" if ifc["is_up"] else "DOWN"
-
-            color = "#00FF00" if i == sel else "#CCCCCC"
-            state_color = "#00FF00" if ifc["is_up"] else "#FF4444"
-
-            d.text((2, y), f"{prefix}{name}", font=font, fill=color)
-            d.text((50, y), bus[:6], font=font, fill="#FFAA00" if i == sel else "#888")
-            d.text((2, y + 10), f"  {mac_short} {up_str}", font=font, fill=state_color)
-
-        d.rectangle((0, 116, 127, 127), fill="#111")
-        d.text((2, 117), "OK:Select KEY3:Cancel", font=font, fill="#888")
-
-        lcd.LCD_ShowImage(img, 0, 0)
-        time.sleep(0.05)
-
-
-def _show_message(lcd, font, text, color="#FF4444"):
-    """Show a brief error/info message on LCD."""
-    if Image is None or ScaledDraw is None:
-        return
-    WIDTH, HEIGHT = lcd.width, lcd.height
-    img = Image.new("RGB", (WIDTH, HEIGHT), "black")
-    d = ScaledDraw(img)
-    d.text((4, 50), text[:24], font=font, fill=color)
-    lcd.LCD_ShowImage(img, 0, 0)
-    time.sleep(2)
