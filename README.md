@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/github/repo-size/kanedasec/citypop?style=flat-square&color=8cf7f7" alt="Repository size">
   <img src="https://img.shields.io/badge/platform-Kali%20Pi--Tail-557C94?style=flat-square&logo=kali-linux&logoColor=white" alt="Platform: Kali Pi-Tail">
   <img src="https://img.shields.io/badge/hardware-Pi%20Zero%202%20W-C51A4A?style=flat-square&logo=raspberry-pi&logoColor=white" alt="Hardware: Raspberry Pi Zero 2 W">
-  <img src="https://img.shields.io/badge/payloads-154-ff4f9a?style=flat-square" alt="154 payloads">
+  <img src="https://img.shields.io/badge/payloads-153-ff4f9a?style=flat-square" alt="153 payloads">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-55e6a5?style=flat-square" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/use-authorized%20testing%20only-ffc45c?style=flat-square" alt="Authorized testing only">
 </p>
@@ -56,7 +56,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 
 - Phone-first, responsive web interface
 - Administrator-authenticated HTTP and WebSocket control
-- 154 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
+- 153 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
 - Structured launch forms and dynamic adapter/target selectors
 - Captive-portal template selection or responsive uploaded-image display
 - Payload preflight checks, protected-route warnings, and live hardware/interface status
@@ -77,7 +77,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 | On your phone | On the Pi-Tail |
 |---|---|
 | Create an engagement with mandatory name, date, and authorized scope | Keep logs and artifacts separated by engagement |
-| Browse all payloads or toggle categories, search, filter, and favorite tools | Discover 154 web-enabled payloads from their metadata |
+| Browse all payloads or toggle categories, search, filter, and favorite tools | Discover 153 web-enabled payloads from their metadata |
 | Follow a guided launch flow for any payload | Check commands, radios, adapters, and protected routes before launch |
 | Choose targets, interfaces, modes, and durations through web prompts | Run one privileged operation at a time inside the City Pop environment |
 | Watch a searchable, pausable terminal and open live dashboard links | Stream output and preserve it across temporary phone disconnects |

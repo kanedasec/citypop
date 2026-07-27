@@ -14,7 +14,7 @@ the dates below come from the repository's Git history.
 
 ```text
 Platform phases     [████████████████░░░░]  4 complete · 1 active
-Payload validation  [█░░░░░░░░░░░░░░░░░░░]  5 of 154 reviewed · 3.2%
+Payload validation  [█░░░░░░░░░░░░░░░░░░░]  5 of 153 reviewed · 3.3%
 ```
 
 | | Phase | Dates | Status |
@@ -59,21 +59,21 @@ that the area is frozen or will never receive another correction.
 
 ## Payload validation board
 
-**Snapshot: 2026-07-24**
+**Snapshot: 2026-07-27**
 
 | Maturity | Visual | Count | Share |
 |---|---|---:|---:|
-| 🟢 Functional | `██░░░░░░░░░░░░░░░░░░` | 29 | 18.8% |
-| 🟡 Limited | `▏░░░░░░░░░░░░░░░░░░░` | 1 | 0.6% |
-| ⚪ Not tested | `██████████████████░░` | 124 | 80.5% |
-| **Total** | | **154** | **100%** |
+| 🟢 Functional | `██░░░░░░░░░░░░░░░░░░` | 29 | 19.0% |
+| 🟡 Limited | `▏░░░░░░░░░░░░░░░░░░░` | 1 | 0.7% |
+| ⚪ Not tested | `██████████████████░░` | 123 | 80.4% |
+| **Total** | | **153** | **100%** |
 
 ```mermaid
 pie showData
-    title Payload maturity snapshot — 2026-07-24
+    title Payload maturity snapshot — 2026-07-27
     "Functional" : 29
     "Limited" : 1
-    "Not tested" : 124
+    "Not tested" : 123
 ```
 
 ## Current-phase workflow
