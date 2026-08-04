@@ -98,7 +98,7 @@ The engagement registry persists names, dates, and authorized scopes in `state/e
 
 ### `static/`
 
-The vanilla HTML/CSS/JavaScript client is optimized for a phone. It owns engagement information stored in browser storage, catalog filtering, guide/preflight dialogs, terminal presentation, live prompts, loot controls, and report actions. Socket.IO is bundled locally and checksum-verified during installation. The service worker caches only the application shell and local client assets; APIs are never cached.
+The vanilla HTML/CSS/JavaScript client is optimized for a phone. It owns engagement information stored in browser storage, fully visible wrapping category filters, card-triggered guide/preflight dialogs, terminal presentation, live prompts, loot controls, and engagement-scoped report actions. Hardware management is a header-level authenticated control, while report generation and management are entered from the relevant row in the engagement manager instead of a global toolbar action. Citypop, Matrix, Akira, and Stealth aesthetics share the same semantic interface and persist per browser through local storage. Socket.IO is bundled locally and checksum-verified during installation. The service worker caches only the application shell and local client assets; APIs are never cached.
 
 ### `payloads/`
 

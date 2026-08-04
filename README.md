@@ -60,12 +60,13 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 - Structured launch forms and dynamic adapter/target selectors
 - Captive-portal template selection or responsive uploaded-image display
 - Payload preflight checks, protected-route warnings, and live hardware/interface status
-- All-payload catalog with toggleable categories, search, impact/capability filters, and favorites
-- Category-filtered guided launch workflow for every payload
+- All-payload catalog with fully visible wrapping categories, search, impact/capability filters, and favorites
+- Card-triggered guided launch workflow and preflight for every payload
+- Persistent Citypop, Matrix, Akira, and Stealth interface aesthetics
 - Recoverable live output, cancellation, runtime prompts, and endpoint/artifact cards
 - Run-scoped UFW access for payload egress, listeners, AP services, and forwarding, with forced-stop cleanup
 - Engagement-scoped run history, logs, loot, and Markdown reports with artifact hashes
-- Server-persisted engagement manager for reopening, editing, and securely deleting an engagement with all associated data
+- Server-persisted engagement manager for reopening, editing, report generation/management, and securely deleting an engagement with all associated data
 - Installable phone app shell with offline UI fallback
 - Isolated Python environment at `/opt/city-pop/.venv`
 - Hardware bindings inherited from Kali through `--system-site-packages`
@@ -77,13 +78,13 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 | On your phone | On the Pi-Tail |
 |---|---|
 | Create an engagement with mandatory name, date, and authorized scope | Keep logs and artifacts separated by engagement |
-| Browse all payloads or toggle categories, search, filter, and favorite tools | Discover 153 web-enabled payloads from their metadata |
-| Follow a guided launch flow for any payload | Check commands, radios, adapters, and protected routes before launch |
+| Browse all payloads through visible category buttons, search, filters, and favorites | Discover 153 web-enabled payloads from their metadata |
+| Tap a payload card to open its guided launch flow | Check commands, radios, adapters, and protected routes before launch |
 | Choose targets, interfaces, modes, and durations through web prompts | Run one privileged operation at a time inside the City Pop environment |
 | Watch a searchable, pausable terminal and open live dashboard links | Stream output and preserve it across temporary phone disconnects |
-| Preview loot, revisit runs, and generate a report | Produce engagement reports with artifact sizes and SHA-256 hashes |
+| Open an engagement's **Reports** action to generate or manage its report | Produce engagement reports with artifact sizes and SHA-256 hashes |
 
-The interface is installable as a phone web app. Its shell remains available without internet access, while payload execution still requires a live connection to the Pi.
+The interface is installable as a phone web app. Its shell remains available without internet access, while payload execution still requires a live connection to the Pi. The header-level **Style** control stores the selected Citypop, Matrix, Akira, or Stealth aesthetic in that browser.
 
 ## Quick start
 
@@ -194,8 +195,8 @@ setup.
 3. Select **+ Engagement**.
 4. Give the engagement a name and date.
 5. Enter the exact authorized scope: lab name, IPs, CIDRs, domains, SSIDs, device addresses, or other target context.
-6. Choose a payload category and payload.
-7. Review every option, interface, adapter, and target before running it.
+6. Choose a visible payload category and tap a payload card to open its guided workflow.
+7. Review the workflow, preflight, every option, interface, adapter, and target before running it.
 8. Watch output in the live terminal. Use **Stop** if the result is unexpected.
 9. Open **Loot** to preview or download generated artifacts.
 10. End the engagement when testing is finished.
@@ -214,9 +215,9 @@ but cannot override separate raw nftables/iptables rules outside UFW.
 ### Survey Wi-Fi from a separate adapter
 
 1. Create an engagement such as `homelab` and enter the exact authorized SSIDs/devices in its scope.
-2. Open **Hardware** and identify the interface marked as the protected City Pop route.
+2. Open **Hardware** from the header controls and identify the interface marked as the protected City Pop route.
 3. Connect a separate monitor-capable USB Wi-Fi adapter through a powered OTG hub.
-4. Select **Wi-Fi → WiFi Recon Survey** or find it through the guided workflow picker.
+4. Select **Wi-Fi → WiFi Recon Survey**, then review the guided workflow opened from its payload card.
 5. Review the preflight, choose the separate adapter, and set the survey duration.
 6. Follow the printed dashboard endpoint or watch the terminal; download the resulting JSON from **Loot**.
 
@@ -231,7 +232,7 @@ Never switch the phone tether or current default-route interface into monitor mo
 
 ### Generate the engagement handoff
 
-After testing, choose **Report**, add operator notes and limitations, then generate the Markdown report. City Pop includes the execution timeline and SHA-256 inventory of files stored under that engagement.
+After testing, open **Engagements**, choose **Reports** on the relevant engagement, add operator notes and limitations, then generate the Markdown report. The same engagement-specific dialog previews, downloads, replaces, and deletes that report. City Pop includes the execution timeline and SHA-256 inventory of files stored under the selected engagement.
 
 ## Troubleshooting
 
