@@ -6,11 +6,31 @@
 # @category: reconnaissance
 # @danger: false
 # @maturity: functional
-# @inputs: [{"name":"target","label":"Hostname or URL","type":"text","placeholder":"example.com","required":true}]
-import socket,sys
+# @inputs: [{"name":"target","label":"Hostname or URL","type":"text","placeholder":"example.com","required":false}]
+import os,socket,sys
 from urllib.parse import urlparse
-if len(sys.argv)!=2: print("Usage: hostname",flush=True); raise SystemExit(2)
-host=urlparse(sys.argv[1] if '://' in sys.argv[1] else '//' + sys.argv[1]).hostname
+from payloads import _target_helper as target_helper
+
+LOOT_ROOT = os.environ.get("CITYPOP_LOOT", "/tmp/citypop_loot")
+
+
+def _select_target():
+    hosts = target_helper.find_hostnames_in_loot(LOOT_ROOT)
+    candidates = target_helper.merge_candidates((hosts, "seen in loot"))
+    for entry in candidates:
+        print(f"  - {entry['value']} ({'; '.join(entry['sources'])})", flush=True)
+    return target_helper.prompt_target_selection(
+        candidates,
+        prompt_label="Select a hostname to resolve",
+        manual_label="Enter a hostname or URL",
+    )
+
+
+target=sys.argv[1] if len(sys.argv)>1 else ''
+if not target:
+    target = _select_target() or ''
+if not target: print("Usage: hostname",flush=True); raise SystemExit(2)
+host=urlparse(target if '://' in target else '//' + target).hostname
 if not host: print('Invalid hostname or URL',flush=True); raise SystemExit(2)
 try:
  for x in socket.getaddrinfo(host,None): print(x[4][0],flush=True)
