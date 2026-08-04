@@ -30,20 +30,20 @@
 
 :root[data-theme="matrix"] {
   color-scheme: dark;
-  --bg: #020603; --bg-deep: #000201; --panel: #061008; --panel-raised: #0a180d; --panel-soft: #030a05;
-  --edge: #174c25; --edge-bright: #2bb84a; --cyan: #39ff68; --cyan-soft: #a0ffae; --pink: #1dda45;
-  --green: #62ff7e; --amber: #c6ff56; --text: #d8ffe0; --dim: #7fbb8b; --muted: #4e7957;
+  --bg: #010201; --bg-deep: #000000; --panel: #030504; --panel-raised: #070a08; --panel-soft: #010302;
+  --edge: #102b17; --edge-bright: #237f38; --cyan: #35e85b; --cyan-soft: #8ee99e; --pink: #28b94a;
+  --green: #53e96e; --amber: #b5dd57; --text: #d6ded8; --dim: #829188; --muted: #536159;
   --display: var(--mono); --radius-sm: 0; --radius: 2px; --radius-lg: 3px;
-  --shadow: 0 18px 50px rgb(0 0 0 / 70%); --glow-cyan: 0 0 22px rgb(57 255 104 / 18%); --glow-pink: var(--glow-cyan);
+  --shadow: 0 18px 50px rgb(0 0 0 / 82%); --glow-cyan: 0 0 18px rgb(53 232 91 / 12%); --glow-pink: var(--glow-cyan);
 }
 
 :root[data-theme="akira"] {
   color-scheme: dark;
-  --bg: #170303; --bg-deep: #080000; --panel: #240606; --panel-raised: #350b09; --panel-soft: #100202;
-  --edge: #6e1a14; --edge-bright: #d83b26; --cyan: #ff3b20; --cyan-soft: #fff0d2; --pink: #ff2511;
-  --green: #ffd04a; --amber: #ff9f1c; --text: #fff0d2; --dim: #d2aa91; --muted: #946d5d;
+  --bg: #150103; --bg-deep: #070001; --panel: #240307; --panel-raised: #39050a; --panel-soft: #100103;
+  --edge: #71101b; --edge-bright: #e12a38; --cyan: #ff3344; --cyan-soft: #ff9ba4; --pink: #f20825;
+  --green: #ffd52b; --amber: #ffd52b; --text: #fff1f2; --dim: #d99aa0; --muted: #915a60;
   --radius-sm: 1px; --radius: 3px; --radius-lg: 4px;
-  --shadow: 12px 14px 0 rgb(0 0 0 / 42%); --glow-cyan: 0 0 24px rgb(255 59 32 / 17%); --glow-pink: var(--glow-cyan);
+  --shadow: 12px 14px 0 rgb(0 0 0 / 48%); --glow-cyan: 0 0 24px rgb(255 20 48 / 18%); --glow-pink: var(--glow-cyan);
 }
 
 :root[data-theme="stealth"] {
@@ -218,6 +218,9 @@ header::after {
 }
 
 .target span { min-width: 0; color: var(--cyan-soft); overflow-wrap: anywhere; }
+.target-link { display: inline-flex; align-items: center; gap: 4px; color: var(--muted) !important; }
+.target-link span { color: var(--cyan-soft); }
+.header-actions { display: flex; align-items: center; gap: 5px; }
 .mini { min-height: 30px; padding: 4px 8px; font-size: 10px; }
 #accountBtn { margin-left: auto; }
 .header-power { border-color: rgb(255 79 154 / 55%); color: #ff9bc6; }
@@ -754,27 +757,30 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
 .theme-preview i:nth-child(1) { height: 42%; } .theme-preview i:nth-child(2) { height: 72%; } .theme-preview i:nth-child(3) { height: 55%; }
 .preview-citypop { color: #39e7ef; background: radial-gradient(circle at 80% 20%, #7c245f, transparent 45%), #080711; }
 .preview-citypop i:nth-child(2) { color: #ff4f9a; }
-.preview-matrix { color: #45ff67; background: repeating-linear-gradient(90deg, #020603 0 8px, #07150a 8px 9px); }
-.preview-akira { color: #fff0d2; background: linear-gradient(135deg, #e52b18 0 42%, #170303 42%); }
-.preview-akira i:nth-child(2) { color: #ffb21a; }
+.preview-matrix { color: #35e85b; background: repeating-linear-gradient(90deg, #000 0 11px, #071009 11px 12px); }
+.preview-akira { color: #ff3344; background: linear-gradient(135deg, #f20825 0 24%, #770713 24% 48%, #160104 48%); }
+.preview-akira i:nth-child(2) { color: #ffd52b; }
 .preview-stealth { color: #087fc8; background: linear-gradient(#fff9, #fff9), repeating-linear-gradient(0deg, #bed4e5 0 1px, transparent 1px 10px), #e7f1f8; border-color: #a8bfd1; }
 
 /* Each profile keeps the same information architecture and changes only presentation. */
 :root[data-theme="matrix"] body {
-  background: radial-gradient(900px 600px at 50% -20%, rgb(31 255 75 / 10%), transparent 68%), #020603;
+  background: radial-gradient(800px 460px at 50% -18%, rgb(31 255 75 / 5%), transparent 70%), #010201;
 }
-:root[data-theme="matrix"] body::before { opacity: .48; background-image: repeating-linear-gradient(90deg, transparent 0 23px, rgb(57 255 104 / 7%) 24px), linear-gradient(rgb(57 255 104 / 5%) 1px, transparent 1px); background-size: auto, 100% 24px; }
-:root[data-theme="matrix"] .brand b { text-shadow: 0 0 12px rgb(57 255 104 / 55%); }
-:root[data-theme="matrix"] button.primary { border-color: #39ff68; color: #020603; background: #39ff68; box-shadow: 4px 4px 0 #123b1c; }
+:root[data-theme="matrix"] body::before { opacity: .28; background-image: repeating-linear-gradient(90deg, transparent 0 31px, rgb(53 232 91 / 5%) 32px), linear-gradient(rgb(53 232 91 / 3%) 1px, transparent 1px); background-size: auto, 100% 28px; }
+:root[data-theme="matrix"] body::after { opacity: .3; }
+:root[data-theme="matrix"] .brand b { text-shadow: 0 0 10px rgb(53 232 91 / 38%); }
+:root[data-theme="matrix"] button.primary { border-color: #35e85b; color: #010201; background: #35e85b; box-shadow: 4px 4px 0 #0a2410; }
 :root[data-theme="matrix"] .op::before { background: var(--cyan); }
 
 :root[data-theme="akira"] body {
-  background: radial-gradient(900px 520px at 86% -8%, rgb(255 58 30 / 28%), transparent 62%), linear-gradient(150deg, #220404, #100101 68%);
+  background: radial-gradient(850px 500px at 88% -8%, rgb(255 24 51 / 30%), transparent 60%), radial-gradient(620px 480px at 0 58%, rgb(119 7 19 / 30%), transparent 67%), linear-gradient(150deg, #220207, #0c0002 70%);
 }
-:root[data-theme="akira"] body::before { opacity: .24; background: repeating-linear-gradient(135deg, transparent 0 64px, rgb(255 174 24 / 22%) 64px 70px, transparent 70px 82px); mask-image: linear-gradient(to bottom, black, transparent 78%); }
+:root[data-theme="akira"] body::before { opacity: .32; background: repeating-linear-gradient(135deg, transparent 0 68px, rgb(255 213 43 / 24%) 68px 73px, rgb(242 8 37 / 20%) 73px 84px, transparent 84px 98px); mask-image: linear-gradient(to bottom, black, transparent 78%); }
 :root[data-theme="akira"] .brand b { font-style: italic; letter-spacing: -.02em; }
-:root[data-theme="akira"] .brand::after { content: "SYSTEM / 01"; margin-left: 10px; padding: 2px 5px; color: #170303; background: var(--amber); font: 700 8px var(--mono); }
-:root[data-theme="akira"] button.primary { border-color: #ff3b20; color: #fff0d2; background: linear-gradient(110deg, #e52816, #7f1008); }
+:root[data-theme="akira"] .brand::after { content: "SYSTEM / 01"; margin-left: 10px; padding: 2px 5px; color: #170003; background: var(--amber); font: 700 8px var(--mono); }
+:root[data-theme="akira"] button.primary { border-color: #ff4352; color: #fff4f5; background: linear-gradient(110deg, #ed0928, #750713); }
+:root[data-theme="akira"] .op::before { background: linear-gradient(var(--pink), #7d0715); }
+:root[data-theme="akira"] .status i, :root[data-theme="akira"] .workflow-steps li.done { color: var(--amber); }
 :root[data-theme="akira"] .termhead, :root[data-theme="akira"] .catalog > summary { text-transform: uppercase; }
 
 :root[data-theme="stealth"] body {
@@ -807,6 +813,10 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
 @media (max-width: 620px) {
   .deck { padding-inline: 14px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
   .brand small { display: block; margin-top: 7px; }
+  .target { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; }
+  .target-link { white-space: nowrap; }
+  .header-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .header-actions .mini { width: 100%; min-height: 38px; margin-left: 0; padding-inline: 5px; font-size: 9px; white-space: nowrap; }
   .toolbar { margin-inline: -14px; padding-inline: 14px; }
   .catalog > summary { position: sticky; top: 0; z-index: 6; }
   .catalog-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -848,6 +858,8 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
 }
 
 @media (max-width: 380px) {
+  .target-link { font-size: 10px; }
+  .header-actions .mini { font-size: 8px; letter-spacing: -.02em; }
   .toolbar button { padding-inline: 10px; font-size: 10px; }
   .termhead { letter-spacing: .06em; }
   #command { gap: 6px; }
