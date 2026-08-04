@@ -21,6 +21,27 @@ let workflowPayload = null;
 let activeWorkflow = null;
 const runtimeItems = new Set();
 
+const THEME_PROFILES = {
+  citypop: {label: 'CITYPOP', color: '#070610'},
+  matrix: {label: 'MATRIX', color: '#020603'},
+  akira: {label: 'AKIRA', color: '#170303'},
+  stealth: {label: 'STEALTH', color: '#edf4fa'},
+};
+
+function applyTheme(name, persist = true) {
+  const selected = THEME_PROFILES[name] ? name : 'citypop';
+  const profile = THEME_PROFILES[selected];
+  document.documentElement.dataset.theme = selected;
+  if (persist) localStorage.citypopTheme = selected;
+  $('themeBtn').textContent = `STYLE · ${profile.label}`;
+  document.querySelector('meta[name="theme-color"]').content = profile.color;
+  document.querySelectorAll('input[name="aesthetic"]').forEach(input => {
+    input.checked = input.value === selected;
+  });
+}
+
+applyTheme(localStorage.citypopTheme || 'citypop', false);
+
 $('linkHost').textContent = `kali@${location.hostname || 'localhost'}`;
 $('linkPort').textContent = location.port || ({'http:': '80', 'https:': '443'}[location.protocol] || '—');
 
@@ -643,6 +664,14 @@ function stopCurrent() {
 }
 
 $('loginForm').onsubmit = event => { event.preventDefault(); login(); };
+$('themeBtn').onclick = () => {
+  applyTheme(document.documentElement.dataset.theme || 'citypop', false);
+  $('themeDialog').showModal();
+};
+$('themeDone').onclick = () => $('themeDialog').close();
+$('themeChoices').onchange = event => {
+  if (event.target.matches('input[name="aesthetic"]')) applyTheme(event.target.value);
+};
 $('accountBtn').onclick = async () => {
   $('accountMsg').textContent = '';
   $('accountCurrentPassword').value = '';

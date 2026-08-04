@@ -13,7 +13,7 @@
   <header>
     <div class="brand">CITY<span>POP</span><small> // PI-TAIL DECK</small></div>
     <div class="status" aria-live="polite"><i id="led" aria-hidden="true"></i><b id="status">OFFLINE</b><em id="signal" aria-hidden="true">▂▅▇█</em></div>
-    <div class="target">link · <span id="linkHost">kali@—</span> : <span id="linkPort">—</span> <button id="accountBtn" class="mini" hidden>ACCOUNT</button><button id="poweroffBtn" class="mini header-power" hidden>POWER OFF</button></div>
+    <div class="target">link · <span id="linkHost">kali@—</span> : <span id="linkPort">—</span> <button id="themeBtn" class="mini theme-trigger" type="button">STYLE · CITYPOP</button><button id="accountBtn" class="mini" hidden>ACCOUNT</button><button id="poweroffBtn" class="mini header-power" hidden>POWER OFF</button></div>
   </header>
 
   <section id="login" class="card" aria-labelledby="loginTitle">
@@ -89,6 +89,20 @@
   <dialog id="reportDialog" class="report-dialog"><form id="reportForm"><h2>ENGAGEMENT REPORTS</h2><p id="reportContext">Generate a Markdown timeline with artifact hashes.</p><label>Operator notes<textarea id="reportNotes" placeholder="Findings, context, limitations…"></textarea></label><div id="reportResult"></div><div class="actions"><button type="button" id="reportCancel">CLOSE</button><button id="reportGenerate" class="primary">GENERATE CURRENT</button></div><section class="report-manager" aria-labelledby="generatedReportsTitle"><h3 id="generatedReportsTitle">GENERATED REPORTS</h3><div id="reportList">Loading…</div><pre id="reportPreview" hidden aria-label="Report preview"></pre></section></form></dialog>
   <dialog id="workflowDialog"><form method="dialog"><h2>GUIDED WORKFLOW</h2><div id="workflowBody"></div><div class="actions"><button value="cancel">CLOSE</button><button type="button" id="workflowNext" class="primary">NEXT STEP</button></div></form></dialog>
   <dialog id="accountDialog"><form id="accountForm"><h2>ADMINISTRATOR ACCOUNT</h2><p>Change the local administrator identity. Leave the new password blank to keep it unchanged.</p><label>Username<input id="accountUsername" required minlength="3" maxlength="32" autocomplete="username"></label><label>Current password<input id="accountCurrentPassword" required type="password" minlength="15" maxlength="256" autocomplete="current-password"></label><label>New password<input id="accountNewPassword" type="password" minlength="15" maxlength="256" autocomplete="new-password" placeholder="15 or more characters"></label><label>Confirm new password<input id="accountNewPasswordConfirm" type="password" minlength="15" maxlength="256" autocomplete="new-password"></label><div id="accountMsg" class="error" role="alert"></div><div class="actions"><button type="button" id="logoutBtn" class="danger">LOG OUT</button><button type="button" id="accountCancel">CANCEL</button><button class="primary">SAVE</button></div></form></dialog>
+
+  <dialog id="themeDialog" class="theme-dialog">
+    <div class="theme-dialog-head">
+      <div><p class="eyebrow">DISPLAY PROFILE</p><h2>CHOOSE AN AESTHETIC</h2><p class="dim">Changes apply immediately and stay selected on this browser.</p></div>
+      <button id="themeDone" class="mini" type="button">DONE</button>
+    </div>
+    <fieldset id="themeChoices" class="theme-choices">
+      <legend class="sr-only">Interface aesthetic</legend>
+      <label class="theme-choice"><input type="radio" name="aesthetic" value="citypop"><span class="theme-preview preview-citypop" aria-hidden="true"><i></i><i></i><i></i></span><span class="theme-copy"><strong>CITYPOP</strong><small>Neon dusk · cyan and pink</small></span></label>
+      <label class="theme-choice"><input type="radio" name="aesthetic" value="matrix"><span class="theme-preview preview-matrix" aria-hidden="true"><i></i><i></i><i></i></span><span class="theme-copy"><strong>MATRIX</strong><small>Phosphor terminal · black and green</small></span></label>
+      <label class="theme-choice"><input type="radio" name="aesthetic" value="akira"><span class="theme-preview preview-akira" aria-hidden="true"><i></i><i></i><i></i></span><span class="theme-copy"><strong>AKIRA</strong><small>Industrial warning · red and ivory</small></span></label>
+      <label class="theme-choice"><input type="radio" name="aesthetic" value="stealth"><span class="theme-preview preview-stealth" aria-hidden="true"><i></i><i></i><i></i></span><span class="theme-copy"><strong>STEALTH</strong><small>Field instrument · white and blue</small></span></label>
+    </fieldset>
+  </dialog>
 
   <script src="/vendor/socket.io.min.js"></script>
   <script src="/app.js"></script>

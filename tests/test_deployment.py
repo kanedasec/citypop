@@ -33,6 +33,17 @@ class DeploymentTests(unittest.TestCase):
         self.assertNotIn("cdn.socket.io", html)
         self.assertGreater(asset.stat().st_size, 40_000)
 
+    def test_frontend_exposes_persistent_aesthetic_profiles(self):
+        html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+        script = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+        stylesheet = (ROOT / "static" / "style.css").read_text(encoding="utf-8")
+
+        for theme in ("citypop", "matrix", "akira", "stealth"):
+            self.assertIn(f'value="{theme}"', html)
+            self.assertIn(f'[data-theme="{theme}"]', stylesheet)
+        self.assertIn("localStorage.citypopTheme", script)
+        self.assertIn("prefers-reduced-motion", stylesheet)
+
     def test_installer_hardens_runtime_permissions_and_pairing(self):
         installer = (ROOT / "install.sh").read_text(encoding="utf-8")
         self.assertIn('chmod 600 "$INSTALL_DIR/config.json"', installer)
