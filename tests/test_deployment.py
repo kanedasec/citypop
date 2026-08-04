@@ -44,6 +44,15 @@ class DeploymentTests(unittest.TestCase):
         self.assertIn("localStorage.citypopTheme", script)
         self.assertIn("prefers-reduced-motion", stylesheet)
 
+    def test_frontend_scopes_reports_to_engagement_rows(self):
+        html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+        script = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+
+        self.assertNotIn('id="reportBtn"', html)
+        self.assertIn('id="hardwareBtn"', html.split("</header>", 1)[0])
+        self.assertIn("data-eng-report", script)
+        self.assertIn("report.engagement === reportEngagement?.id", script)
+
     def test_installer_hardens_runtime_permissions_and_pairing(self):
         installer = (ROOT / "install.sh").read_text(encoding="utf-8")
         self.assertIn('chmod 600 "$INSTALL_DIR/config.json"', installer)

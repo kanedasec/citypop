@@ -19,6 +19,7 @@ let preflightData = null;
 let runningState = null;
 let workflowPayload = null;
 let activeWorkflow = null;
+let reportEngagement = null;
 const runtimeItems = new Set();
 
 const THEME_PROFILES = {
@@ -150,6 +151,7 @@ async function login() {
     csrfToken = data.csrf_token || '';
     $('login').hidden = true;
     $('app').hidden = false;
+    $('hardwareBtn').hidden = false;
     $('accountBtn').hidden = false;
     $('poweroffBtn').hidden = false;
     if (!data.acknowledged && !$('ack').open) $('ack').showModal();
@@ -470,7 +472,7 @@ async function loadEngagements() {
     const response = await fetch('/api/engagements', {headers: authHeaders()});
     const data = await response.json();
     engagementRows = data.engagements || [];
-    $('historyList').innerHTML = engagementRows.map(row => `<article class="engagement-row ${row.recovered ? 'recovered' : ''} ${activeId === row.id ? 'active' : ''}"><div><b>${escapeHtml(row.name)}${activeId === row.id ? '<span class="active-badge">ACTIVE</span>' : ''}</b><small>${escapeHtml(row.date || 'date unavailable')} · ${row.recovered ? 'RECOVERED · EDIT REQUIRED' : escapeHtml(row.id)}</small><p>${escapeHtml(row.scope || 'Authorized scope was not stored. Edit this engagement before reopening it.')}</p></div><div class="engagement-actions"><button type="button" data-eng-open="${escapeHtml(row.id)}" ${activeId === row.id || !row.scope ? 'disabled' : ''}>${activeId === row.id ? 'ACTIVE' : 'OPEN'}</button><button type="button" data-eng-edit="${escapeHtml(row.id)}">EDIT</button><button type="button" class="danger" data-eng-delete="${escapeHtml(row.id)}">DELETE DATA</button></div></article>`).join('') || '<div class="empty-state">No engagements have been created.</div>';
+    $('historyList').innerHTML = engagementRows.map(row => `<article class="engagement-row ${row.recovered ? 'recovered' : ''} ${activeId === row.id ? 'active' : ''}"><div><b>${escapeHtml(row.name)}${activeId === row.id ? '<span class="active-badge">ACTIVE</span>' : ''}</b><small>${escapeHtml(row.date || 'date unavailable')} · ${row.recovered ? 'RECOVERED · EDIT REQUIRED' : escapeHtml(row.id)}</small><p>${escapeHtml(row.scope || 'Authorized scope was not stored. Edit this engagement before reopening it.')}</p></div><div class="engagement-actions"><button type="button" data-eng-open="${escapeHtml(row.id)}" ${activeId === row.id || !row.scope ? 'disabled' : ''}>${activeId === row.id ? 'ACTIVE' : 'OPEN'}</button><button type="button" data-eng-report="${escapeHtml(row.id)}">REPORTS</button><button type="button" data-eng-edit="${escapeHtml(row.id)}">EDIT</button><button type="button" class="danger" data-eng-delete="${escapeHtml(row.id)}">DELETE DATA</button></div></article>`).join('') || '<div class="empty-state">No engagements have been created.</div>';
   } catch (error) {
     $('historyList').innerHTML = '<p class="preflight-warning">Unable to load engagements.</p>';
   }
@@ -536,10 +538,25 @@ async function loadReports() {
   try {
     const response = await fetch('/api/reports', {headers: authHeaders()});
     const data = await response.json();
-    $('reportList').innerHTML = (data.reports || []).map(report => `<article class="report-row"><div><b>${escapeHtml(report.engagement)}</b><small>${new Date(report.modified).toLocaleString()} · ${formatBytes(report.size)}</small><small>${escapeHtml(report.path)}</small></div><div class="report-actions"><button type="button" data-report-preview="${encodeURIComponent(report.path)}">VIEW</button><a href="/api/loot/download/${encodeURIComponent(report.path)}">GET</a><button type="button" class="danger" data-report-delete="${encodeURIComponent(report.path)}">DELETE</button></div></article>`).join('') || '<div class="empty-state">No engagement reports have been generated.</div>';
+    const reports = (data.reports || []).filter(report => report.engagement === reportEngagement?.id);
+    $('reportList').innerHTML = reports.map(report => `<article class="report-row"><div><b>${escapeHtml(reportEngagement.name)}</b><small>${new Date(report.modified).toLocaleString()} · ${formatBytes(report.size)}</small><small>${escapeHtml(report.path)}</small></div><div class="report-actions"><button type="button" data-report-preview="${encodeURIComponent(report.path)}">VIEW</button><a href="/api/loot/download/${encodeURIComponent(report.path)}">GET</a><button type="button" class="danger" data-report-delete="${encodeURIComponent(report.path)}">DELETE</button></div></article>`).join('') || '<div class="empty-state">No reports have been generated for this engagement.</div>';
   } catch (error) {
     $('reportList').innerHTML = '<p class="preflight-warning">Unable to load engagement reports.</p>';
   }
+}
+
+function showReportManager(row) {
+  if (!row) return;
+  reportEngagement = row;
+  $('reportResult').textContent = '';
+  $('reportNotes').value = '';
+  $('reportTitle').textContent = `${row.name} · REPORTS`;
+  $('reportContext').textContent = `Generate, review, download, or delete reports for ${row.name}.`;
+  $('reportGenerate').textContent = 'GENERATE REPORT';
+  $('reportGenerate').disabled = false;
+  if ($('historyDialog').open) $('historyDialog').close();
+  $('reportDialog').showModal();
+  loadReports();
 }
 
 async function previewReport(path) {
@@ -824,12 +841,14 @@ $('history').onclick = () => {
 };
 $('historyList').onclick = async event => {
   const open = event.target.closest('[data-eng-open]');
+  const report = event.target.closest('[data-eng-report]');
   const edit = event.target.closest('[data-eng-edit]');
   const remove = event.target.closest('[data-eng-delete]');
-  const id = open?.dataset.engOpen || edit?.dataset.engEdit || remove?.dataset.engDelete;
+  const id = open?.dataset.engOpen || report?.dataset.engReport || edit?.dataset.engEdit || remove?.dataset.engDelete;
   if (!id) return;
   const row = engagementRows.find(item => item.id === id);
   if (!row) return;
+  if (report) { showReportManager(row); return; }
   if (open) {
     engagement = row;
     sessionStorage.engagement = JSON.stringify(engagement);
@@ -922,14 +941,7 @@ $('deleteAllExecutions').onclick = async () => {
   line(`» deleted ${data.deleted} run history entr${data.deleted === 1 ? 'y' : 'ies'}`, 'line-warn');
   showExecutions();
 };
-$('reportBtn').onclick = () => {
-  $('reportResult').textContent = '';
-  $('reportContext').textContent = engagement ? `Generate or replace the report for ${engagement.name}, or manage existing reports below.` : 'Reopen or create an engagement to generate a report. Existing reports remain available below.';
-  $('reportGenerate').disabled = !engagement;
-  $('reportDialog').showModal();
-  loadReports();
-};
-$('reportCancel').onclick = () => $('reportDialog').close();
+$('reportCancel').onclick = () => { $('reportDialog').close(); reportEngagement = null; };
 $('reportList').onclick = async event => {
   const view = event.target.closest('[data-report-preview]');
   if (view) { previewReport(decodeURIComponent(view.dataset.reportPreview)); return; }
@@ -945,12 +957,12 @@ $('reportList').onclick = async event => {
 };
 $('reportForm').onsubmit = async event => {
   event.preventDefault();
-  if (!engagement) { $('reportResult').textContent = 'Create or reopen an engagement first.'; return; }
-  const response = await fetch('/api/report', {method: 'POST', headers: authHeaders(true), body: JSON.stringify({engagement: engagement.name, notes: $('reportNotes').value})});
+  if (!reportEngagement) { $('reportResult').textContent = 'Select an engagement first.'; return; }
+  const response = await fetch('/api/report', {method: 'POST', headers: authHeaders(true), body: JSON.stringify({engagement: reportEngagement.name, notes: $('reportNotes').value})});
   const data = await response.json();
   if (!response.ok) { $('reportResult').textContent = data.error || 'Report generation failed.'; return; }
   $('reportResult').innerHTML = `Report created: <a href="/api/loot/download/${encodeURIComponent(data.path)}">${escapeHtml(data.path)}</a>`;
-  addRuntimeItem('artifact', data.path, data.path);
+  if (reportEngagement.id === activeEngagementId()) addRuntimeItem('artifact', data.path, data.path);
   await loadReports();
   previewReport(data.path);
 };
@@ -1010,6 +1022,7 @@ async function initializeAuthentication() {
       csrfToken = data.csrf_token || '';
       $('login').hidden = true;
       $('app').hidden = false;
+      $('hardwareBtn').hidden = false;
       $('accountBtn').hidden = false;
       $('poweroffBtn').hidden = false;
       connect();

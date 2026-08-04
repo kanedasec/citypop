@@ -346,7 +346,7 @@ nav button {
   flex: 0 1 auto;
   min-height: 42px;
   padding: 8px 13px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   color: var(--dim);
   font: 650 10px/1 var(--display);
   letter-spacing: .08em;
@@ -798,7 +798,7 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
   .brand small { display: block; margin-top: 7px; }
   .target { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; }
   .target-link { white-space: nowrap; }
-  .header-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .header-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; }
   .header-actions .mini { width: 100%; min-height: 38px; margin-left: 0; padding-inline: 5px; font-size: 9px; white-space: nowrap; }
   .toolbar { margin-inline: -14px; padding-inline: 14px; }
   .catalog > summary { position: sticky; top: 0; z-index: 6; }
@@ -827,7 +827,7 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
   .lootrow { align-items: flex-start; flex-direction: column; }
   .lootrow > span:last-child { white-space: normal; }
   .engagement-row { grid-template-columns: 1fr; }
-  .engagement-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .engagement-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .engagement-actions button { min-height: 44px; }
   .report-row { grid-template-columns: 1fr; }
   .report-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
