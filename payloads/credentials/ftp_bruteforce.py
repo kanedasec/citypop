@@ -16,22 +16,23 @@ using ftplib (stdlib).
 
 Setup / Prerequisites:
   - Built-in wordlist of ~50 common user:pass pairs (no external files needed).
-  - Optional: nmap scan results in $CITYPOP_ROOT/loot/Nmap/ for
-    automatic host discovery.
+  - Optional: nmap-shaped JSON already saved in this engagement's loot,
+    for automatic host discovery.
 
 Controls:
   python3 ftp_bruteforce.py [target_host]
 
-  target_host  -- optional. If omitted, hosts are discovered from nmap
-                  loot and a quick port-21 scan of the local subnet; the
-                  operator is then prompted to pick one from the list.
-                  If given, brute-forcing starts immediately against that
-                  host (no discovery scan is run).
+  target_host  -- optional. If omitted, hosts are discovered from this
+                  engagement's loot and a quick port-21 scan of the local
+                  subnet; each candidate is labeled with where it came
+                  from and the operator picks one with a real select
+                  prompt. If given, brute-forcing starts immediately
+                  against that host (no discovery scan is run).
 
   Results are printed as they are found and exported to loot when the
   run finishes (or is interrupted with Ctrl-C).
 
-Loot: $CITYPOP_ROOT/loot/FTP/ftp_creds_YYYYMMDD_HHMMSS.json
+Loot: <CITYPOP_LOOT>/FTP/ftp_creds_YYYYMMDD_HHMMSS.json
 """
 
 from payloads._web_input import request_input
@@ -48,8 +49,8 @@ from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-LOOT_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), 'loot', 'FTP')
-NMAP_LOOT = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), 'loot')
+LOOT_DIR = os.path.join(os.environ.get("CITYPOP_LOOT", "/tmp/citypop_loot"), "FTP")
+NMAP_LOOT = os.environ.get("CITYPOP_LOOT", "/tmp/citypop_loot")
 RATE_LIMIT = 0.5
 
 # ---------------------------------------------------------------------------
@@ -108,11 +109,20 @@ def _detect_subnet():
 
 
 def _load_nmap_ftp_hosts():
-    """Try to find FTP hosts from existing nmap loot JSON files."""
-    ftp_hosts = set()
+    """Find FTP hosts (port 21 open) from nmap-shaped JSON already saved in
+    this engagement's loot. Returns host -> sorted list of relative file
+    paths. This payload's own output directory is excluded so a previous
+    export can't be rediscovered as a "new" host.
+    """
+    found: dict[str, set[str]] = {}
     if not os.path.isdir(NMAP_LOOT):
-        return ftp_hosts
-    for dirpath, _dirs, files in os.walk(NMAP_LOOT):
+        return {}
+
+    own_output = os.path.realpath(LOOT_DIR)
+    for dirpath, dirs, files in os.walk(NMAP_LOOT):
+        if os.path.realpath(dirpath) == own_output:
+            dirs[:] = []
+            continue
         for fname in files:
             if not fname.endswith(".json"):
                 continue
@@ -120,10 +130,17 @@ def _load_nmap_ftp_hosts():
             try:
                 with open(fpath, "r") as fh:
                     data = json.load(fh)
-                _extract_ftp_from_nmap(data, ftp_hosts)
             except Exception:
-                pass
-    return ftp_hosts
+                continue
+            hosts: set[str] = set()
+            _extract_ftp_from_nmap(data, hosts)
+            if not hosts:
+                continue
+            relative = os.path.relpath(fpath, NMAP_LOOT)
+            for host in hosts:
+                found.setdefault(host, set()).add(relative)
+
+    return {host: sorted(paths) for host, paths in found.items()}
 
 
 def _extract_ftp_from_nmap(data, ftp_hosts):
@@ -166,21 +183,67 @@ def _scan_ftp_hosts(cidr):
 
 
 def _discover_hosts():
-    """Discover FTP hosts from nmap loot and a quick subnet scan."""
-    new_hosts = set()
+    """Discover FTP host candidates, each labeled with where it came from."""
+    candidates = []
+
+    def _add(host, source):
+        for entry in candidates:
+            if entry["host"] == host:
+                if source not in entry["sources"]:
+                    entry["sources"].append(source)
+                return
+        candidates.append({"host": host, "sources": [source]})
 
     nmap_hosts = _load_nmap_ftp_hosts()
-    new_hosts.update(nmap_hosts)
+    for host, files in nmap_hosts.items():
+        for path in files:
+            _add(host, f"engagement loot: {path}")
     if nmap_hosts:
-        print(f"[*] Found {len(nmap_hosts)} FTP host(s) in nmap loot", flush=True)
+        print(f"[*] Found {len(nmap_hosts)} FTP host(s) in engagement loot", flush=True)
 
     cidr = _detect_subnet()
     if cidr and running:
         print(f"[*] Scanning subnet {cidr} for port 21...", flush=True)
         scanned = _scan_ftp_hosts(cidr)
-        new_hosts.update(scanned)
+        for host in scanned:
+            _add(host, f"live scan: port 21 open on {cidr}")
 
-    return sorted(new_hosts)
+    candidates.sort(key=lambda entry: entry["host"])
+    return candidates
+
+
+def _prompt_host_selection(candidates):
+    """Ask once with a real select prompt, or take manual entry.
+
+    ``candidates`` is a list of {"host": ..., "sources": [...]} dicts so
+    the dialog shows where each discovered host came from instead of a
+    bare numbered list. Returns the chosen host string, or None.
+    """
+    choices = [
+        {"value": entry["host"], "label": f"{entry['host']} — {'; '.join(entry['sources'])}"}
+        for entry in candidates
+    ]
+    choices.append({"value": "manual", "label": "Enter a different host"})
+    choices.append({"value": "cancel", "label": "Cancel"})
+
+    try:
+        answer = request_input(
+            "Select a host to brute-force", input_type="select", choices=choices,
+            default="cancel", required=True,
+        )
+    except EOFError:
+        return None
+
+    if answer in (None, "", "cancel"):
+        return None
+    if answer == "manual":
+        try:
+            manual = request_input("Enter a host to brute-force", required=False).strip()
+        except EOFError:
+            manual = ""
+        return manual or None
+
+    return answer
 
 
 # ---------------------------------------------------------------------------
@@ -278,18 +341,13 @@ def main():
                 sys.exit(1)
 
             print(f"[*] Discovered {len(hosts)} FTP host(s):", flush=True)
-            for i, h in enumerate(hosts, 1):
-                print(f"  {i}. {h}", flush=True)
+            for entry in hosts:
+                print(f"  - {entry['host']} ({'; '.join(entry['sources'])})", flush=True)
 
-            choice = request_input(f"Select a host [1-{len(hosts)}]: ").strip()
-            try:
-                idx = int(choice) - 1
-                if idx < 0 or idx >= len(hosts):
-                    raise ValueError
-            except ValueError:
-                print("[!] Invalid selection.", flush=True)
+            target = _prompt_host_selection(hosts)
+            if not target:
+                print("[!] No host selected.", flush=True)
                 sys.exit(1)
-            target = hosts[idx]
 
         _brute_force(target)
 

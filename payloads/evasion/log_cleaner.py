@@ -21,9 +21,11 @@ Usage
                  arp_cache, dns_cache, tmp_files, auth_logs
     all       -- clean every item
 
-    If no arguments are given, an interactive numbered checklist is shown.
-    In both cases, the selected items are listed and a confirmation prompt
-    is shown before anything is cleaned.
+    If no arguments are given, an interactive select prompt is shown once
+    per artifact so real choices appear in the phone dialog (not just a
+    free-text box), until 'Done' or 'Cancel' is chosen. In both cases, the
+    selected items are listed and a Yes/No confirmation prompt is shown
+    before anything is cleaned.
 """
 
 from payloads._web_input import request_input
@@ -142,30 +144,50 @@ def _clean_item(item_name):
 
 
 def _prompt_selection():
-    """Show a numbered checklist and read a comma-separated selection."""
-    print("Forensic artifacts available for cleanup:", flush=True)
-    for i, item in enumerate(CLEAN_ITEMS, 1):
-        print(f"  {i}. {item['label']} ({item['name']})", flush=True)
-    print("Enter comma-separated numbers, 'all', or blank to cancel.", flush=True)
+    """Ask once per artifact with a real select prompt until Done/Cancel/All."""
+    remaining = list(CLEAN_ITEMS)
+    selected = []
 
-    raw = request_input("Select items to clean: ").strip()
-    if not raw:
-        return []
-    if raw.lower() == "all":
-        return list(range(len(CLEAN_ITEMS)))
+    while remaining:
+        print("Forensic artifacts still available for cleanup:", flush=True)
+        for item in remaining:
+            print(f"  - {item['label']} ({item['name']})", flush=True)
 
-    indices = []
-    for part in raw.split(","):
-        part = part.strip()
-        if not part.isdigit():
-            print(f"Ignoring invalid entry: {part}", flush=True)
+        choices = [{"value": "all", "label": "All remaining items"}]
+        choices += [{"value": item["name"], "label": item["label"]} for item in remaining]
+        if selected:
+            choices.append({"value": "done", "label": "Done - clean the selected items"})
+        choices.append({"value": "cancel", "label": "Cancel"})
+
+        label = "Select an artifact to clean" if not selected else "Select another artifact, or finish"
+        try:
+            answer = request_input(
+                label, input_type="select", choices=choices,
+                default="cancel", required=True,
+            )
+        except EOFError:
+            print("Input channel closed. Cancelling.", flush=True)
+            return []
+
+        if answer in (None, "", "cancel"):
+            print("Cancelled.", flush=True)
+            return []
+        if answer == "done":
+            break
+        if answer == "all":
+            selected.extend(remaining)
+            remaining = []
+            break
+
+        match = next((item for item in remaining if item["name"] == answer), None)
+        if match is None:
+            print(f"Ignoring unknown selection: {answer}", flush=True)
             continue
-        n = int(part)
-        if 1 <= n <= len(CLEAN_ITEMS):
-            indices.append(n - 1)
-        else:
-            print(f"Ignoring out-of-range entry: {part}", flush=True)
-    return sorted(set(indices))
+        selected.append(match)
+        remaining.remove(match)
+        print(f"Added {match['label']} to the cleanup list.", flush=True)
+
+    return [CLEAN_ITEMS.index(item) for item in selected]
 
 
 def _resolve_from_args(args):
@@ -220,8 +242,15 @@ def main():
     for idx in indices:
         print(f"  - {CLEAN_ITEMS[idx]['label']}", flush=True)
 
-    confirm = request_input("Proceed? [y/N]: ").strip().lower()
-    if confirm != "y":
+    confirm = request_input(
+        "Proceed with cleanup?", input_type="select",
+        choices=[
+            {"value": "no", "label": "No, cancel"},
+            {"value": "yes", "label": "Yes, clean now"},
+        ],
+        default="no", required=True,
+    )
+    if confirm != "yes":
         print("Cancelled.", flush=True)
         return 0
 

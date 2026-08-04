@@ -4,6 +4,7 @@
 # @category: reconnaissance
 # @danger: false
 # @active: true
+# @maturity: functional
 # @web: true
 """
 RaspyJack Payload -- Shodan InternetDB Query
@@ -18,10 +19,13 @@ Controls:
   Usage: shodan_query.py [ip1 ip2 ...]
 
   With one or more IPv4 addresses given as arguments, each is queried
-  directly. With no arguments, the host's public IP is auto-detected
-  and the loot directory is scanned for other public IPs seen in past
-  scans; you are then prompted (numbered list) to pick which to query.
-  All results are printed to stdout and exported to loot as JSON.
+  directly. With no arguments, the host's public IP is auto-detected and
+  the rest of the engagement's loot is scanned for other public IPs seen
+  in past artifacts (this payload's own saved results are excluded, so a
+  prior query is never re-offered as a new candidate). Each candidate is
+  labeled with where it came from, and you are prompted with a real
+  select dialog to pick which to query. All results are printed to
+  stdout and exported to loot as JSON.
 """
 
 from payloads._web_input import request_input
@@ -97,14 +101,24 @@ def _is_public_ip(ip_str):
 
 
 def _load_ips_from_loot():
-    """Scan loot directory for public IP addresses."""
-    found = set()
+    """Scan the rest of the engagement's loot for public IP addresses.
+
+    Returns a dict of ip -> sorted list of file paths (relative to the
+    loot root) where that IP was found. This payload's own output
+    directory is excluded so a previously exported result is never
+    rediscovered and re-offered as a new candidate.
+    """
+    found: dict[str, set[str]] = {}
     ip_pattern = re.compile(r"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b")
 
     if not os.path.isdir(LOOT_SRC_DIR):
-        return sorted(found)
+        return {}
 
-    for root, _dirs, files in os.walk(LOOT_SRC_DIR):
+    own_output = os.path.realpath(LOOT_DIR)
+    for root, dirs, files in os.walk(LOOT_SRC_DIR):
+        if os.path.realpath(root) == own_output:
+            dirs[:] = []
+            continue
         for fname in files:
             if not fname.endswith((".json", ".txt", ".log", ".csv")):
                 continue
@@ -112,14 +126,17 @@ def _load_ips_from_loot():
             try:
                 with open(filepath, "r", errors="ignore") as f:
                     content = f.read(512 * 1024)
-                matches = ip_pattern.findall(content)
-                for ip in matches:
-                    if _is_public_ip(ip):
-                        found.add(ip)
             except Exception:
-                pass
+                continue
+            matches = ip_pattern.findall(content)
+            if not matches:
+                continue
+            relative = os.path.relpath(filepath, LOOT_SRC_DIR)
+            for ip in matches:
+                if _is_public_ip(ip):
+                    found.setdefault(ip, set()).add(relative)
 
-    return sorted(found)
+    return {ip: sorted(paths) for ip, paths in found.items()}
 
 # ---------------------------------------------------------------------------
 # Shodan InternetDB query
@@ -230,6 +247,72 @@ def _export_results():
     return filepath
 
 # ---------------------------------------------------------------------------
+# Candidate selection
+# ---------------------------------------------------------------------------
+
+def _prompt_ip_selection(candidates):
+    """Ask once per candidate (ip + provenance) with a real select prompt.
+
+    ``candidates`` is a list of {"ip": ..., "sources": [...]} dicts so each
+    choice can show the operator where that IP came from instead of
+    appearing out of nowhere. Returns a plain list of selected IP strings.
+    """
+    remaining = list(candidates)
+    selected = []
+
+    while remaining:
+        choices = [{"value": "all", "label": "All remaining candidates"}]
+        choices += [
+            {"value": entry["ip"], "label": f"{entry['ip']} — {'; '.join(entry['sources'])}"}
+            for entry in remaining
+        ]
+        choices.append({"value": "manual", "label": "Enter a different IP"})
+        if selected:
+            choices.append({"value": "done", "label": "Done - query the selected IPs"})
+        choices.append({"value": "cancel", "label": "Cancel"})
+
+        label = "Select an IP to query" if not selected else "Select another IP, or finish"
+        try:
+            answer = request_input(
+                label, input_type="select", choices=choices,
+                default="cancel", required=True,
+            )
+        except EOFError:
+            return [entry["ip"] for entry in selected]
+
+        if answer in (None, "", "cancel"):
+            return [entry["ip"] for entry in selected]
+        if answer == "done":
+            break
+        if answer == "all":
+            selected.extend(remaining)
+            remaining = []
+            break
+        if answer == "manual":
+            try:
+                manual = request_input(
+                    "Enter an IP to query", required=False,
+                ).strip()
+            except EOFError:
+                manual = ""
+            if manual and IP_RE.match(manual) and manual not in (e["ip"] for e in selected):
+                selected.append({"ip": manual, "sources": ["manual entry"]})
+                print(f"Added {manual} to the query list.", flush=True)
+            elif manual:
+                print(f"Ignoring invalid IP: {manual}", flush=True)
+            continue
+
+        match = next((entry for entry in remaining if entry["ip"] == answer), None)
+        if match is None:
+            print(f"Ignoring unknown selection: {answer}", flush=True)
+            continue
+        selected.append(match)
+        remaining.remove(match)
+        print(f"Added {match['ip']} to the query list.", flush=True)
+
+    return [entry["ip"] for entry in selected]
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -246,11 +329,20 @@ def main():
         loot_ips = _load_ips_from_loot()
 
         candidates = []
+
+        def _add_candidate(ip, source):
+            for entry in candidates:
+                if entry["ip"] == ip:
+                    if source not in entry["sources"]:
+                        entry["sources"].append(source)
+                    return
+            candidates.append({"ip": ip, "sources": [source]})
+
         if detected:
-            candidates.append(detected)
-        for ip in loot_ips:
-            if ip not in candidates:
-                candidates.append(ip)
+            _add_candidate(detected, "this host's public IP (ifconfig.me)")
+        for ip, files in loot_ips.items():
+            for path in files:
+                _add_candidate(ip, f"seen in loot: {path}")
 
         if detected:
             print(f"Detected public IP: {detected}", flush=True)
@@ -259,29 +351,18 @@ def main():
 
         if not candidates:
             try:
-                manual = request_input("Enter an IP to query (blank to abort): ").strip()
+                manual = request_input(
+                    "Enter an IP to query (blank to abort)", required=False,
+                ).strip()
             except EOFError:
                 manual = ""
             if manual and IP_RE.match(manual):
                 target_ips = [manual]
         else:
             print("Candidate IPs:", flush=True)
-            for idx, ip in enumerate(candidates):
-                print(f"  [{idx}] {ip}", flush=True)
-            try:
-                choice = request_input(
-                    "Select IP(s) to query - comma-separated indices, 'all', or blank to abort: "
-                ).strip()
-            except EOFError:
-                choice = ""
-
-            if choice.lower() == "all":
-                target_ips = candidates
-            elif choice:
-                for part in choice.split(","):
-                    part = part.strip()
-                    if part.isdigit() and 0 <= int(part) < len(candidates):
-                        target_ips.append(candidates[int(part)])
+            for entry in candidates:
+                print(f"  - {entry['ip']} ({'; '.join(entry['sources'])})", flush=True)
+            target_ips = _prompt_ip_selection(candidates)
 
     if not target_ips:
         print("No IP selected. Nothing to do.", flush=True)
