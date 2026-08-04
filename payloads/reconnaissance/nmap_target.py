@@ -6,7 +6,7 @@
 # @category: reconnaissance
 # @danger: false
 # @maturity: functional
-# @inputs: [{"name":"target","label":"Authorized scan target","type":"text","placeholder":"10.0.0.5 or example.com","required":false}]
+# @inputs: [{"name":"target","label":"Authorized scan target (blank = pick from loot)","type":"text","placeholder":"10.0.0.5 or example.com","required":false}]
 import os, shutil, subprocess, sys
 from payloads import _target_helper as target_helper
 

@@ -6,7 +6,7 @@
 # @category: reconnaissance
 # @danger: false
 # @maturity: functional
-# @inputs: [{"name":"target","label":"IP address","type":"text","placeholder":"10.0.0.5","required":false}]
+# @inputs: [{"name":"target","label":"IP address (blank = pick from loot)","type":"text","placeholder":"10.0.0.5","required":false}]
 import ipaddress
 import os
 import socket

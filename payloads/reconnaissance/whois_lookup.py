@@ -7,7 +7,7 @@
 # @web: true
 # @maturity: functional
 # @runtime_links: false
-# @inputs: [{"name":"target","label":"Domain or IP address","type":"text","required":false}]
+# @inputs: [{"name":"target","label":"Domain or IP address (blank = pick from loot)","type":"text","required":false}]
 import os, re, socket, subprocess, sys
 from payloads import _target_helper as target_helper
 

@@ -6,7 +6,7 @@
 # @category: reconnaissance
 # @danger: false
 # @maturity: functional
-# @inputs: [{"name":"target","label":"Hostname or URL","type":"text","placeholder":"example.com","required":false}]
+# @inputs: [{"name":"target","label":"Hostname or URL (blank = pick from loot)","type":"text","placeholder":"example.com","required":false}]
 import os,socket,sys
 from urllib.parse import urlparse
 from payloads import _target_helper as target_helper

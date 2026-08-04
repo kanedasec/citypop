@@ -5,7 +5,7 @@
 # @danger: true
 # @active: true
 # @web: true
-# @inputs: [{"name":"target","label":"Authorized host","type":"text","required":false},{"name":"username","label":"Username (blank for guest)","type":"text","required":false},{"name":"password","label":"Password","type":"password","required":false}]
+# @inputs: [{"name":"target","label":"Authorized host (blank = pick from loot)","type":"text","required":false},{"name":"username","label":"Username (blank for guest)","type":"text","required":false},{"name":"password","label":"Password","type":"password","required":false}]
 import os,re,subprocess,sys
 from payloads import _target_helper as target_helper
 

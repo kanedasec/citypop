@@ -6,7 +6,7 @@
 # @category: reconnaissance
 # @danger: false
 # @maturity: functional
-# @inputs: [{"name":"host","label":"Target host","type":"text","placeholder":"example.com","required":false},{"name":"port","label":"TCP port","type":"number","default":"80"}]
+# @inputs: [{"name":"host","label":"Target host (blank = pick from loot)","type":"text","placeholder":"example.com","required":false},{"name":"port","label":"TCP port","type":"number","default":"80"}]
 import os,socket,sys
 from payloads import _target_helper as target_helper
 

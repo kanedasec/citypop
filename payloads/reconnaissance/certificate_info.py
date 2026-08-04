@@ -6,7 +6,7 @@
 # @category: reconnaissance
 # @danger: false
 # @maturity: functional
-# @inputs: [{"name":"host","label":"TLS host","type":"text","placeholder":"example.com","required":false},{"name":"port","label":"TLS port","type":"number","default":"443"}]
+# @inputs: [{"name":"host","label":"TLS host (blank = pick from loot)","type":"text","placeholder":"example.com","required":false},{"name":"port","label":"TLS port","type":"number","default":"443"}]
 import os,socket,ssl,sys
 from urllib.parse import urlparse
 from payloads import _target_helper as target_helper

@@ -6,7 +6,7 @@
 # @active: true
 # @web: true
 # @maturity: functional
-# @inputs: [{"name":"target","label":"Authorized host","type":"text","required":false}]
+# @inputs: [{"name":"target","label":"Authorized host (blank = pick from loot)","type":"text","required":false}]
 import os,re,subprocess,sys
 from payloads import _target_helper as target_helper
 

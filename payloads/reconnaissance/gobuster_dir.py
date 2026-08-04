@@ -5,7 +5,7 @@
 # @danger: true
 # @active: true
 # @web: true
-# @inputs: [{"name":"url","label":"Authorized URL","type":"text","placeholder":"https://example.test","required":false},{"name":"wordlist","label":"Wordlist path","type":"text","default":"/usr/share/wordlists/dirb/common.txt"},{"name":"threads","label":"Threads (max 20)","type":"number","default":"5"}]
+# @inputs: [{"name":"url","label":"Authorized URL (blank = pick from loot)","type":"text","placeholder":"https://example.test","required":false},{"name":"wordlist","label":"Wordlist path","type":"text","default":"/usr/share/wordlists/dirb/common.txt"},{"name":"threads","label":"Threads (max 20)","type":"number","default":"5"}]
 import os, shutil, subprocess, sys
 from payloads import _target_helper as target_helper
 
