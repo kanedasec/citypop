@@ -261,26 +261,8 @@ async function loadPayloads() {
     .filter(category => payloads.some(item => item.category === category));
   $('tabs').innerHTML = `<button data-cat="all">ALL <span>${payloads.length}</span></button>${categories.map(category => `<button data-cat="${escapeHtml(category)}">${escapeHtml(category.replaceAll('_', ' '))} <span>${payloads.filter(item => item.category === category).length}</span></button>`).join('')}`;
   currentCat = currentCat === 'all' || categories.includes(currentCat) ? currentCat : 'all';
-  $('workflowCategory').innerHTML = `<option value="all">All categories (${payloads.length})</option>${categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category.replaceAll('_', ' '))} (${payloads.filter(item => item.category === category).length})</option>`).join('')}`;
-  renderWorkflowOptions();
   renderPayloads();
   if (runningState) restoreWorkflowFromRun(runningState);
-}
-
-function renderWorkflowOptions() {
-  const category = $('workflowCategory').value || 'all';
-  const selected = $('workflowSelect').value;
-  const visible = payloads
-    .filter(payload => payload.web !== false && (category === 'all' || payload.category === category))
-    .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
-  if (category === 'all') {
-    const groups = [...new Set(visible.map(payload => payload.category))];
-    $('workflowSelect').innerHTML = groups.map(group => `<optgroup label="${escapeHtml(group.replaceAll('_', ' '))}">${visible.filter(payload => payload.category === group).map(payload => `<option value="${escapeHtml(payload.id)}">${escapeHtml(payload.name)}</option>`).join('')}</optgroup>`).join('');
-  } else {
-    $('workflowSelect').innerHTML = visible.map(payload => `<option value="${escapeHtml(payload.id)}">${escapeHtml(payload.name)}</option>`).join('');
-  }
-  if (visible.some(payload => payload.id === selected)) $('workflowSelect').value = selected;
-  $('workflowStart').disabled = !visible.length;
 }
 
 function favoriteIds() {
@@ -578,8 +560,14 @@ async function previewReport(path) {
 function renderWorkflow(payload) {
   workflowPayload = payload;
   beginWorkflow(payload);
-  $('workflowBody').innerHTML = `<div class="guide-heading"><span>${escapeHtml(payload.category.replaceAll('_', ' '))}</span><h3>${escapeHtml(payload.name)}</h3><p>${escapeHtml(payload.desc)}</p></div><ol class="workflow-steps">${activeWorkflow.steps.map((step, index) => `<li class="${index === 0 ? 'current' : ''}"><b>${index + 1} · ${escapeHtml(step.label)}</b><small>${escapeHtml(step.detail)}</small></li>`).join('')}</ol>`;
-  $('workflowNext').textContent = 'BEGIN PREFLIGHT';
+  $("workflowBody").innerHTML = "<div class=\"guide-heading\"><span>" + escapeHtml(payload.category.replaceAll("_", " ")) + "</span><h3>" + escapeHtml(payload.name) + "</h3><p>" + escapeHtml(payload.desc) + "</p></div><ol class=\"workflow-steps\">" + activeWorkflow.steps.map((step, index) => "<li class=\"" + (index === 0 ? "current" : "") + "\"><b>" + (index + 1) + " · " + escapeHtml(step.label) + "</b><small>" + escapeHtml(step.detail) + "</small></li>").join("") + "</ol>";
+  $("workflowNext").textContent = "BEGIN PREFLIGHT";
+}
+
+function showWorkflow(payload) {
+  if (!payload || !requireEngagement()) return;
+  renderWorkflow(payload);
+  $('workflowDialog').showModal();
 }
 
 function workflowSteps(payload) {
@@ -729,7 +717,7 @@ $('grid').onclick = event => {
     return;
   }
   const button = event.target.closest('[data-id]:not(:disabled)');
-  if (button) showPreflight(payloads.find(item => item.id === button.dataset.id));
+  if (button) showWorkflow(payloads.find(item => item.id === button.dataset.id));
 };
 ['payloadSearch', 'impactFilter', 'capabilityFilter'].forEach(id => $(id).addEventListener(id === 'payloadSearch' ? 'input' : 'change', renderPayloads));
 $('preflightRun').onclick = () => {
@@ -967,14 +955,6 @@ $('reportForm').onsubmit = async event => {
   previewReport(data.path);
 };
 
-$('workflowStart').onclick = () => {
-  if (!requireEngagement()) return;
-  const payload = payloads.find(item => item.id === $('workflowSelect').value);
-  if (!payload) return;
-  renderWorkflow(payload);
-  $('workflowDialog').showModal();
-};
-$('workflowCategory').onchange = renderWorkflowOptions;
 $('workflowNext').onclick = () => {
   if (!workflowPayload) return;
   const payload = workflowPayload;
