@@ -5,6 +5,7 @@
 # @danger: true
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"host","label":"Authorized callback host","type":"text","required":true},{"name":"port","label":"Callback port","type":"number","default":"4444"}]
 import re,sys
 def main():
