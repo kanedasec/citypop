@@ -203,6 +203,22 @@ def _write_file(path, content):
         return False
 
 
+def _udc_bound(gadget_dir):
+    """True only if the gadget is actually bound to a UDC (USB Device
+    Controller). A controller forced into host-only mode (e.g.
+    dtoverlay=dwc2,dr_mode=host in config.txt, often set to use external
+    USB adapters on a Pi Zero's single OTG port) registers no UDC at all,
+    so configfs setup can "succeed" while the gadget never actually binds
+    to hardware - that must be reported as a failure, not silently
+    treated as ready.
+    """
+    try:
+        with open(os.path.join(gadget_dir, "UDC"), "r") as f:
+            return bool(f.read().strip())
+    except Exception:
+        return False
+
+
 def _setup_gadget():
     """Configure USB HID keyboard gadget via configfs on OTG port."""
     global gadget_configured
@@ -210,9 +226,10 @@ def _setup_gadget():
     gadget_dir = os.path.join(GADGET_BASE, GADGET_NAME)
 
     if os.path.isdir(gadget_dir):
+        bound = _udc_bound(gadget_dir)
         with lock:
-            gadget_configured = True
-        return True
+            gadget_configured = bound
+        return bound
 
     try:
         os.makedirs(gadget_dir, exist_ok=True)
@@ -260,12 +277,16 @@ def _setup_gadget():
             os.symlink(func_dir, link_path)
 
         udc_list = os.listdir("/sys/class/udc")
-        if udc_list:
-            _write_file(os.path.join(gadget_dir, "UDC"), udc_list[0])
+        if not udc_list:
+            with lock:
+                gadget_configured = False
+            return False
+        _write_file(os.path.join(gadget_dir, "UDC"), udc_list[0])
 
+        bound = _udc_bound(gadget_dir)
         with lock:
-            gadget_configured = True
-        return True
+            gadget_configured = bound
+        return bound
 
     except Exception:
         with lock:
