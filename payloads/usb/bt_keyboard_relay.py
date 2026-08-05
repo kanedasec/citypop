@@ -13,7 +13,7 @@ City Pop payload -- Bluetooth Keyboard USB Relay
 
 Turns the Pi into a live wireless-to-wired keyboard bridge: keystrokes
 from a Bluetooth keyboard already paired, trusted, and connected (see
-utilities/bt_keyboard_picker.py) are read from its kernel evdev device
+bluetooth/bt_keyboard_picker.py) are read from its kernel evdev device
 and forwarded in real time as USB HID keyboard reports out the Pi's
 USB OTG port, so the machine on the other end of that USB cable sees
 an ordinary wired keyboard.
@@ -24,7 +24,7 @@ Bluetooth-connected keyboard is found, pair one first.
 
 Setup / Prerequisites:
   - A Bluetooth keyboard already paired, trusted, and connected to the
-    Pi (utilities/bt_keyboard_picker.py).
+    Pi (bluetooth/bt_keyboard_picker.py).
   - Pi Zero USB OTG port connected to the target host.
   - Kernel must support configfs USB gadgets.
 
@@ -93,7 +93,7 @@ def _select_device() -> str | None:
     if not devices:
         print(
             "No Bluetooth-connected keyboard found. Pair, trust, and connect "
-            "one first with utilities/bt_keyboard_picker.py, then rerun this "
+            "one first with bluetooth/bt_keyboard_picker.py, then rerun this "
             "payload.",
             flush=True,
         )

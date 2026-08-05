@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # @name: Network Anomaly Detector
 # @desc: Capture live traffic features, optionally train and persist an Isolation Forest baseline, then stream anomaly alerts and save them to loot.
-# @category: ai
+# @category: network
 # @danger: false
 # @active: true
 # @web: true
@@ -47,8 +47,8 @@ from collections import deque, Counter
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 CITYPOP_ROOT = os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-MODEL_PATH = os.path.join(CITYPOP_ROOT, "loot", "AI", "anomaly_model.pkl")
-ALERTS_PATH = os.path.join(CITYPOP_ROOT, "loot", "AI", "anomaly_alerts.json")
+MODEL_PATH = os.path.join(CITYPOP_ROOT, "loot", "NetworkAnomaly", "anomaly_model.pkl")
+ALERTS_PATH = os.path.join(CITYPOP_ROOT, "loot", "NetworkAnomaly", "anomaly_alerts.json")
 WINDOW_SEC = 10
 
 _running = True

@@ -124,21 +124,15 @@ if $IS_ARM; then
   # in the City Pop venv.
   PI_REQUIREMENTS="$(mktemp)"
   trap 'rm -f "$PI_REQUIREMENTS"' EXIT
-  # Repair previous installs that allowed LiteRT/OpenCV to place a NumPy 2.x
+  # Repair previous installs that allowed OpenCV to place a NumPy 2.x
   # stack inside the venv. Once removed, --system-site-packages exposes Kali's
   # mutually compatible NumPy/SciPy/scikit-learn/OpenCV packages again.
-  "$VENV_PYTHON" -m pip uninstall -y numpy opencv-python opencv-python-headless ai-edge-litert >/dev/null 2>&1 || true
+  "$VENV_PYTHON" -m pip uninstall -y numpy opencv-python opencv-python-headless >/dev/null 2>&1 || true
   awk '
     BEGIN { IGNORECASE=1 }
-    /^[[:space:]]*(Pillow|PyTurboJPEG|ai-edge-litert|cryptography|numpy|opencv-python-headless|pyserial|pyudev|pyzbar|qrcode|requests|scapy|scikit-learn|evdev)([<>=;[:space:]\[]|$)/ { next }
+    /^[[:space:]]*(Pillow|PyTurboJPEG|cryptography|numpy|opencv-python-headless|pyserial|pyudev|pyzbar|qrcode|requests|scapy|scikit-learn|evdev)([<>=;[:space:]\[]|$)/ { next }
     { print }
   ' "$INSTALL_DIR/requirements.txt" > "$PI_REQUIREMENTS"
-  if [ "$ARCH" = "armhf" ] || [ "$ARCH" = "armv7l" ]; then
-    # Vosk and LiteRT currently publish ARM64 wheels, but not dependable
-    # armhf wheels. Do not attempt a large source build on a 512 MB board.
-    sed -i '/^[[:space:]]*vosk\([<>=;[:space:]]\|$\)/Id' "$PI_REQUIREMENTS"
-    echo "NOTE: AI speech/inference payloads require 64-bit Raspberry Pi OS."
-  fi
   if ! "$VENV_PYTHON" -m pip install --prefer-binary --no-cache-dir \
       -c "$INSTALL_DIR/constraints-arm.txt" -r "$PI_REQUIREMENTS"; then
     echo "WARNING: One or more optional payload packages were unavailable for $ARCH." >&2
@@ -177,7 +171,7 @@ print("City Pop USB runtime imports: OK")
 optional = (
     "PIL", "bleak", "cryptography", "cv2", "gpsd", "nfc",
     "numpy", "pyftpdlib", "pyzbar", "qrcode", "requests",
-    "scapy", "serial", "sklearn", "smbus2", "vosk",
+    "scapy", "serial", "sklearn", "smbus2",
 )
 missing = []
 for module in optional:

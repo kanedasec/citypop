@@ -5,7 +5,6 @@ simple-websocket==1.1.0
 # Shared payload runtime
 Pillow
 RPi.GPIO; platform_machine == "armv7l" or platform_machine == "aarch64"
-ai-edge-litert; platform_machine == "aarch64"
 bleak
 bluepy; sys_platform == "linux"
 cryptography
@@ -26,5 +25,4 @@ scikit-learn
 smbus2
 speedtest-cli
 PyTurboJPEG
-vosk
 wifi

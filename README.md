@@ -56,7 +56,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 
 - Phone-first, responsive web interface
 - Administrator-authenticated HTTP and WebSocket control
-- 153 active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, reconnaissance, credentials, USB, AI, and utility categories
+- Active payloads across Wi-Fi, Bluetooth, network, NFC/RFID, SDR, hardware, system, reconnaissance, credentials, USB, and utility categories
 - Structured launch forms and dynamic adapter/target selectors
 - Captive-portal template selection or responsive uploaded-image display
 - Payload preflight checks, protected-route warnings, and live hardware/interface status

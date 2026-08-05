@@ -2,7 +2,7 @@
 # @active: true
 # @name: Disk Status
 # @desc: Show filesystem capacity, used space, free space, and mount points on the Pi.
-# @category: utilities
+# @category: system
 # @danger: false
 # @web: true
 # @maturity: functional

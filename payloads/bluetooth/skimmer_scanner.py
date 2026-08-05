@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # @name: BLE Skimmer Scanner
 # @desc: Scan nearby Bluetooth advertisements for names associated with common serial modules; matches are indicators, not proof of a skimmer.
-# @category: utilities
+# @category: bluetooth
 # @danger: false
 # @active: true
 # @web: true

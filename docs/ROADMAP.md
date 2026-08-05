@@ -14,7 +14,7 @@ the dates below come from the repository's Git history.
 
 ```text
 Platform phases     [████████████████░░░░]  4 complete · 1 active
-Payload validation  [█████░░░░░░░░░░░░░░░]  36 of 154 reviewed · 23.4%
+Payload validation  [█████░░░░░░░░░░░░░░░]  36 of 151 reviewed · 23.8%
 ```
 
 | | Phase | Dates | Status |
@@ -67,24 +67,25 @@ that the area is frozen or will never receive another correction.
 | 2026-08-04 | Engagement workflow | Moved report generation and management into each engagement row, with report listing and actions scoped to that engagement. |
 | 2026-08-04 | USB payload validation | Redesigned the BadUSB detector around bounded new-device tracing, pre-existing keyboard responsiveness, per-device dashboard output, private JSONL evidence, and hardware-tested `functional` maturity. |
 | 2026-08-04 | Device workflow validation | Advanced Wi-Fi antenna diagnostics and the Bluetooth keyboard picker to `functional`; added the Bluetooth keyboard USB relay to the catalog as `not tested`. |
+| 2026-08-05 | Catalog consolidation | Removed the AI category and its BirdNET, object-detection, and speech-to-text payloads; moved Network Anomaly Detector into Network, BLE Skimmer Scanner and Bluetooth Keyboard Picker into Bluetooth, and Disk Status into the new System category; removed unused AI-only runtime dependencies. |
 
 ## Payload validation board
 
-**Snapshot: 2026-08-04**
+**Snapshot: 2026-08-05**
 
 | Maturity | Visual | Count | Share |
 |---|---|---:|---:|
-| 🟢 Functional | `████░░░░░░░░░░░░░░░░` | 34 | 22.1% |
+| 🟢 Functional | `████░░░░░░░░░░░░░░░░` | 34 | 22.5% |
 | 🟡 Limited | `▎░░░░░░░░░░░░░░░░░░░` | 2 | 1.3% |
-| ⚪ Not tested | `███████████████░░░░░` | 118 | 76.6% |
-| **Total** | | **154** | **100%** |
+| ⚪ Not tested | `███████████████░░░░░` | 115 | 76.2% |
+| **Total** | | **151** | **100%** |
 
 ```mermaid
 pie showData
-    title Payload maturity snapshot — 2026-08-04
+    title Payload maturity snapshot — 2026-08-05
     "Functional" : 34
     "Limited" : 2
-    "Not tested" : 118
+    "Not tested" : 115
 ```
 
 ## Current-phase workflow

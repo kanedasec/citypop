@@ -158,7 +158,7 @@ class PayloadCatalogTests(unittest.TestCase):
             "wifi/wps_pixie.py",
         }
         connected = {
-            "ai/network_anomaly.py",
+            "network/network_anomaly.py",
             "credentials/default_creds_scanner.py",
             "evasion/timing_evasion.py",
             "evasion/traffic_shaper.py",

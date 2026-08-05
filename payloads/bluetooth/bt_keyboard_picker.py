@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # @name: Bluetooth Keyboard Picker
 # @desc: Scan for nearby Bluetooth devices, then pair, trust, and connect a selected keyboard or other HID through web prompts.
-# @category: utilities
+# @category: bluetooth
 # @danger: false
 # @active: true
 # @maturity: functional
@@ -21,7 +21,7 @@ Fix (2025‑07‑21 – rev 2)
 Usage
 -----
 ```bash
-sudo python3 payloads/bt_keyboard_picker.py
+sudo python3 payloads/bluetooth/bt_keyboard_picker.py
 ```
 Controls:
   The script scans for nearby Bluetooth devices, then prompts with a
