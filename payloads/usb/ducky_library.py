@@ -217,13 +217,27 @@ def _execute_script(fname):
 def _prompt_for_script(scripts_found):
     """Prompt the operator to pick a script from the discovered list."""
     print("Available scripts:", flush=True)
-    for i, fname in enumerate(scripts_found, 1):
-        print(f"  {i}. {fname} - {_first_line(fname)}", flush=True)
-    choice = request_input(f"Select script [1-{len(scripts_found)}]: ").strip()
-    if not choice.isdigit() or not (1 <= int(choice) <= len(scripts_found)):
-        print("Invalid selection.", flush=True)
+    for fname in scripts_found:
+        print(f"  - {fname} - {_first_line(fname)}", flush=True)
+
+    choices = [
+        {"value": fname, "label": f"{fname} - {_first_line(fname)}"}
+        for fname in scripts_found
+    ]
+    choices.append({"value": "", "label": "Cancel"})
+
+    try:
+        choice = request_input(
+            "Select a script to run", input_type="select", choices=choices,
+            default="", required=True,
+        )
+    except EOFError:
+        choice = ""
+
+    if not choice or choice not in scripts_found:
+        print("No script selected.", flush=True)
         return None
-    return scripts_found[int(choice) - 1]
+    return choice
 
 
 def main():
