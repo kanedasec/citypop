@@ -259,14 +259,30 @@ def _select_iface(iface_arg):
         return ifaces[0]["name"]
 
     print("Multiple interfaces found:", flush=True)
-    for i, ifc in enumerate(ifaces):
-        print(f"  [{i}] {ifc['name']}  ip={ifc['ip'] or '?'}  "
+    for ifc in ifaces:
+        print(f"  - {ifc['name']}  ip={ifc['ip'] or '?'}  "
               f"{'UP' if ifc['is_up'] else 'DOWN'}", flush=True)
-    while True:
-        choice = request_input(f"Select connected capture interface [0-{len(ifaces) - 1}] — use the interface carrying authorized DHCP traffic; monitor mode is not required: ").strip()
-        if choice.isdigit() and 0 <= int(choice) < len(ifaces):
-            return ifaces[int(choice)]["name"]
-        print("Invalid selection, try again.", flush=True)
+
+    choices = [
+        {
+            "value": ifc["name"],
+            "label": f"{ifc['name']} (ip={ifc['ip'] or '?'}, {'UP' if ifc['is_up'] else 'DOWN'})",
+        }
+        for ifc in ifaces
+    ]
+    try:
+        choice = request_input(
+            "Select the connected capture interface carrying authorized "
+            "DHCP traffic (monitor mode is not required)",
+            input_type="select", choices=choices, required=True,
+        )
+    except EOFError:
+        return None
+
+    for ifc in ifaces:
+        if ifc["name"] == choice:
+            return ifc["name"]
+    return None
 
 
 # ---------------------------------------------------------------------------
