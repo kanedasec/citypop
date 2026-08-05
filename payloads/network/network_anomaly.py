@@ -68,16 +68,32 @@ signal.signal(signal.SIGTERM, _sig)
 
 
 def _ensure_sklearn():
+    """Check whether scikit-learn imports cleanly.
+
+    scikit-learn/numpy/scipy are expected to come from Kali's
+    python3-sklearn/python3-numpy/python3-scipy system packages (see
+    install.sh), visible to the venv via --system-site-packages.
+    install.sh deliberately uninstalls any venv-local numpy/opencv to
+    keep that ABI-compatible set intact. Never pip-install anything here
+    at runtime: a prior version of this function shelled out to `pip3
+    install --break-system-packages scikit-learn`, which can install a
+    fresh, incompatible numpy/scipy straight into the venv and break
+    that setup - producing exactly the NumPy 1.x/2.x ABI crash this is
+    meant to avoid.
+    """
     try:
         from sklearn.ensemble import IsolationForest  # noqa: F401
         return True
-    except ImportError:
-        pass
-    print("Installing sklearn...", flush=True)
-    r = subprocess.run(
-        ["pip3", "install", "--break-system-packages", "scikit-learn"],
-        capture_output=True, timeout=300)
-    return r.returncode == 0
+    except ImportError as exc:
+        print(
+            f"scikit-learn is not usable here ({exc}). Continuing without "
+            "anomaly detection - traffic will still be captured and "
+            "counted. Fix the underlying dependency via install.sh "
+            "(python3-sklearn/python3-numpy/python3-scipy), not a runtime "
+            "pip install.",
+            flush=True,
+        )
+        return False
 
 
 class TrafficFeatures:
@@ -323,21 +339,28 @@ def _choose_interface():
 
     default_iface = _get_default_iface()
     print("Available interfaces:", flush=True)
-    for i, name in enumerate(ifaces, 1):
+    for name in ifaces:
         marker = " (default)" if name == default_iface else ""
-        print(f"  {i}. {name}{marker}", flush=True)
+        print(f"  - {name}{marker}", flush=True)
 
-    choice = request_input(f"Select connected capture interface [1-{len(ifaces)}] — use the interface carrying traffic to evaluate; monitor mode is not required (default: {default_iface}): ").strip()
-    if not choice:
-        return default_iface
+    choices = [
+        {"value": name, "label": f"{name} (default)" if name == default_iface else name}
+        for name in ifaces
+    ]
     try:
-        idx = int(choice)
-        if not (1 <= idx <= len(ifaces)):
-            raise ValueError
-        return ifaces[idx - 1]
-    except ValueError:
-        print("Invalid selection.", flush=True)
-        return None
+        choice = request_input(
+            "Select the connected capture interface carrying traffic to "
+            "evaluate (monitor mode is not required)",
+            input_type="select", choices=choices,
+            default=default_iface, required=True,
+        )
+    except EOFError:
+        return default_iface
+
+    if choice in ifaces:
+        return choice
+    print("Invalid selection.", flush=True)
+    return None
 
 
 def main():
@@ -361,15 +384,14 @@ def main():
 
     iface_arg = positional[1] if len(positional) > 1 else None
 
-    if not _ensure_sklearn():
-        print("sklearn install failed!", flush=True)
-        return 1
+    sklearn_available = _ensure_sklearn()
 
     if delete_flag:
         _delete_model()
         print("Deleted saved model.", flush=True)
 
-    _load_model()
+    if sklearn_available:
+        _load_model()
 
     if iface_arg:
         ifaces = _list_interfaces()
@@ -392,15 +414,20 @@ def main():
     sniff_t.start()
 
     if train_flag:
-        time.sleep(1)
-        _train_model()
+        if sklearn_available:
+            time.sleep(1)
+            _train_model()
+        else:
+            print("Cannot train: scikit-learn is unavailable.", flush=True)
 
     if not _trained:
         print("No trained model - capturing traffic only, no anomaly detection "
               "(use --train to build one).", flush=True)
 
-    detect_t = threading.Thread(target=_detect_thread, daemon=True)
-    detect_t.start()
+    detect_t = None
+    if sklearn_available:
+        detect_t = threading.Thread(target=_detect_thread, daemon=True)
+        detect_t.start()
 
     start = time.time()
     last_report = 0.0
@@ -418,7 +445,8 @@ def main():
     _monitoring = False
     _running = False
     sniff_t.join(timeout=2)
-    detect_t.join(timeout=3)
+    if detect_t:
+        detect_t.join(timeout=3)
 
     print("\n=== Summary ===", flush=True)
     print(f"Interface: {iface}", flush=True)
