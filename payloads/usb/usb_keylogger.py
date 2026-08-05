@@ -5,6 +5,7 @@
 # @danger: true
 # @active: true
 # @web: true
+# @maturity: limited
 # @inputs: [{"name":"seconds","label":"Logging duration","type":"number","default":"300"}]
 """
 RaspyJack Payload -- Transparent USB HID Keylogger Proxy
