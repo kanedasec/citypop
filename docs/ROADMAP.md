@@ -14,7 +14,7 @@ the dates below come from the repository's Git history.
 
 ```text
 Platform phases     [████████████████░░░░]  4 complete · 1 active
-Payload validation  [█░░░░░░░░░░░░░░░░░░░]  5 of 153 reviewed · 3.3%
+Payload validation  [████░░░░░░░░░░░░░░░░]  32 of 153 reviewed · 20.9%
 ```
 
 | | Phase | Dates | Status |
@@ -48,7 +48,7 @@ remains open until the catalog has been evaluated to the desired level.
 
 | Phase | Baseline outcome |
 |---|---|
-| 🟦 Web platform foundation | Phone-first UI, engagements, execution, prompts, history, loot, reports, and reconnect recovery |
+| 🟦 Web platform foundation | Phone-first UI, selectable aesthetics, visible category navigation, card-triggered guidance, engagements, execution, prompts, history, loot, scoped reports, and reconnect recovery |
 | 🟪 Deployment and authentication | nginx TLS proxy, loopback Gunicorn, first-access pairing, local accounts, session controls, and installer integration |
 | 🟧 Hardware and network controls | Physical-interface inventory, protected-route safeguards, mode/link management, captive/DNS workflows, and safe poweroff |
 | 🟩 Repository and documentation | Application, deployment, configuration, tests, templates, and documentation separated by purpose |
@@ -57,23 +57,32 @@ remains open until the catalog has been evaluated to the desired level.
 “Complete” means the phase's baseline outcome was implemented; it does not mean
 that the area is frozen or will never receive another correction.
 
+## Post-baseline refinement log
+
+| Date | Area | Improvement |
+|---|---|---|
+| 2026-08-04 | Phone interface | Added persistent Citypop, Matrix, Akira, and Stealth aesthetics, then refined Matrix and Akira contrast and palette balance. |
+| 2026-08-04 | Mobile navigation | Separated connection details from header actions and moved authenticated Hardware access beside Account and Power Off. |
+| 2026-08-04 | Payload discovery | Replaced horizontally scrolling categories with fully visible wrapping controls and made payload cards open their Guided Workflow directly. |
+| 2026-08-04 | Engagement workflow | Moved report generation and management into each engagement row, with report listing and actions scoped to that engagement. |
+
 ## Payload validation board
 
-**Snapshot: 2026-07-27**
+**Snapshot: 2026-08-04**
 
 | Maturity | Visual | Count | Share |
 |---|---|---:|---:|
-| 🟢 Functional | `██░░░░░░░░░░░░░░░░░░` | 29 | 19.0% |
+| 🟢 Functional | `████░░░░░░░░░░░░░░░░` | 31 | 20.3% |
 | 🟡 Limited | `▏░░░░░░░░░░░░░░░░░░░` | 1 | 0.7% |
-| ⚪ Not tested | `██████████████████░░` | 123 | 80.4% |
+| ⚪ Not tested | `████████████████░░░░` | 121 | 79.1% |
 | **Total** | | **153** | **100%** |
 
 ```mermaid
 pie showData
-    title Payload maturity snapshot — 2026-07-27
-    "Functional" : 29
+    title Payload maturity snapshot — 2026-08-04
+    "Functional" : 31
     "Limited" : 1
-    "Not tested" : 123
+    "Not tested" : 121
 ```
 
 ## Current-phase workflow
