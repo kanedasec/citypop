@@ -14,7 +14,7 @@ the dates below come from the repository's Git history.
 
 ```text
 Platform phases     [████████████████░░░░]  4 complete · 1 active
-Payload validation  [████░░░░░░░░░░░░░░░░]  32 of 153 reviewed · 20.9%
+Payload validation  [████░░░░░░░░░░░░░░░░]  34 of 153 reviewed · 22.2%
 ```
 
 | | Phase | Dates | Status |
@@ -65,6 +65,7 @@ that the area is frozen or will never receive another correction.
 | 2026-08-04 | Mobile navigation | Separated connection details from header actions and moved authenticated Hardware access beside Account and Power Off. |
 | 2026-08-04 | Payload discovery | Replaced horizontally scrolling categories with fully visible wrapping controls and made payload cards open their Guided Workflow directly. |
 | 2026-08-04 | Engagement workflow | Moved report generation and management into each engagement row, with report listing and actions scoped to that engagement. |
+| 2026-08-04 | USB payload validation | Redesigned the BadUSB detector around bounded new-device tracing, pre-existing keyboard responsiveness, per-device dashboard output, private JSONL evidence, and hardware-tested `functional` maturity. |
 
 ## Payload validation board
 
@@ -72,17 +73,17 @@ that the area is frozen or will never receive another correction.
 
 | Maturity | Visual | Count | Share |
 |---|---|---:|---:|
-| 🟢 Functional | `████░░░░░░░░░░░░░░░░` | 31 | 20.3% |
-| 🟡 Limited | `▏░░░░░░░░░░░░░░░░░░░` | 1 | 0.7% |
-| ⚪ Not tested | `████████████████░░░░` | 121 | 79.1% |
+| 🟢 Functional | `████░░░░░░░░░░░░░░░░` | 32 | 20.9% |
+| 🟡 Limited | `▎░░░░░░░░░░░░░░░░░░░` | 2 | 1.3% |
+| ⚪ Not tested | `████████████████░░░░` | 119 | 77.8% |
 | **Total** | | **153** | **100%** |
 
 ```mermaid
 pie showData
     title Payload maturity snapshot — 2026-08-04
-    "Functional" : 31
-    "Limited" : 1
-    "Not tested" : 121
+    "Functional" : 32
+    "Limited" : 2
+    "Not tested" : 119
 ```
 
 ## Current-phase workflow
