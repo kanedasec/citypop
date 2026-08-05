@@ -55,6 +55,42 @@ signal.signal(signal.SIGTERM, cleanup)
 # ---------------------------------------------------------------------------
 SCAN_SECONDS = 10  # adjustable
 
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+# bluetoothctl streams one line per property change, not just the initial
+# name announcement - e.g. "[CHG] Device AA:.. RSSI: -55" or
+# "[CHG] Device AA:.. Connected: no". Only NEW's trailing text and an
+# explicit Name:/Alias: CHG line are ever a real device name; everything
+# else must be ignored so it can't clobber a name already learned.
+_DEVICE_LINE_RE = re.compile(r"\[(NEW|CHG|DEL)\]\s+Device\s+([0-9A-Fa-f:]{17})(?:\s+(.*))?")
+_NAME_PROPERTY_RE = re.compile(r"^(?:Name|Alias):\s*(.+)$")
+
+
+def _parse_device_line(raw_line: str):
+    """Return (mac, real_name_or_None) for a bluetoothctl device line, else None."""
+    line = _ANSI_RE.sub("", raw_line)
+    match = _DEVICE_LINE_RE.search(line)
+    if not match:
+        return None
+    tag, mac, rest = match.groups()
+    if tag == "DEL":
+        return None
+    mac = mac.upper()
+    rest = (rest or "").strip()
+    if tag == "NEW":
+        return mac, (rest or None)
+    name_match = _NAME_PROPERTY_RE.match(rest)
+    return mac, (name_match.group(1).strip() if name_match else None)
+
+
+def _record(mac: str, name, seen: dict, named: set) -> None:
+    """Track a discovered MAC, only ever overwriting its name with a real one."""
+    if mac not in seen:
+        seen[mac] = name or mac.replace(":", "-")
+        print(f"  found {mac}  {seen[mac]}", flush=True)
+    if name and mac not in named:
+        seen[mac] = name
+        named.add(mac)
+
 
 def discover_devices() -> List[Tuple[str, str]]:
     """Return list of (MAC, name) after scanning for *SCAN_SECONDS*."""
@@ -72,32 +108,23 @@ def discover_devices() -> List[Tuple[str, str]]:
     proc.stdin.write("scan on\n"); proc.stdin.flush()
 
     seen: dict[str, str] = {}
-    start = time.time()
-    try:
-        while running and (time.time() - start) < SCAN_SECONDS:
+    named: set[str] = set()
+
+    def pump_until(deadline: float, respect_running: bool):
+        while (not respect_running or running) and time.time() < deadline:
             ready, _, _ = select([proc.stdout], [], [], 0.2)
-            if ready:
-                line = proc.stdout.readline()
-                m = re.search(r"Device ([0-9A-F:]{17}) (.+)", line)
-                if m:
-                    mac, name = m.group(1), m.group(2).strip()
-                    if mac not in seen:
-                        print(f"  found {mac}  {name}", flush=True)
-                    seen[mac] = name
+            if not ready:
+                continue
+            parsed = _parse_device_line(proc.stdout.readline())
+            if parsed:
+                _record(parsed[0], parsed[1], seen, named)
+
+    try:
+        pump_until(time.time() + SCAN_SECONDS, respect_running=True)
     finally:
         # Stop scan & drain for 2 s
         proc.stdin.write("scan off\n"); proc.stdin.flush()
-        end = time.time() + 2
-        while time.time() < end:
-            ready, _, _ = select([proc.stdout], [], [], 0.2)
-            if ready:
-                line = proc.stdout.readline()
-                m = re.search(r"Device ([0-9A-F:]{17}) (.+)", line)
-                if m:
-                    mac, name = m.group(1), m.group(2).strip()
-                    if mac not in seen:
-                        print(f"  found {mac}  {name}", flush=True)
-                    seen[mac] = name
+        pump_until(time.time() + 2, respect_running=False)
         proc.terminate()
 
     return sorted(seen.items(), key=lambda t: (t[1].lower(), t[0]))
@@ -176,10 +203,17 @@ def choose(devices: List[Tuple[str, str]]):
     if not devices:
         print("No devices found.", flush=True)
         try:
-            resp = request_input("Press Enter to rescan, or q to quit: ").strip().lower()
+            resp = request_input(
+                "No devices found", input_type="select",
+                choices=[
+                    {"value": "rescan", "label": "Rescan"},
+                    {"value": "quit", "label": "Quit"},
+                ],
+                default="rescan", required=True,
+            )
         except EOFError:
-            resp = "q"
-        if resp == "q":
+            resp = "quit"
+        if resp == "quit":
             cleanup()
         return None
 
@@ -187,18 +221,26 @@ def choose(devices: List[Tuple[str, str]]):
     for i, (mac, name) in enumerate(devices, 1):
         print(f"  {i}. {name}  ({mac})", flush=True)
 
-    try:
-        resp = request_input("Select a number to pair, 'r' to rescan, or 'q' to quit: ").strip().lower()
-    except EOFError:
-        resp = "q"
+    choices = [{"value": mac, "label": f"{name} ({mac})"} for mac, name in devices]
+    choices.append({"value": "rescan", "label": "Rescan"})
+    choices.append({"value": "quit", "label": "Quit"})
 
-    if resp == "q":
+    try:
+        resp = request_input(
+            "Select a device to pair", input_type="select", choices=choices,
+            default="rescan", required=True,
+        )
+    except EOFError:
+        resp = "quit"
+
+    if resp in (None, "", "quit"):
         cleanup()
         return None
-    if resp == "r" or resp == "":
+    if resp == "rescan":
         return None
-    if resp.isdigit() and 1 <= int(resp) <= len(devices):
-        return devices[int(resp) - 1]
+    for mac, name in devices:
+        if mac == resp:
+            return mac, name
 
     print("Invalid selection.", flush=True)
     return None
@@ -206,32 +248,44 @@ def choose(devices: List[Tuple[str, str]]):
 # ---------------------------------------------------------------------------
 # 4) Main loop
 # ---------------------------------------------------------------------------
-try:
-    while running:
-        devs = discover_devices()
-        if not running:
-            break
-        choice = choose(devs)
-        if not running:
-            break
-        if not choice:
-            continue
-        mac, name = choice
-        if pair_trust_connect(mac):
-            print(f"Connected: {name} ({mac})", flush=True)
-        else:
-            print(f"Connection failed: {name} ({mac})", flush=True)
-        if not running:
-            break
-        try:
-            resp = request_input("Press Enter to scan again, or q to quit: ").strip().lower()
-        except EOFError:
-            resp = "q"
-        if resp == "q":
-            cleanup()
-except KeyboardInterrupt:
-    cleanup()
-except Exception as e:
-    print(f"[ERROR] {e}", file=sys.stderr, flush=True)
+def main():
+    try:
+        while running:
+            devs = discover_devices()
+            if not running:
+                break
+            choice = choose(devs)
+            if not running:
+                break
+            if not choice:
+                continue
+            mac, name = choice
+            if pair_trust_connect(mac):
+                print(f"Connected: {name} ({mac})", flush=True)
+            else:
+                print(f"Connection failed: {name} ({mac})", flush=True)
+            if not running:
+                break
+            try:
+                resp = request_input(
+                    "Scan again?", input_type="select",
+                    choices=[
+                        {"value": "scan", "label": "Scan again"},
+                        {"value": "quit", "label": "Quit"},
+                    ],
+                    default="scan", required=True,
+                )
+            except EOFError:
+                resp = "quit"
+            if resp == "quit":
+                cleanup()
+    except KeyboardInterrupt:
+        cleanup()
+    except Exception as e:
+        print(f"[ERROR] {e}", file=sys.stderr, flush=True)
 
-print("Bluetooth keyboard picker stopped.", flush=True)
+    print("Bluetooth keyboard picker stopped.", flush=True)
+
+
+if __name__ == "__main__":
+    main()
