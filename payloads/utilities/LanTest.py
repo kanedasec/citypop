@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"server","label":"iperf3 server","type":"text","placeholder":"192.168.1.10","required":true,"help":"Hostname, IPv4 address, or IPv6 address of a machine already running iperf3 -s."},{"name":"seconds","label":"Test duration per direction","type":"number","default":"10"},{"name":"port","label":"iperf3 server port","type":"number","default":"5201","help":"TCP listening port on the remote iperf3 server."}]
 
 import json
