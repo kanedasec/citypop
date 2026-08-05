@@ -34,6 +34,10 @@ import subprocess
 import struct
 import threading
 import json
+import hashlib
+import shutil
+import tempfile
+import zipfile
 from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
@@ -166,10 +170,17 @@ def _load_model():
         return False
     if not os.path.isfile(MODEL_PATH) or not os.path.isfile(LABELS_PATH):
         return False
-    _interpreter = Interpreter(model_path=MODEL_PATH)
-    _interpreter.allocate_tensors()
-    with open(LABELS_PATH, "r") as f:
-        _labels = [line.strip() for line in f if line.strip()]
+    try:
+        _interpreter = Interpreter(model_path=MODEL_PATH)
+        _interpreter.allocate_tensors()
+        with open(LABELS_PATH, "r", encoding="utf-8") as f:
+            _labels = [line.strip() for line in f if line.strip()]
+    except (OSError, ValueError, RuntimeError) as error:
+        _interpreter = None
+        _labels = []
+        print(f"Model load failed: {error}", flush=True)
+        print("The verified files were retained; check ai-edge-litert compatibility on this device.", flush=True)
+        return False
     _load_settings()
     _load_lang_map()
     return True
@@ -310,9 +321,119 @@ def _save_detections(results):
         pass
 
 
-MODEL_URL = "https://github.com/kahst/BirdNET-Analyzer/raw/main/checkpoints/V2.4/BirdNET_GLOBAL_6K_V2.4_Model_FP16.tflite"
-LABELS_URL = "https://github.com/kahst/BirdNET-Analyzer/raw/main/checkpoints/V2.4/BirdNET_GLOBAL_6K_V2.4_Model_FP16_Labels.txt"
-L18N_BASE_URL = "https://github.com/kahst/BirdNET-Analyzer/raw/main/labels/V2.4"
+MODEL_BUNDLE_URL = "https://zenodo.org/records/15050749/files/BirdNET_v2.4_tflite_fp16.zip"
+MODEL_BUNDLE_SIZE = 53_025_528
+MODEL_BUNDLE_SHA256 = "55369cc3804b3b23b877375f2b7d6bea2dbe95879a1c9d31cb79d377dcb4e6da"
+MODEL_SIZE = 25_932_528
+MODEL_SHA256 = "5c64ba3ffab264ccbfafe784896392051a86be63b0cc507e7683db7df114546b"
+MODEL_MEMBER = "audio-model-fp16.tflite"
+LABEL_COUNT = 6522
+LANG_MEMBERS = {lang: ("en_us" if lang == "en" else "zh" if lang == "zh_CN" else lang) for lang in AVAILABLE_LANGS}
+
+
+def _sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _valid_model(path=None):
+    path = path or MODEL_PATH
+    try:
+        if os.path.getsize(path) != MODEL_SIZE or _sha256(path) != MODEL_SHA256:
+            return False
+        with open(path, "rb") as handle:
+            return handle.read(8)[4:8] == b"TFL3"
+    except OSError:
+        return False
+
+
+def _valid_labels(path=None):
+    path = path or LABELS_PATH
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            labels = [line.strip() for line in handle if line.strip()]
+        return len(labels) == LABEL_COUNT and all("_" in label for label in labels)
+    except (OSError, UnicodeError):
+        return False
+
+
+def _valid_model_bundle():
+    return (
+        _valid_model()
+        and _valid_labels()
+        and all(os.path.isfile(os.path.join(L18N_DIR, f"labels_{lang}.json")) for lang in AVAILABLE_LANGS)
+    )
+
+
+def _mapping_from_labels(content):
+    mapping = {}
+    for line in content.decode("utf-8").splitlines():
+        parts = line.strip().split("_", 1)
+        if len(parts) == 2:
+            mapping[parts[0]] = parts[1]
+    return mapping
+
+
+def _install_model_bundle():
+    os.makedirs(MODEL_DIR, exist_ok=True)
+    os.makedirs(L18N_DIR, exist_ok=True)
+    try:
+        with tempfile.TemporaryDirectory(prefix=".birdnet-download-", dir=MODEL_DIR) as temporary:
+            archive_path = os.path.join(temporary, "birdnet.zip")
+            result = subprocess.run(
+                ["wget", "--timeout=30", "--tries=3", "-O", archive_path, MODEL_BUNDLE_URL],
+                capture_output=True, text=True, timeout=300,
+            )
+            if result.returncode != 0:
+                detail = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else f"wget exit {result.returncode}"
+                print(f"Download failed: BirdNET model bundle · {detail}", flush=True)
+                return False
+            if os.path.getsize(archive_path) != MODEL_BUNDLE_SIZE or _sha256(archive_path) != MODEL_BUNDLE_SHA256:
+                print("Download failed: BirdNET model bundle did not pass size/checksum validation.", flush=True)
+                return False
+
+            with zipfile.ZipFile(archive_path) as archive:
+                if archive.testzip() is not None:
+                    print("Download failed: BirdNET model bundle is corrupt.", flush=True)
+                    return False
+                model_tmp = os.path.join(temporary, "model.tflite")
+                with archive.open(MODEL_MEMBER) as source, open(model_tmp, "wb") as destination:
+                    shutil.copyfileobj(source, destination)
+                if not _valid_model(model_tmp):
+                    print("Download failed: extracted BirdNET model did not pass validation.", flush=True)
+                    return False
+
+                labels_by_lang = {}
+                for lang, archive_lang in LANG_MEMBERS.items():
+                    member = f"labels/{archive_lang}.txt"
+                    labels_by_lang[lang] = archive.read(member)
+                labels_tmp = os.path.join(temporary, "labels.txt")
+                with open(labels_tmp, "wb") as handle:
+                    handle.write(labels_by_lang["en"])
+                if not _valid_labels(labels_tmp):
+                    print("Download failed: BirdNET labels did not pass validation.", flush=True)
+                    return False
+
+                for lang, content in labels_by_lang.items():
+                    mapping = _mapping_from_labels(content)
+                    if len(mapping) < LABEL_COUNT - 1:
+                        print(f"Download failed: BirdNET {lang} labels are incomplete.", flush=True)
+                        return False
+                    lang_tmp = os.path.join(temporary, f"labels_{lang}.json")
+                    with open(lang_tmp, "w", encoding="utf-8") as handle:
+                        json.dump(mapping, handle, ensure_ascii=False)
+                    os.replace(lang_tmp, os.path.join(L18N_DIR, f"labels_{lang}.json"))
+
+                os.replace(labels_tmp, LABELS_PATH)
+                os.replace(model_tmp, MODEL_PATH)
+    except (OSError, KeyError, zipfile.BadZipFile, subprocess.TimeoutExpired) as error:
+        print(f"Download failed: BirdNET model bundle · {error}", flush=True)
+        return False
+    print("BirdNET model and labels installed and verified.", flush=True)
+    return True
 
 
 def _ensure_deps():
@@ -332,52 +453,15 @@ def _ensure_deps():
 
 
 def _ensure_model():
-    os.makedirs(MODEL_DIR, exist_ok=True)
-    if not os.path.isfile(MODEL_PATH):
-        print("Downloading model (25MB)...", flush=True)
-        r = subprocess.run(
-            ["wget", "-q", "-O", MODEL_PATH, MODEL_URL],
-            capture_output=True, timeout=120)
-        if r.returncode != 0 or not os.path.isfile(MODEL_PATH):
-            print("Download failed: BirdNET model", flush=True)
-            return False
-    if not os.path.isfile(LABELS_PATH):
-        print("Downloading labels...", flush=True)
-        subprocess.run(
-            ["wget", "-q", "-O", LABELS_PATH, LABELS_URL],
-            capture_output=True, timeout=30)
-    return os.path.isfile(MODEL_PATH) and os.path.isfile(LABELS_PATH)
+    if _valid_model_bundle():
+        return True
+    print("Downloading verified BirdNET model bundle (51MB)...", flush=True)
+    return _install_model_bundle() and _valid_model_bundle()
 
 
 def _ensure_lang_labels(lang):
-    os.makedirs(L18N_DIR, exist_ok=True)
     path = os.path.join(L18N_DIR, f"labels_{lang}.json")
-    if os.path.isfile(path):
-        return True
-    txt_url = f"{L18N_BASE_URL}/BirdNET_GLOBAL_6K_V2.4_Labels_{lang}.txt"
-    tmp = path + ".tmp"
-    r = subprocess.run(
-        ["wget", "-q", "-O", tmp, txt_url],
-        capture_output=True, timeout=30)
-    if r.returncode != 0 or not os.path.isfile(tmp):
-        try:
-            os.remove(tmp)
-        except Exception:
-            pass
-        return False
-    try:
-        mapping = {}
-        with open(tmp, "r") as f:
-            for line in f:
-                parts = line.strip().split("_", 1)
-                if len(parts) == 2:
-                    mapping[parts[0]] = parts[1]
-        with open(path, "w") as f:
-            json.dump(mapping, f, ensure_ascii=False, indent=2)
-        os.remove(tmp)
-        return True
-    except Exception:
-        return False
+    return os.path.isfile(path)
 
 
 def main():
@@ -414,7 +498,6 @@ def main():
 
     print("Loading model...", flush=True)
     if not _load_model():
-        print("Model load failed. Check files.", flush=True)
         return 1
 
     _ensure_lang_labels(_lang)
