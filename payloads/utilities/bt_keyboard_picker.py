@@ -4,6 +4,7 @@
 # @category: utilities
 # @danger: false
 # @active: true
+# @maturity: functional
 # @web: true
 """
 RaspyJack payload – Bluetooth Keyboard Picker
@@ -63,6 +64,10 @@ _ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 # else must be ignored so it can't clobber a name already learned.
 _DEVICE_LINE_RE = re.compile(r"\[(NEW|CHG|DEL)\]\s+Device\s+([0-9A-Fa-f:]{17})(?:\s+(.*))?")
 _NAME_PROPERTY_RE = re.compile(r"^(?:Name|Alias):\s*(.+)$")
+# Anchored to the "Passkey:"/"PIN code:" label so stray digits elsewhere on
+# the line (or leftover ANSI codes _ANSI_RE missed) can't get swept into a
+# garbled fake passkey - only digits immediately after the label count.
+_CODE_RE = re.compile(r"(?:Passkey|PIN code):?\s*(\d{1,16})")
 
 
 def _parse_device_line(raw_line: str):
@@ -153,14 +158,18 @@ def pair_trust_connect(mac: str) -> bool:
     # ---------------- Pair ----------------
     send(f"pair {mac}")
     paired = False; start = time.time()
+    last_code_shown = None
     while running and (time.time() - start) < 60:
         ready, _, _ = select([proc.stdout], [], [], 0.5)
         if not ready:
             continue
-        line = proc.stdout.readline()
-        if "Passkey" in line or "PIN code" in line:
-            code = "".join(re.findall(r"\d", line))
-            print(f"Type this on the keyboard: {code}", flush=True)
+        line = _ANSI_RE.sub("", proc.stdout.readline())
+        code_match = _CODE_RE.search(line)
+        if code_match:
+            code = code_match.group(1)
+            if code != last_code_shown:
+                print(f"Type this on the keyboard: {code} and press enter", flush=True)
+                last_code_shown = code
         if "Confirm passkey" in line:
             send("yes")
         if "Paired: yes" in line or "Bonded: yes" in line:
@@ -183,7 +192,7 @@ def pair_trust_connect(mac: str) -> bool:
         ready, _, _ = select([proc.stdout], [], [], 0.5)
         if not ready:
             continue
-        line = proc.stdout.readline()
+        line = _ANSI_RE.sub("", proc.stdout.readline())
         if "Connection successful" in line or "already" in line:
             connected = True; break
         if "Failed" in line:
