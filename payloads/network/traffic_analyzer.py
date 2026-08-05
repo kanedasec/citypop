@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"view","label":"Dashboard table shown first","type":"select","choices":[{"value":"protocols","label":"Protocols — rank captured traffic by protocol"},{"value":"endpoints","label":"Endpoints — rank individual source and destination addresses"},{"value":"conversations","label":"Conversations — rank source-to-destination address pairs"}],"default":"protocols"},{"name":"seconds","label":"Capture and dashboard duration in seconds","type":"number","default":"60"}]
 
 import shutil

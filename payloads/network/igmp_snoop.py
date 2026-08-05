@@ -5,6 +5,7 @@
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: functional
 # @inputs: [{"name":"seconds","label":"Capture duration","type":"number","default":"30"}]
 
 import subprocess
