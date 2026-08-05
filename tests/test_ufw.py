@@ -95,6 +95,26 @@ class TemporaryUfwTests(unittest.TestCase):
             "comment", rules.marker,
         )
 
+    @patch.object(_ufw, "_run")
+    def test_client_service_is_scoped_to_route_peer_and_port(self, run):
+        run.return_value = Result()
+        rules = _ufw.TemporaryUfwRules("lan-speed-test")
+        rules.allow_client_service(
+            "wlan0", "192.168.18.4", "192.168.18.20", 5201,
+        )
+        self.assertEqual(run.call_args_list, [
+            call(
+                "insert", "1", "allow", "out", "on", "wlan0", "proto", "tcp",
+                "from", "192.168.18.4", "to", "192.168.18.20", "port", "5201",
+                "comment", rules.marker,
+            ),
+            call(
+                "insert", "1", "allow", "in", "on", "wlan0", "proto", "tcp",
+                "from", "192.168.18.20", "port", "5201", "to", "192.168.18.4",
+                "comment", rules.marker,
+            ),
+        ])
+
 
 if __name__ == "__main__":
     unittest.main()

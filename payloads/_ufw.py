@@ -134,6 +134,20 @@ class TemporaryUfwRules:
             "to", destination, "port", str(port),
         )
 
+    def allow_client_service(
+        self, interface: str, local_address: str, destination: str,
+        port: int, protocol: str = "tcp",
+    ):
+        """Allow one client flow and replies from the service's source port."""
+        self.add(
+            "allow", "out", "on", interface, "proto", protocol,
+            "from", local_address, "to", destination, "port", str(port),
+        )
+        self.add(
+            "allow", "in", "on", interface, "proto", protocol,
+            "from", destination, "port", str(port), "to", local_address,
+        )
+
     def allow_forwarding(self, incoming: str, outgoing: str, source_network: str):
         network = str(ipaddress.ip_network(source_network, strict=False))
         self.add_route(
