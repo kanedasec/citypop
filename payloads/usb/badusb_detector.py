@@ -1,35 +1,36 @@
 #!/usr/bin/env python3
-# @name: BadUSB detector payload
-# @desc: Watch USB events and alert in the terminal when a new keyboard sends input or removable storage becomes mounted.
+# @name: Bounded BadUSB keyboard detector
+# @desc: Inventory USB keyboards and briefly trace exact keys only from keyboards attached after the detector starts.
 # @category: usb
-# @danger: false
+# @danger: true
 # @active: true
 # @web: true
-# @inputs: [{"name":"seconds","label":"Watch duration","type":"number","default":"300"}]
-"""
-BadUSB detector payload
------------------------
-Watches for USB insertion events and raises a RED alert if:
-- a new USB keyboard starts sending keystrokes quickly after insertion
-- a removable mass-storage device is mounted
+# @maturity: functional
+# @inputs: [{"name":"seconds","label":"Watch duration","type":"number","default":"300","help":"How long to watch for newly attached USB keyboards. Exact keys are captured for only 10 seconds after attachment."}]
+"""Defensive, bounded USB keyboard activity detector.
 
-Controls (CLI):
-  python3 badusb_detector.py [duration_seconds]
-
-  duration_seconds   Optional. Stop automatically after this many
-                      seconds. If omitted, runs until Ctrl-C.
-
-  Progress and alerts are streamed to stdout as they happen. Press
-  Ctrl-C at any time to stop monitoring cleanly.
+USB keyboards present when the payload starts are inventoried and only receive
+non-content responsiveness counters.  A USB keyboard attached later receives a
+fixed, short exact-key trace so an operator can identify injection behavior.
 """
 
+from __future__ import annotations
+
+import json
+import fcntl
 import os
+from pathlib import Path
+import signal
 import sys
-import time
 import threading
+import time
+from collections import deque
+from datetime import datetime, timezone
 
-# Ensure RaspyJack modules are importable when launched directly
+# Make the project package importable when the payload is launched directly.
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+
+from payloads._dashboard import DashboardServer
 
 try:
     import pyudev  # type: ignore
@@ -44,290 +45,412 @@ except Exception:
     list_devices = None
 
 
-ALERT_WINDOW_SEC = 8
-KEY_EVENT_THRESHOLD = 1
-KEY_WINDOW_SEC = None
-DETECT_ANY_KEYBOARD = True  # Any keyboard device with ID_INPUT_KEYBOARD=1
-
-running = True
-alert_active = False
-alert_reason = ""
-alert_since = 0.0
-watched_keyboards = set()
+TRACE_WINDOW_SEC = 10.0
+MAX_TRACE_EVENTS_PER_DEVICE = 256
+MAX_RECENT_EVENTS = 100
+POLL_INTERVAL_SEC = 0.05
+TYPING_KEY_CODES = ("KEY_A", "KEY_Z", "KEY_SPACE", "KEY_ENTER")
 
 
-def _ts():
-    return time.strftime("%Y-%m-%d %H:%M:%S")
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
 
 
-def log(msg):
-    print(f"[{_ts()}] {msg}", flush=True)
+def log(message: str) -> None:
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}", flush=True)
 
 
-def is_removable_mount_present():
+def _property(device, name: str, default: str = "") -> str:
     try:
-        with open("/proc/mounts", "r") as f:
-            mounts = f.read().splitlines()
-        log(f"Mounts checked: {len(mounts)} entries")
-        for line in mounts:
-            parts = line.split()
-            if len(parts) < 3:
-                continue
-            device, mnt, fstype = parts[0], parts[1], parts[2]
-            if device.startswith("/dev/sd") or device.startswith("/dev/mmcblk"):
-                # Check removable flag if available
-                base = device.replace("/dev/", "").rstrip("0123456789")
-                removable = f"/sys/block/{base}/removable"
-                if os.path.exists(removable):
-                    try:
-                        if open(removable).read().strip() == "1":
-                            log(f"Removable mounted: {device} at {mnt} ({fstype})")
-                            return True, f"Mounted: {os.path.basename(device)}"
-                    except Exception:
-                        pass
-                # Fallback: common mount points for removable media
-                if mnt.startswith(("/media/", "/mnt/", "/run/media/")):
-                    log(f"Mounted under removable path: {device} at {mnt} ({fstype})")
-                    return True, f"Mounted: {os.path.basename(device)}"
+        value = device.get(name)
+        if value is not None:
+            return str(value)
     except Exception:
         pass
-    return False, ""
-
-
-def count_keyboard_events_on_device(dev_path, duration_sec=KEY_WINDOW_SEC):
-    if not list_devices or not InputDevice or not ecodes:
-        log("evdev not available")
-        return 0
-    count = 0
     try:
-        dev = InputDevice(dev_path)
-        caps = dev.capabilities()
-        if ecodes.EV_KEY not in caps:
-            log(f"Device {dev.path} has no EV_KEY capability")
-            return 0
-        log(f"Monitoring keyboard device: {dev.path} ({dev.name})")
-        if hasattr(dev, "set_blocking"):
-            dev.set_blocking(False)
-        elif hasattr(dev, "setblocking"):
-            dev.setblocking(False)
-        else:
-            try:
-                import fcntl
-                flags = fcntl.fcntl(dev.fd, fcntl.F_GETFL)
-                fcntl.fcntl(dev.fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
-            except Exception:
-                pass
-        start = time.time()
-        while True:
-            try:
-                for event in dev.read():
-                    if event.type == ecodes.EV_KEY and event.value == 1:
-                        count += 1
-                        if count >= KEY_EVENT_THRESHOLD:
-                            log(f"Key threshold reached on {dev_path}")
-                            return count
-            except Exception:
-                pass
-            time.sleep(0.02)
-            if duration_sec is not None and (time.time() - start) >= duration_sec:
-                break
-    except Exception as e:
-        log(f"Keyboard read error: {e}")
-    if duration_sec is None:
-        log(f"Keyboard events counted: {count} on {dev_path} (continuous)")
-    else:
-        log(f"Keyboard events counted: {count} on {dev_path} in {duration_sec:.1f}s")
-    return count
-
-
-def _is_usb_keyboard(devnode):
-    if not pyudev:
-        return False
-    try:
-        ctx = pyudev.Context()
-        dev = pyudev.Devices.from_device_file(ctx, devnode)
-        return dev.get("ID_INPUT_KEYBOARD") == "1" and dev.get("ID_BUS") == "usb"
+        value = device.properties.get(name)
+        if value is not None:
+            return str(value)
     except Exception:
+        pass
+    return default
+
+
+def _udev_for_node(context, devnode: str):
+    try:
+        return pyudev.Devices.from_device_file(context, devnode)
+    except Exception:
+        return None
+
+
+def is_keyboard(udev_device, input_device=None) -> bool:
+    """Require keyboard identity and, when available, EV_KEY capability."""
+    if udev_device is None:
+        return False
+    if _property(udev_device, "ID_INPUT_KEYBOARD") != "1":
+        return False
+    if input_device is None or ecodes is None:
+        return True
+    try:
+        key_codes = input_device.capabilities().get(ecodes.EV_KEY, [])
+        required = {
+            getattr(ecodes, name)
+            for name in TYPING_KEY_CODES
+            if hasattr(ecodes, name)
+        }
+        return bool(required) and required.issubset(set(key_codes))
+    except OSError:
         return False
 
 
-def _list_keycap_devices():
-    if not list_devices or not InputDevice or not ecodes:
-        return []
-    devs = []
-    for path in list_devices():
-        if not path.startswith("/dev/input/event"):
-            continue
+def is_usb_keyboard(udev_device, input_device=None) -> bool:
+    """Limit exact tracing to keyboards whose udev bus is USB."""
+    return (
+        is_keyboard(udev_device, input_device)
+        and _property(udev_device, "ID_BUS").lower() == "usb"
+    )
+
+
+def device_identity(devnode: str, input_device, udev_device, origin: str) -> dict:
+    return {
+        "origin": origin,
+        "name": getattr(input_device, "name", None) or _property(udev_device, "ID_MODEL", "USB keyboard"),
+        "device": devnode,
+        "bus": _property(udev_device, "ID_BUS", "unknown"),
+        "vendor_id": _property(udev_device, "ID_VENDOR_ID"),
+        "product_id": _property(udev_device, "ID_MODEL_ID"),
+        "serial": _property(udev_device, "ID_SERIAL_SHORT"),
+        "path": _property(udev_device, "ID_PATH"),
+        "connected_at": utc_now(),
+        "responsive": False,
+        "activity_events": 0,
+        "exact_trace": origin == "new",
+        "trace_status": "pending" if origin == "new" else "disabled (pre-existing)",
+    }
+
+
+def decode_key_event(event) -> tuple[str, str]:
+    key = ecodes.KEY.get(event.code, f"KEY_{event.code}")
+    if isinstance(key, (tuple, list)):
+        key = "/".join(str(item) for item in key)
+    action = {0: "release", 1: "press", 2: "repeat"}.get(event.value, str(event.value))
+    return str(key), action
+
+
+def set_nonblocking(input_device) -> None:
+    """Enable nonblocking evdev reads across old and new python-evdev APIs."""
+    flags = fcntl.fcntl(input_device.fd, fcntl.F_GETFL)
+    fcntl.fcntl(input_device.fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+
+class SecureJsonl:
+    def __init__(self, path: Path):
+        path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            dev = InputDevice(path)
-            caps = dev.capabilities()
-            if ecodes.EV_KEY in caps:
-                devs.append((dev.path, dev.name))
-        except Exception:
-            continue
-    return devs
+            path.parent.chmod(0o700)
+        except OSError:
+            pass
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        os.chmod(path, 0o600)
+        self.path = path
+        self._stream = os.fdopen(fd, "a", encoding="utf-8")
+        self._lock = threading.Lock()
+
+    def write(self, event: str, **fields) -> None:
+        record = {"timestamp": utc_now(), "event": event, **fields}
+        with self._lock:
+            self._stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+            self._stream.flush()
+
+    def close(self) -> None:
+        with self._lock:
+            self._stream.close()
 
 
-def trigger_alert(reason):
-    global alert_active, alert_reason, alert_since
-    alert_active = True
-    alert_reason = reason
-    alert_since = time.time()
-    log(f"Trigger alert: {reason}")
+class Detector:
+    def __init__(self, duration: float | None):
+        self.duration = duration
+        self.stop_event = threading.Event()
+        self.lock = threading.RLock()
+        self.context = pyudev.Context()
+        self.startup_nodes: set[str] = set()
+        self.devices: dict[str, dict] = {}
+        self.recent_events: deque[dict] = deque(maxlen=MAX_RECENT_EVENTS)
+        self.total_exact_events = 0
+        self.new_keyboards = 0
+        self.active_traces = 0
+        self.status = "starting"
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        loot_root = Path(os.environ.get("CITYPOP_LOOT", "/tmp/citypop_loot"))
+        self.journal = SecureJsonl(loot_root / "BadUSB" / f"usb_keyboard_trace_{stamp}.jsonl")
+        self.dashboard = DashboardServer("Bounded USB Keyboard Trace", self.snapshot)
+        self.threads: list[threading.Thread] = []
 
+    def snapshot(self) -> dict:
+        with self.lock:
+            devices = []
+            for item in self.devices.values():
+                devices.append({
+                    "origin": item["origin"],
+                    "name": item["name"],
+                    "device": item["device"],
+                    "bus": item["bus"],
+                    "usb_id": f"{item['vendor_id']}:{item['product_id']}",
+                    "responsive": item["responsive"],
+                    "activity_events": item["activity_events"],
+                    "exact_trace": item["exact_trace"],
+                    "trace_status": item["trace_status"],
+                })
+            return {
+                "status": self.status,
+                "trace_window_seconds": int(TRACE_WINDOW_SEC),
+                "pre_existing_keyboards": sum(d["origin"] == "pre-existing" for d in self.devices.values()),
+                "new_usb_keyboards": self.new_keyboards,
+                "active_traces": self.active_traces,
+                "captured_exact_events": self.total_exact_events,
+                "devices": devices,
+                "recent_new_device_key_events": list(self.recent_events),
+            }
 
-def _watch_keyboard_continuous(devnode):
-    log(f"Continuous watch started on {devnode}")
-    keys = count_keyboard_events_on_device(devnode, duration_sec=None)
-    if keys >= KEY_EVENT_THRESHOLD:
-        trigger_alert(f"Keys: {keys}")
-
-
-def monitor_usb():
-    if not pyudev:
-        log("pyudev not available; cannot monitor USB")
-        return
-    context = pyudev.Context()
-    monitor = pyudev.Monitor.from_netlink(context)
-    monitor.filter_by(subsystem="usb")
-    log("USB monitor started (subsystem=usb)")
-    # No snapshot needed in "any keyboard" mode; we will watch all on startup
-
-    for device in iter(monitor.poll, None):
-        if not running:
-            break
-        if device.action == "add":
-            log(f"USB add: {device}")
-            # Quick checks after insertion
-            time.sleep(0.5)
-
-            mounted, msg = is_removable_mount_present()
-            if mounted:
-                trigger_alert(msg)
+    def inventory_startup(self) -> int:
+        found = 0
+        if not list_devices:
+            return found
+        for devnode in list_devices():
+            if not devnode.startswith("/dev/input/event"):
                 continue
+            self.startup_nodes.add(devnode)
+            try:
+                input_device = InputDevice(devnode)
+                udev_device = _udev_for_node(self.context, devnode)
+                if not is_keyboard(udev_device, input_device):
+                    input_device.close()
+                    continue
+                identity = device_identity(devnode, input_device, udev_device, "pre-existing")
+                with self.lock:
+                    self.devices[devnode] = identity
+                found += 1
+                self.journal.write("device_inventory", **identity)
+                log(
+                    f"Pre-existing keyboard inventoried: {devnode} "
+                    f"({identity['name']}, bus={identity['bus']})"
+                )
+                input_device.close()
+                self._start_reader(devnode, exact=False)
+            except (OSError, PermissionError) as exc:
+                log(f"Could not inventory {devnode}: {exc}")
+        self.journal.write("inventory_complete", keyboard_count=found)
+        if found == 0:
+            log("No pre-existing keyboards were classified; check evdev permissions and udev properties")
+        else:
+            log(f"Pre-existing keyboard inventory complete: {found} device(s)")
+        return found
 
-            # USB add: we just log; keyboard detection handled by input monitor
-            if not alert_active:
-                log("USB device added; input monitor will handle keyboards")
-        elif device.action == "remove":
-            log(f"USB remove: {device}")
+    def _start_reader(self, devnode: str, exact: bool) -> None:
+        thread = threading.Thread(target=self._read_device, args=(devnode, exact), daemon=True)
+        self.threads.append(thread)
+        thread.start()
 
+    def _read_device(self, devnode: str, exact: bool) -> None:
+        started = time.monotonic()
+        deadline = started + TRACE_WINDOW_SEC if exact else None
+        captured = 0
+        device = None
+        try:
+            device = InputDevice(devnode)
+            set_nonblocking(device)
+            if exact:
+                with self.lock:
+                    self.active_traces += 1
+                    self.devices[devnode]["trace_status"] = "active"
+                self.journal.write("trace_start", device=devnode, window_seconds=TRACE_WINDOW_SEC)
+                log(f"New USB keyboard trace started for {devnode} ({TRACE_WINDOW_SEC:.0f}s)")
 
-def monitor_input():
-    if not pyudev:
-        log("pyudev not available; cannot monitor input")
-        return
-    context = pyudev.Context()
-    mon = pyudev.Monitor.from_netlink(context)
-    mon.filter_by(subsystem="input")
-    log("Input monitor started (subsystem=input)")
-
-    for device in iter(mon.poll, None):
-        if not running:
-            break
-        if device.action == "add":
-            devnode = device.device_node
-            if devnode and devnode.startswith("/dev/input/event"):
+            while not self.stop_event.is_set():
+                if deadline is not None and time.monotonic() >= deadline:
+                    break
                 try:
-                    dev = InputDevice(devnode)
-                    caps = dev.capabilities()
-                    if ecodes.EV_KEY in caps:
-                        if devnode in watched_keyboards:
-                            continue
-                        watched_keyboards.add(devnode)
-                        name = getattr(dev, "name", "input")
-                        log(f"Input add (keycap): {devnode} ({name})")
-                        t = threading.Thread(
-                            target=_watch_keyboard_continuous,
-                            args=(devnode,),
-                            daemon=True,
+                    events = device.read()
+                except BlockingIOError:
+                    events = []
+                for event in events:
+                    if event.type != ecodes.EV_KEY:
+                        continue
+                    with self.lock:
+                        record = self.devices.get(devnode)
+                        if record is None:
+                            return
+                        was_responsive = record["responsive"]
+                        record["responsive"] = True
+                        record["activity_events"] += 1
+                        device_name = record["name"]
+                        activity_count = record["activity_events"]
+                    if not was_responsive:
+                        self.journal.write(
+                            "keyboard_responsive",
+                            device=devnode,
+                            device_name=device_name,
+                            origin=record["origin"],
+                            bus=record["bus"],
                         )
-                        t.start()
-                    else:
-                        log(f"Input add (no-keycap): {devnode}")
-                except Exception as e:
-                    log(f"Input add read error: {devnode} ({e})")
-        elif device.action == "remove":
+                        log(f"Keyboard responsive: {devnode} ({device_name})")
+                    elif not exact and activity_count % 25 == 0:
+                        self.journal.write(
+                            "keyboard_activity",
+                            device=devnode,
+                            origin="pre-existing",
+                            activity_events=activity_count,
+                        )
+                    if not exact or captured >= MAX_TRACE_EVENTS_PER_DEVICE:
+                        continue
+                    key, action = decode_key_event(event)
+                    item = {
+                        "elapsed_ms": int((time.monotonic() - started) * 1000),
+                        "device": devnode,
+                        "device_name": device_name,
+                        "key": key,
+                        "code": event.code,
+                        "action": action,
+                    }
+                    with self.lock:
+                        self.recent_events.appendleft(item)
+                        self.total_exact_events += 1
+                    self.journal.write("key_event", origin="new", **item)
+                    captured += 1
+                time.sleep(POLL_INTERVAL_SEC)
+        except (OSError, PermissionError) as exc:
+            self.journal.write("device_read_error", device=devnode, error=str(exc))
+            log(f"Input reader ended for {devnode}: {exc}")
+        finally:
+            if device is not None:
+                try:
+                    device.close()
+                except OSError:
+                    pass
+            if exact:
+                with self.lock:
+                    self.active_traces = max(0, self.active_traces - 1)
+                    if devnode in self.devices:
+                        self.devices[devnode]["trace_status"] = "complete"
+                self.journal.write("trace_end", device=devnode, captured_events=captured)
+                log(f"Trace complete for {devnode}: {captured} exact events")
+
+    def _register_new_input(self, devnode: str) -> None:
+        # udev properties can lag behind creation of the event node.
+        for _attempt in range(10):
+            if self.stop_event.is_set():
+                return
+            try:
+                input_device = InputDevice(devnode)
+                udev_device = _udev_for_node(self.context, devnode)
+                if is_usb_keyboard(udev_device, input_device):
+                    break
+                input_device.close()
+            except OSError:
+                pass
+            time.sleep(0.2)
+        else:
+            return
+
+        with self.lock:
+            if devnode in self.startup_nodes or devnode in self.devices:
+                input_device.close()
+                return
+            identity = device_identity(devnode, input_device, udev_device, "new")
+            self.devices[devnode] = identity
+            self.new_keyboards += 1
+        input_device.close()
+        self.journal.write("device_attached", **identity)
+        log(f"New USB keyboard correlated: {devnode} ({identity['name']})")
+        self._start_reader(devnode, exact=True)
+
+    def monitor_input(self) -> None:
+        monitor = pyudev.Monitor.from_netlink(self.context)
+        monitor.filter_by(subsystem="input")
+        while not self.stop_event.is_set():
+            device = monitor.poll(timeout=0.5)
+            if device is None:
+                continue
             devnode = device.device_node
-            if devnode and devnode.startswith("/dev/input/event"):
-                log(f"Input remove: {devnode}")
-                if devnode in watched_keyboards:
-                    watched_keyboards.remove(devnode)
+            if not devnode or not devnode.startswith("/dev/input/event"):
+                continue
+            if device.action == "add":
+                threading.Thread(target=self._register_new_input, args=(devnode,), daemon=True).start()
+            elif device.action == "remove":
+                with self.lock:
+                    known = self.devices.pop(devnode, None)
+                    if known:
+                        known["trace_status"] = "disconnected"
+                        archive_key = f"{devnode}#removed-{time.monotonic_ns()}"
+                        self.devices[archive_key] = known
+                    self.startup_nodes.discard(devnode)
+                if known:
+                    self.journal.write("device_removed", device=devnode, origin=known["origin"])
+                    log(f"USB keyboard removed: {devnode}")
+
+    def run(self) -> int:
+        self.journal.write(
+            "session_start",
+            trace_window_seconds=TRACE_WINDOW_SEC,
+            max_trace_events_per_device=MAX_TRACE_EVENTS_PER_DEVICE,
+        )
+        self.inventory_startup()
+        url = self.dashboard.start()
+        log(f"Dashboard: {url}")
+        log(f"Permission-restricted JSONL trace: {self.journal.path}")
+        log("Pre-existing keyboards: responsiveness only; exact key values are never retained")
+        log(f"New USB keyboards: exact key events retained for {TRACE_WINDOW_SEC:.0f}s after attachment")
+        self.status = "watching"
+        monitor_thread = threading.Thread(target=self.monitor_input, daemon=True)
+        self.threads.append(monitor_thread)
+        monitor_thread.start()
+        started = time.monotonic()
+        try:
+            while not self.stop_event.wait(0.2):
+                if self.duration is not None and time.monotonic() - started >= self.duration:
+                    log(f"Duration {self.duration:.0f}s elapsed; stopping")
+                    break
+        except KeyboardInterrupt:
+            log("Interrupted by operator")
+        finally:
+            self.status = "stopping"
+            self.stop_event.set()
+            for thread in self.threads:
+                thread.join(timeout=1.0)
+            self.journal.write(
+                "session_end",
+                new_usb_keyboards=self.new_keyboards,
+                captured_exact_events=self.total_exact_events,
+            )
+            self.dashboard.stop()
+            self.journal.close()
+            self.status = "stopped"
+        log("Shutdown complete")
+        return 0
 
 
-def main():
-    global running, alert_active
-
+def main() -> int:
+    if pyudev is None or InputDevice is None or ecodes is None or list_devices is None:
+        log("pyudev and evdev are required; install the USB payload dependencies")
+        return 1
     duration = None
     if len(sys.argv) > 1:
         try:
             duration = float(sys.argv[1])
+            if duration <= 0:
+                raise ValueError
         except ValueError:
-            print(f"Usage: python3 {os.path.basename(__file__)} [duration_seconds]", flush=True)
+            print(f"Usage: python3 {os.path.basename(__file__)} [positive_duration_seconds]", flush=True)
             return 1
 
-    if not pyudev:
-        log("pyudev not available; cannot monitor USB. Exiting.")
-        return 1
+    detector = Detector(duration)
 
-    t = threading.Thread(target=monitor_usb, daemon=True)
-    t.start()
-    log("Background USB monitor thread started")
+    def stop_handler(_signum, _frame):
+        detector.stop_event.set()
 
-    ti = threading.Thread(target=monitor_input, daemon=True)
-    ti.start()
-    log("Background input monitor thread started")
-
-    # Start watching any existing keyboards immediately
-    try:
-        kbds = _list_keycap_devices()
-        log(f"Key-capable inputs at start: {len(kbds)}")
-        for devnode, name in kbds:
-            if devnode in watched_keyboards:
-                continue
-            watched_keyboards.add(devnode)
-            log(f"Watching input: {devnode} ({name})")
-            t = threading.Thread(
-                target=_watch_keyboard_continuous,
-                args=(devnode,),
-                daemon=True,
-            )
-            t.start()
-    except Exception as e:
-        log(f"Keycap init scan error: {e}")
-
-    log(
-        "Monitoring for BadUSB indicators (Ctrl-C to stop)"
-        + (f", timeout {duration:.0f}s" if duration is not None else "")
-    )
-
-    start = time.time()
-    last_status = 0.0
-    try:
-        while running:
-            now = time.time()
-            if alert_active:
-                if now - last_status > 2.0:
-                    log(f"*** ALERT ACTIVE: {alert_reason} ***")
-                    last_status = now
-                if now - alert_since > ALERT_WINDOW_SEC:
-                    alert_active = False
-                    log("Alert window elapsed; back to idle")
-            elif now - last_status > 10.0:
-                log("Status: watching (no alert)")
-                last_status = now
-
-            if duration is not None and (now - start) >= duration:
-                log(f"Duration {duration:.0f}s elapsed; stopping")
-                break
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        log("Interrupted by operator")
-    finally:
-        running = False
-
-    log("Shutdown complete")
-    return 0
+    signal.signal(signal.SIGTERM, stop_handler)
+    signal.signal(signal.SIGINT, stop_handler)
+    return detector.run()
 
 
 if __name__ == "__main__":
