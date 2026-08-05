@@ -329,6 +329,9 @@ MODEL_SHA256 = "5c64ba3ffab264ccbfafe784896392051a86be63b0cc507e7683db7df114546b
 MODEL_MEMBER = "audio-model-fp16.tflite"
 LABEL_COUNT = 6522
 LANG_MEMBERS = {lang: ("en_us" if lang == "en" else "zh" if lang == "zh_CN" else lang) for lang in AVAILABLE_LANGS}
+DOWNLOAD_STALL_SECONDS = 60
+DOWNLOAD_TOTAL_SECONDS = 300
+DOWNLOAD_REPORT_SECONDS = 10
 
 
 def _sha256(path):
@@ -377,18 +380,92 @@ def _mapping_from_labels(content):
     return mapping
 
 
+def _stop_process(process):
+    if process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=3)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=3)
+
+
+def _download_model_archive(archive_path):
+    """Download with visible progress and bounded total/inactivity waits."""
+    process = subprocess.Popen(
+        [
+            "wget", "--no-verbose", "--dns-timeout=15", "--connect-timeout=15",
+            "--read-timeout=30", "--tries=3", "-O", archive_path,
+            MODEL_BUNDLE_URL,
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    started = time.monotonic()
+    last_data = started
+    last_report = started - DOWNLOAD_REPORT_SECONDS
+    previous_size = 0
+    failure = ""
+    try:
+        while process.poll() is None:
+            now = time.monotonic()
+            try:
+                size = os.path.getsize(archive_path)
+            except OSError:
+                size = 0
+            if size != previous_size:
+                previous_size = size
+                last_data = now
+            if now - last_report >= DOWNLOAD_REPORT_SECONDS:
+                percent = min(100.0, size * 100.0 / MODEL_BUNDLE_SIZE)
+                idle = int(now - last_data)
+                print(
+                    f"BirdNET download: {size / 1_048_576:.1f}/"
+                    f"{MODEL_BUNDLE_SIZE / 1_048_576:.1f} MiB "
+                    f"({percent:.1f}%) · no new data for {idle}s",
+                    flush=True,
+                )
+                last_report = now
+            if not _running:
+                failure = "cancelled by operator"
+                _stop_process(process)
+                break
+            if now - last_data >= DOWNLOAD_STALL_SECONDS:
+                failure = f"no data received for {DOWNLOAD_STALL_SECONDS}s"
+                _stop_process(process)
+                break
+            if now - started >= DOWNLOAD_TOTAL_SECONDS:
+                failure = f"download exceeded {DOWNLOAD_TOTAL_SECONDS}s"
+                _stop_process(process)
+                break
+            time.sleep(1)
+        _stdout, stderr = process.communicate(timeout=5)
+    except (OSError, subprocess.SubprocessError) as error:
+        _stop_process(process)
+        return False, str(error)
+
+    if failure:
+        return False, failure
+    if process.returncode != 0:
+        detail = (stderr or "").strip().splitlines()
+        return False, detail[-1] if detail else f"wget exit {process.returncode}"
+    print(
+        f"BirdNET download complete: {os.path.getsize(archive_path) / 1_048_576:.1f} MiB; verifying SHA-256...",
+        flush=True,
+    )
+    return True, ""
+
+
 def _install_model_bundle():
     os.makedirs(MODEL_DIR, exist_ok=True)
     os.makedirs(L18N_DIR, exist_ok=True)
     try:
         with tempfile.TemporaryDirectory(prefix=".birdnet-download-", dir=MODEL_DIR) as temporary:
             archive_path = os.path.join(temporary, "birdnet.zip")
-            result = subprocess.run(
-                ["wget", "--timeout=30", "--tries=3", "-O", archive_path, MODEL_BUNDLE_URL],
-                capture_output=True, text=True, timeout=300,
-            )
-            if result.returncode != 0:
-                detail = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else f"wget exit {result.returncode}"
+            downloaded, detail = _download_model_archive(archive_path)
+            if not downloaded:
                 print(f"Download failed: BirdNET model bundle · {detail}", flush=True)
                 return False
             if os.path.getsize(archive_path) != MODEL_BUNDLE_SIZE or _sha256(archive_path) != MODEL_BUNDLE_SHA256:

@@ -4,7 +4,7 @@ import tempfile
 import types
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,6 +50,23 @@ class BirdnetModelTests(unittest.TestCase):
         with patch.object(birdnet, "_valid_model_bundle", return_value=False), \
                 patch.object(birdnet, "_install_model_bundle", return_value=False):
             self.assertFalse(birdnet._ensure_model())
+
+    def test_bundle_download_stops_after_inactivity_limit(self):
+        process = Mock()
+        process.returncode = -15
+        process.poll.side_effect = [None, None, None]
+        process.wait.return_value = -15
+        process.communicate.return_value = ("", "")
+        with tempfile.TemporaryDirectory() as temporary, \
+                patch.object(birdnet.subprocess, "Popen", return_value=process), \
+                patch.object(birdnet.time, "monotonic", side_effect=[0, 0, 61]), \
+                patch.object(birdnet.time, "sleep"):
+            success, detail = birdnet._download_model_archive(
+                str(Path(temporary) / "bundle.zip")
+            )
+        self.assertFalse(success)
+        self.assertIn("no data received", detail)
+        process.terminate.assert_called_once()
 
 
 if __name__ == "__main__":
