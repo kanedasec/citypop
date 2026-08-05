@@ -35,7 +35,7 @@ if [ "$(id -u)" = 0 ]; then
     echo "Continuing with the package indexes that are available." >&2
   fi
   SYSTEM_PACKAGES=(
-    python3 python3-venv python3-dev python3-rpi.gpio python3-gpiozero
+    python3 python3-venv python3-dev sudo ufw python3-rpi.gpio python3-gpiozero
     python3-lgpio python3-spidev python3-smbus gpiod
     python3-soapysdr build-essential pkg-config
     python3-numpy python3-scipy python3-sklearn python3-opencv python3-pil
@@ -51,6 +51,18 @@ if [ "$(id -u)" = 0 ]; then
     udisks2
     snmp ffmpeg zbar-tools libturbojpeg0
   )
+  # These packages back core deployment/security behavior or payloads shipped
+  # as supported City Pop features. Do not silently omit them when an APT
+  # repository is incomplete: doing so produces an apparently successful
+  # installation whose dashboard or USB detector cannot run.
+  REQUIRED_SYSTEM_PACKAGES=(sudo ufw python3-pyudev python3-evdev)
+  for package in "${REQUIRED_SYSTEM_PACKAGES[@]}"; do
+    if ! apt-cache show "$package" >/dev/null 2>&1; then
+      echo "Required system package is unavailable: $package" >&2
+      echo "Enable a repository that provides it, run apt-get update, and retry." >&2
+      exit 1
+    fi
+  done
   AVAILABLE_PACKAGES=()
   for package in "${SYSTEM_PACKAGES[@]}"; do
     if apt-cache show "$package" >/dev/null 2>&1; then
@@ -60,6 +72,12 @@ if [ "$(id -u)" = 0 ]; then
     fi
   done
   apt-get install -y "${AVAILABLE_PACKAGES[@]}"
+  for command in sudo ufw; do
+    if ! command -v "$command" >/dev/null 2>&1; then
+      echo "Required command was not installed correctly: $command" >&2
+      exit 1
+    fi
+  done
   if [ "$BASE" != "$INSTALL_DIR" ]; then
     for catalog in payloads templates; do
       if [ ! -d "$BASE/$catalog" ]; then
@@ -145,9 +163,20 @@ for module in required:
     importlib.import_module(module)
 print("City Pop web runtime imports: OK")
 
+usb_required = ("evdev", "pyudev")
+for module in usb_required:
+    try:
+        importlib.import_module(module)
+    except Exception as exc:
+        raise SystemExit(
+            f"Required USB runtime import unavailable: {module} ({exc}). "
+            "Verify python3-evdev/python3-pyudev and venv system-site packages."
+        ) from exc
+print("City Pop USB runtime imports: OK")
+
 optional = (
-    "PIL", "bleak", "cryptography", "cv2", "evdev", "gpsd", "nfc",
-    "numpy", "pyftpdlib", "pyudev", "pyzbar", "qrcode", "requests",
+    "PIL", "bleak", "cryptography", "cv2", "gpsd", "nfc",
+    "numpy", "pyftpdlib", "pyzbar", "qrcode", "requests",
     "scapy", "serial", "sklearn", "smbus2", "vosk",
 )
 missing = []

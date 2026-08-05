@@ -61,6 +61,12 @@ class DeploymentTests(unittest.TestCase):
         self.assertIn("SOCKETIO_SHA256=", installer)
         self.assertIn("--require-hashes", installer)
 
+    def test_installer_requires_usb_and_firewall_runtime(self):
+        installer = (ROOT / "install.sh").read_text(encoding="utf-8")
+        self.assertIn("REQUIRED_SYSTEM_PACKAGES=(sudo ufw python3-pyudev python3-evdev)", installer)
+        self.assertIn('usb_required = ("evdev", "pyudev")', installer)
+        self.assertIn("City Pop USB runtime imports: OK", installer)
+
 
 if __name__ == "__main__":
     unittest.main()
