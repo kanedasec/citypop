@@ -14,7 +14,7 @@ the dates below come from the repository's Git history.
 
 ```text
 Platform phases     [████████████████░░░░]  4 complete · 1 active
-Payload validation  [████░░░░░░░░░░░░░░░░]  34 of 153 reviewed · 22.2%
+Payload validation  [█████░░░░░░░░░░░░░░░]  36 of 154 reviewed · 23.4%
 ```
 
 | | Phase | Dates | Status |
@@ -66,6 +66,7 @@ that the area is frozen or will never receive another correction.
 | 2026-08-04 | Payload discovery | Replaced horizontally scrolling categories with fully visible wrapping controls and made payload cards open their Guided Workflow directly. |
 | 2026-08-04 | Engagement workflow | Moved report generation and management into each engagement row, with report listing and actions scoped to that engagement. |
 | 2026-08-04 | USB payload validation | Redesigned the BadUSB detector around bounded new-device tracing, pre-existing keyboard responsiveness, per-device dashboard output, private JSONL evidence, and hardware-tested `functional` maturity. |
+| 2026-08-04 | Device workflow validation | Advanced Wi-Fi antenna diagnostics and the Bluetooth keyboard picker to `functional`; added the Bluetooth keyboard USB relay to the catalog as `not tested`. |
 
 ## Payload validation board
 
@@ -73,17 +74,17 @@ that the area is frozen or will never receive another correction.
 
 | Maturity | Visual | Count | Share |
 |---|---|---:|---:|
-| 🟢 Functional | `████░░░░░░░░░░░░░░░░` | 32 | 20.9% |
+| 🟢 Functional | `████░░░░░░░░░░░░░░░░` | 34 | 22.1% |
 | 🟡 Limited | `▎░░░░░░░░░░░░░░░░░░░` | 2 | 1.3% |
-| ⚪ Not tested | `████████████████░░░░` | 119 | 77.8% |
-| **Total** | | **153** | **100%** |
+| ⚪ Not tested | `███████████████░░░░░` | 118 | 76.6% |
+| **Total** | | **154** | **100%** |
 
 ```mermaid
 pie showData
     title Payload maturity snapshot — 2026-08-04
-    "Functional" : 32
+    "Functional" : 34
     "Limited" : 2
-    "Not tested" : 119
+    "Not tested" : 118
 ```
 
 ## Current-phase workflow
