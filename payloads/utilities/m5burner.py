@@ -37,6 +37,11 @@ API_URL = "http://m5burner-api-fc-hk-cdn.m5stack.com/api/firmware"
 FW_DIR = os.path.join(os.environ.get("CITYPOP_ROOT", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))), 'loot', 'Firmwares', 'M5Stack')
 
 
+def _esptool_command(*args):
+    """Use the installed module; esptool 5 no longer guarantees esptool.py."""
+    return [sys.executable, "-m", "esptool", *args]
+
+
 def _ensure_esptool():
     try:
         import esptool  # noqa: F401
@@ -90,7 +95,7 @@ def _detect_serial():
 def _detect_chip(port):
     try:
         r = subprocess.run(
-            ["esptool.py", "--port", port, "chip_id"],
+            _esptool_command("--port", port, "chip-id"),
             capture_output=True, text=True, timeout=15)
         output = r.stdout + r.stderr
         for line in output.split("\n"):
@@ -129,8 +134,9 @@ def _download_firmware(file_hash):
 
 
 def _flash(port, fw_path, progress_cb):
-    cmd = ["esptool.py", "--port", port, "--baud", "460800",
-           "write_flash", "0x0", fw_path]
+    cmd = _esptool_command(
+        "--port", port, "--baud", "460800", "write-flash", "0x0", fw_path,
+    )
     proc = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         bufsize=0)
@@ -167,7 +173,7 @@ def _flash(port, fw_path, progress_cb):
 
 def _erase(port):
     r = subprocess.run(
-        ["esptool.py", "--port", port, "erase_flash"],
+        _esptool_command("--port", port, "erase-flash"),
         capture_output=True, text=True, timeout=30)
     return r.returncode == 0
 

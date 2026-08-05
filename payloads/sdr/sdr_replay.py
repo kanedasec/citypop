@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-# @name: SDR Capture & Replay
-# @desc: Flipper Zero-style capture and replay for ISM bands (315/433/868/915 MHz).
+# @name: SDR Capture Library
+# @desc: Capture and manage raw ISM-band IQ recordings; reject unvalidated RF replay instead of transmitting incompatible samples.
 # @category: sdr
 # @danger: false
 # @active: true
 # @web: true
+# @maturity: limited
 """
 RaspyJack Payload -- SDR Capture & Replay
 ==========================================
@@ -404,6 +405,17 @@ def _run_library():
 # Mode: replay
 # ---------------------------------------------------------------------------
 def _run_replay(args):
+    print(
+        "Replay is disabled: this payload records RTL-SDR unsigned 8-bit IQ, but "
+        "its former rpitx path did not validate or convert that format before RF "
+        "transmission. Captures remain available through library mode for offline "
+        "analysis.",
+        flush=True,
+    )
+    return 2
+
+    # Retained reference implementation below is deliberately unreachable until
+    # a tested sample conversion and explicit RF-safety workflow are provided.
     captures = _list_captures()
     if args:
         cap = _resolve_capture(args[0], captures)

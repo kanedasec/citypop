@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-# @name: Stealth Bridge MITM
-# @desc: Configure a transparent two-interface Linux bridge, capture traversing traffic to loot with tcpdump, stream status, and restore networking on exit.
+# @name: Validated Transparent Bridge Capture
+# @desc: Bridge two explicitly selected physical Ethernet interfaces, capture traversing traffic, validate setup, and restore link state on exit.
 # @category: network
-# @danger: false
+# @danger: true
 # @active: true
 # @web: true
+# @maturity: limited
 """
 RaspyJack Payload – Stealth Bridge MITM
 ---------------------------------------------------------
-- Auto-detects 2 active interfaces (carrier=1)
+- Requires explicit selection of 2 physical, unaddressed Ethernet interfaces
 - Creates a transparent bridge (br0) with NO IP (stealth)
 - Starts tcpdump on br0 (PCAP)
 - Live protocol counters via tshark
@@ -16,7 +17,7 @@ RaspyJack Payload – Stealth Bridge MITM
 Controls
 --------
   CLI  -- Run: python3 silent_bridge.py [duration_seconds]
-          Interfaces are auto-detected (first two with carrier=1).
+          Eligible interfaces are validated and selected through prompts.
           Prints periodic protocol counters; Ctrl-C stops and cleans
           up the bridge. If duration_seconds is given, stops
           automatically after that many seconds.
@@ -28,6 +29,7 @@ import time
 import subprocess
 from datetime import datetime
 import threading
+from payloads._web_input import request_input
 
 # Ensure RaspyJack modules are importable
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
@@ -50,8 +52,20 @@ PROTO_LIST = [
 proto_counts = {p: 0 for p in PROTO_LIST}
 
 
+class BridgeError(RuntimeError):
+    pass
+
+
 def _run(cmd):
     return subprocess.run(cmd, capture_output=True, text=True)
+
+
+def _checked(cmd):
+    result = _run(cmd)
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip() or f"exit {result.returncode}"
+        raise BridgeError(f"{' '.join(cmd)}: {detail}")
+    return result
 
 
 def _read(path):
@@ -92,6 +106,44 @@ def _list_active_ifaces():
     return ifaces
 
 
+def _physical_ethernet_ifaces():
+    found = []
+    for name in sorted(os.listdir("/sys/class/net")):
+        base = f"/sys/class/net/{name}"
+        if name in ("lo", BRIDGE) or os.path.isdir(f"{base}/wireless"):
+            continue
+        if not os.path.exists(f"{base}/device") or _read(f"{base}/type") != "1":
+            continue
+        if not _iface_has_carrier(name):
+            continue
+        # Never flush or enslave an addressed interface; it may carry City Pop.
+        if _iface_ip(name):
+            continue
+        found.append(name)
+    return found
+
+
+def _choose_bridge_ports():
+    interfaces = _physical_ethernet_ifaces()
+    if len(interfaces) < 2:
+        raise BridgeError(
+            "two carrier-up, unaddressed physical Ethernet interfaces are required; "
+            "Wi-Fi, Tailscale, VPN, Docker, and management interfaces are rejected"
+        )
+    first = str(request_input(
+        "Select first unaddressed physical Ethernet bridge port",
+        input_type="select", choices=interfaces, required=True,
+    ))
+    second_choices = [name for name in interfaces if name != first]
+    second = str(request_input(
+        "Select second unaddressed physical Ethernet bridge port",
+        input_type="select", choices=second_choices, required=True,
+    ))
+    if first not in interfaces or second not in second_choices:
+        raise BridgeError("invalid bridge-interface selection")
+    return first, second
+
+
 def _sort_ifaces(ifaces):
     def score(n):
         if n.startswith("eth"):
@@ -111,36 +163,35 @@ def print_stats(if1, if2):
     print(f"[{if1} <-> {if2}] {summary or 'no traffic yet'}", flush=True)
 
 
-def ensure_bridge_cleanup(if1, if2):
+def ensure_bridge_cleanup(if1, if2, original_states=None):
+    for interface in (if1, if2):
+        _run(["ip", "link", "set", interface, "nomaster"])
+        _run(["ip", "link", "set", interface, "promisc", "off"])
     _run(["ip", "link", "set", BRIDGE, "down"])
     _run(["ip", "link", "del", BRIDGE])
-    _run(["ip", "link", "set", if1, "down"])
-    _run(["ip", "link", "set", if2, "down"])
-    _run(["ip", "link", "set", if1, "up"])
-    _run(["ip", "link", "set", if2, "up"])
+    for interface in (if1, if2):
+        state = (original_states or {}).get(interface, "up")
+        _run(["ip", "link", "set", interface, "up" if state == "up" else "down"])
 
 
 def setup_bridge(if1, if2):
-    # bring down and flush
-    _run(["ip", "link", "set", if1, "down"])
-    _run(["ip", "link", "set", if2, "down"])
-    _run(["ip", "addr", "flush", "dev", if1])
-    _run(["ip", "addr", "flush", "dev", if2])
-
-    # create bridge
-    _run(["ip", "link", "add", BRIDGE, "type", "bridge"])
-    _run(["ip", "link", "set", if1, "master", BRIDGE])
-    _run(["ip", "link", "set", if2, "master", BRIDGE])
-
-    # promiscuous + up
-    _run(["ip", "link", "set", if1, "promisc", "on"])
-    _run(["ip", "link", "set", if2, "promisc", "on"])
-    _run(["ip", "link", "set", if1, "up"])
-    _run(["ip", "link", "set", if2, "up"])
-    _run(["ip", "link", "set", BRIDGE, "up"])
-
-    # stealth: no IP on bridge
-    _run(["ip", "addr", "flush", "dev", BRIDGE])
+    if os.path.exists(f"/sys/class/net/{BRIDGE}"):
+        raise BridgeError(f"{BRIDGE} already exists; stop the prior bridge first")
+    states = {if1: _iface_operstate(if1), if2: _iface_operstate(if2)}
+    try:
+        _checked(["ip", "link", "add", BRIDGE, "type", "bridge"])
+        for interface in (if1, if2):
+            _checked(["ip", "link", "set", interface, "master", BRIDGE])
+            _checked(["ip", "link", "set", interface, "promisc", "on"])
+            _checked(["ip", "link", "set", interface, "up"])
+        _checked(["ip", "link", "set", BRIDGE, "up"])
+        for interface in (if1, if2):
+            if not os.path.exists(f"/sys/class/net/{BRIDGE}/brif/{interface}"):
+                raise BridgeError(f"{interface} did not join {BRIDGE}")
+    except Exception:
+        ensure_bridge_cleanup(if1, if2, states)
+        raise
+    return states
 
 
 def start_sniffer():
@@ -218,20 +269,23 @@ def main():
             print(f"Usage: {sys.argv[0]} [duration_seconds]", flush=True)
             return 1
 
-    print("Stealth Bridge: detecting active interfaces...", flush=True)
-    ifaces = _sort_ifaces(_list_active_ifaces())
-    if len(ifaces) < 2:
-        print("Need at least 2 active interfaces to build a bridge.", flush=True)
+    print("Transparent bridge: validating physical Ethernet interfaces...", flush=True)
+    try:
+        if1, if2 = _choose_bridge_ports()
+    except BridgeError as exc:
+        print(f"Bridge preflight failed: {exc}", flush=True)
         return 1
-
-    if1, if2 = ifaces[0], ifaces[1]
     ip1 = _iface_ip(if1) or "-"
     ip2 = _iface_ip(if2) or "-"
     print(f"IF1: {if1} (ip={ip1})", flush=True)
     print(f"IF2: {if2} (ip={ip2})", flush=True)
 
     print(f"Setting up stealth bridge {if1} <-> {if2}...", flush=True)
-    setup_bridge(if1, if2)
+    try:
+        original_states = setup_bridge(if1, if2)
+    except BridgeError as exc:
+        print(f"Bridge setup failed and was rolled back: {exc}", flush=True)
+        return 1
 
     print("Starting tcpdump on br0 and tshark protocol stats...", flush=True)
     sniffer, output = start_sniffer()
@@ -263,7 +317,7 @@ def main():
             tshark_proc.wait(timeout=3)
         except Exception:
             pass
-        ensure_bridge_cleanup(if1, if2)
+        ensure_bridge_cleanup(if1, if2, original_states)
         print_stats(if1, if2)
         print("Stealth bridge stopped.", flush=True)
 

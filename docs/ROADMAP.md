@@ -14,7 +14,7 @@ the dates below come from the repository's Git history.
 
 ```text
 Platform phases     [████████████████░░░░]  4 complete · 1 active
-Payload validation  [█████░░░░░░░░░░░░░░░]  36 of 151 reviewed · 23.8%
+Payload validation  [██████░░░░░░░░░░░░░░]  42 of 150 reviewed · 28.0%
 ```
 
 | | Phase | Dates | Status |
@@ -68,6 +68,7 @@ that the area is frozen or will never receive another correction.
 | 2026-08-04 | USB payload validation | Redesigned the BadUSB detector around bounded new-device tracing, pre-existing keyboard responsiveness, per-device dashboard output, private JSONL evidence, and hardware-tested `functional` maturity. |
 | 2026-08-04 | Device workflow validation | Advanced Wi-Fi antenna diagnostics and the Bluetooth keyboard picker to `functional`; added the Bluetooth keyboard USB relay to the catalog as `not tested`. |
 | 2026-08-05 | Catalog consolidation | Removed the AI category and its BirdNET, object-detection, and speech-to-text payloads; moved Network Anomaly Detector into Network, BLE Skimmer Scanner and Bluetooth Keyboard Picker into Bluetooth, and Disk Status into the new System category; removed unused AI-only runtime dependencies. |
+| 2026-08-05 | Pi compatibility hardening | Added validated physical-Ethernet bridge setup and rollback, modern esptool invocation, truthful bounded BLE GATT behavior, and disabled unvalidated SDR transmission while retaining capture/library operations; removed the impractical dual-controller USB keylogger from the Pi Zero 2 W catalog. |
 
 ## Payload validation board
 
@@ -75,17 +76,17 @@ that the area is frozen or will never receive another correction.
 
 | Maturity | Visual | Count | Share |
 |---|---|---:|---:|
-| 🟢 Functional | `████░░░░░░░░░░░░░░░░` | 34 | 22.5% |
-| 🟡 Limited | `▎░░░░░░░░░░░░░░░░░░░` | 2 | 1.3% |
-| ⚪ Not tested | `███████████████░░░░░` | 115 | 76.2% |
-| **Total** | | **151** | **100%** |
+| 🟢 Functional | `█████░░░░░░░░░░░░░░░` | 39 | 26.0% |
+| 🟡 Limited | `▍░░░░░░░░░░░░░░░░░░░` | 3 | 2.0% |
+| ⚪ Not tested | `██████████████░░░░░░` | 108 | 72.0% |
+| **Total** | | **150** | **100%** |
 
 ```mermaid
 pie showData
     title Payload maturity snapshot — 2026-08-05
-    "Functional" : 34
-    "Limited" : 2
-    "Not tested" : 115
+    "Functional" : 39
+    "Limited" : 3
+    "Not tested" : 108
 ```
 
 ## Current-phase workflow

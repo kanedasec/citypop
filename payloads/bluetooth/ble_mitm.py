@@ -1,26 +1,24 @@
 #!/usr/bin/env python3
-# @name: BLE GATT MITM Proxy
-# @desc: Scan BLE devices, select a target, connect and enumerate all GATT services/characteristics.
+# @name: Bounded BLE GATT Assessment
+# @desc: Scan an authorized BLE target, enumerate GATT services, and monitor readable characteristic changes without claiming transparent MITM behavior.
 # @category: bluetooth
 # @danger: true
 # @active: true
 # @web: true
 """
-RaspyJack Payload -- BLE GATT MITM Proxy
-=========================================
+RaspyJack Payload -- Bounded BLE GATT Assessment
+================================================
 Author: 7h30th3r0n3
 
-Scan BLE devices, select a target, connect and enumerate all GATT
-services/characteristics.  Set up the Pi as a BLE peripheral advertising
-the same services.  When a client connects to the Pi, forward all
-read/write/notify operations to the real device, logging all traffic.
+Scan BLE devices, select an authorized target, enumerate its GATT services and
+characteristics, then monitor readable values for bounded changes. It does not
+impersonate the target or intercept another client's BLE session.
 
 Setup / Prerequisites
 ---------------------
 - Bluetooth adapter (hci0)
 - apt install bluez
 - gatttool, hcitool available
-- Optional: second BT adapter for simultaneous client + peripheral
 
 Controls
 --------
@@ -29,13 +27,13 @@ Controls
     target_mac       -- optional BLE MAC address (AA:BB:CC:DD:EE:FF)
                          to target directly. If omitted, a scan runs
                          and you pick a target from a numbered list.
-    duration_seconds -- optional, how long to run the proxy (default:
+    duration_seconds -- optional, how long to monitor (default:
                          run until Ctrl-C)
 
   If more than one Bluetooth adapter is present, you'll be prompted to
   pick one from a numbered list.
 
-  Ctrl-C    -- stop the proxy, export the GATT log, and print a summary
+  Ctrl-C    -- stop monitoring, export the GATT log, and print a summary
 
 Loot: $CITYPOP_LOOT/ble_mitm_<timestamp>.json
 """
@@ -232,8 +230,8 @@ def _gatt_write(addr, handle, value):
 
 def _proxy_loop():
     """
-    Main MITM proxy loop: advertise as a peripheral, forward operations.
-    Uses hcitool for advertising and gatttool for target communication.
+    Bounded assessment loop: poll readable target characteristics and record
+    changes. This does not impersonate the target or proxy another client.
     """
     global proxy_active, client_count, status_msg
 
@@ -248,26 +246,10 @@ def _proxy_loop():
 
     with lock:
         proxy_active = True
-        status_msg = "Proxy active"
-
-    # Set up advertising with target's name
-    try:
-        # Enable LE advertising
-        subprocess.run(
-            ["sudo", "hciconfig", HCI_DEV, "leadv", "0"],
-            capture_output=True, timeout=5,
-        )
-        with lock:
-            status_msg = "Advertising..."
-    except Exception as exc:
-        with lock:
-            status_msg = f"Adv err: {str(exc)[:14]}"
-            proxy_active = False
-        return
+        status_msg = "GATT monitoring"
 
     # Monitor loop: periodically read all characteristics from target
-    # and log changes (simulated proxy since full GATT server requires
-    # more complex setup)
+    # Poll readable characteristics and log value changes.
     prev_values = {}
 
     while True:
@@ -304,20 +286,12 @@ def _proxy_loop():
 
         time.sleep(2)
 
-    # Stop advertising
-    try:
-        subprocess.run(
-            ["sudo", "hciconfig", HCI_DEV, "noleadv"],
-            capture_output=True, timeout=5,
-        )
-    except Exception:
-        pass
 
 
 # ── Start / stop ─────────────────────────────────────────────────────────────
 
 def _connect_target(addr):
-    """Connect to target: enumerate GATT then start proxy."""
+    """Connect to target, enumerate GATT, then monitor readable values."""
     global target_addr, target_connected
 
     _enumerate_gatt(addr)
@@ -475,12 +449,12 @@ def main():
         return 1
 
     n_chars = sum(len(s.get("chars", [])) for s in svcs)
-    print(f"Found {len(svcs)} services, {n_chars} characteristics. Proxy running.", flush=True)
+    print(f"Found {len(svcs)} services, {n_chars} characteristics. Monitoring readable values.", flush=True)
 
     if duration:
-        print(f"Proxying for {duration:.0f}s ...", flush=True)
+        print(f"Monitoring for {duration:.0f}s ...", flush=True)
     else:
-        print("Proxying until Ctrl-C ...", flush=True)
+        print("Monitoring until Ctrl-C ...", flush=True)
 
     start_time = time.time()
     last_log_count = 0
@@ -503,7 +477,7 @@ def main():
             if duration and elapsed >= duration:
                 break
     except KeyboardInterrupt:
-        print("\nStopping proxy...", flush=True)
+        print("\nStopping GATT assessment...", flush=True)
 
     finally:
         _stop_proxy()
