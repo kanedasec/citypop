@@ -20,6 +20,11 @@ def _run(*args, timeout=15):
     )
 
 
+def _invalid_insert_position(result) -> bool:
+    detail = f"{result.stderr}\n{result.stdout}".lower()
+    return "invalid position" in detail
+
+
 def connected_context(address: str) -> tuple[str, str]:
     """Return (interface, network) for a local IPv4 address."""
     try:
@@ -80,12 +85,16 @@ class TemporaryUfwRules:
 
     def add(self, *rule):
         result = _run("insert", "1", *rule, "comment", self.marker)
+        if result.returncode and _invalid_insert_position(result):
+            result = _run(*rule, "comment", self.marker)
         if result.returncode:
             detail = (result.stderr or result.stdout).strip() or "unknown UFW error"
             raise UfwRuleError(f"could not add temporary UFW rule: {detail}")
 
     def add_route(self, *rule):
         result = _run("route", "insert", "1", *rule, "comment", self.marker)
+        if result.returncode and _invalid_insert_position(result):
+            result = _run("route", *rule, "comment", self.marker)
         if result.returncode:
             detail = (result.stderr or result.stdout).strip() or "unknown UFW error"
             raise UfwRuleError(f"could not add temporary UFW route rule: {detail}")

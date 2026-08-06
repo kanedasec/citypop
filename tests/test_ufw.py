@@ -22,6 +22,46 @@ class TemporaryUfwTests(unittest.TestCase):
             "comment", rules.marker,
         )
 
+    @patch.object(_ufw, "_run")
+    def test_generic_rule_falls_back_when_first_insert_position_is_invalid(self, run):
+        run.side_effect = [
+            Result(returncode=1, stderr="ERROR: Invalid position '1'"),
+            Result(),
+        ]
+        rules = _ufw.TemporaryUfwRules("dashboard")
+        rules.add("allow", "in", "proto", "tcp", "to", "any", "port", "8092")
+
+        self.assertEqual(run.call_args_list, [
+            call(
+                "insert", "1", "allow", "in", "proto", "tcp", "to", "any",
+                "port", "8092", "comment", rules.marker,
+            ),
+            call(
+                "allow", "in", "proto", "tcp", "to", "any", "port", "8092",
+                "comment", rules.marker,
+            ),
+        ])
+
+    @patch.object(_ufw, "_run")
+    def test_route_rule_falls_back_when_first_insert_position_is_invalid(self, run):
+        run.side_effect = [
+            Result(returncode=1, stderr="ERROR: Invalid position '1'"),
+            Result(),
+        ]
+        rules = _ufw.TemporaryUfwRules("forwarding")
+        rules.add_route("allow", "in", "on", "usb0", "out", "on", "wlan0")
+
+        self.assertEqual(run.call_args_list, [
+            call(
+                "route", "insert", "1", "allow", "in", "on", "usb0", "out",
+                "on", "wlan0", "comment", rules.marker,
+            ),
+            call(
+                "route", "allow", "in", "on", "usb0", "out", "on", "wlan0",
+                "comment", rules.marker,
+            ),
+        ])
+
     @patch.object(_ufw.subprocess, "run")
     def test_connected_context_matches_address_without_hardcoding_network(self, run):
         run.return_value = Result(stdout=(
