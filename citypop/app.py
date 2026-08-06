@@ -32,6 +32,10 @@ PAYLOADS = BASE / "payloads"
 LOOT = BASE / "loot"
 UPLOADS = BASE / "state" / "uploads"
 MAX_PORTAL_IMAGE_BYTES = 900_000
+BOOT_CONFIG_CANDIDATES = (
+    Path("/boot/firmware/config.txt"),
+    Path("/boot/config.txt"),
+)
 
 
 def portal_image_extension(data: bytes) -> str | None:
@@ -458,10 +462,159 @@ def system_inventory():
     }
 
 
+def _boot_config_path() -> Path | None:
+    return next((path for path in BOOT_CONFIG_CANDIDATES if path.is_file()), None)
+
+
+def _configured_usb_role(text: str) -> str:
+    """Read the effective dwc2 role from the Raspberry Pi [all] section."""
+    section = "all"
+    role = "unknown"
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        section_match = re.fullmatch(r"\[([^]]+)\]", line)
+        if section_match:
+            section = section_match.group(1).strip().lower()
+            continue
+        if section != "all" or not re.match(r"dtoverlay\s*=\s*dwc2(?:,|$)", line, re.I):
+            continue
+        params = [part.strip().lower() for part in line.split(",")[1:]]
+        mode = next((part.split("=", 1)[1] for part in params if part.startswith("dr_mode=")), "otg")
+        role = "host" if mode == "host" else "hid" if mode in {"otg", "peripheral"} else "unknown"
+    return role
+
+
+def _render_usb_role(text: str, role: str) -> str:
+    """Set dwc2 in [all] while preserving unrelated overlay parameters."""
+    if role not in {"hid", "host"}:
+        raise ValueError("unsupported USB role")
+    lines = text.splitlines()
+    section = "all"
+    match_indexes = []
+    for index, raw in enumerate(lines):
+        line = raw.strip()
+        section_match = re.fullmatch(r"\[([^]]+)\]", line)
+        if section_match:
+            section = section_match.group(1).strip().lower()
+            continue
+        if (
+            section == "all" and not line.startswith("#")
+            and re.match(r"dtoverlay\s*=\s*dwc2(?:,|$)", line, re.I)
+        ):
+            match_indexes.append(index)
+
+    preserved = []
+    if match_indexes:
+        first = lines[match_indexes[0]].strip().split(",")
+        preserved = [part.strip() for part in first[1:] if not part.strip().lower().startswith("dr_mode=")]
+    value = ["dtoverlay=dwc2", *preserved]
+    if role == "host":
+        value.append("dr_mode=host")
+    replacement = ",".join(value)
+
+    if match_indexes:
+        lines[match_indexes[0]] = replacement
+        for index in reversed(match_indexes[1:]):
+            del lines[index]
+    else:
+        all_indexes = [
+            index for index, line in enumerate(lines)
+            if line.strip().lower() == "[all]"
+        ]
+        if all_indexes:
+            insert_at = all_indexes[-1] + 1
+            while insert_at < len(lines) and not re.fullmatch(r"\[[^]]+\]", lines[insert_at].strip()):
+                insert_at += 1
+            lines.insert(insert_at, replacement)
+        else:
+            if lines and lines[-1].strip():
+                lines.append("")
+            lines.extend(["[all]", replacement])
+    return "\n".join(lines) + "\n"
+
+
+def usb_role_inventory() -> dict:
+    try:
+        model = Path("/proc/device-tree/model").read_bytes().rstrip(b"\0").decode(errors="replace")
+    except OSError:
+        model = ""
+    config_path = _boot_config_path()
+    configured = "unavailable"
+    if config_path:
+        try:
+            configured = _configured_usb_role(config_path.read_text(encoding="utf-8"))
+        except OSError:
+            configured = "unavailable"
+    active = "unknown"
+    for role_path in Path("/sys/class/usb_role").glob("*/role"):
+        try:
+            value = role_path.read_text().strip().lower()
+        except OSError:
+            continue
+        active = "host" if value == "host" else "hid" if value in {"device", "peripheral"} else value
+        break
+    if active == "unknown":
+        for mode_path in Path("/proc/device-tree").rglob("dr_mode"):
+            try:
+                value = mode_path.read_bytes().rstrip(b"\0").decode().lower()
+            except OSError:
+                continue
+            if value in {"host", "otg", "peripheral"}:
+                active = "host" if value == "host" else "hid"
+                break
+    supported = bool(config_path and ("raspberry pi zero" in model.lower() or "compute module" in model.lower()))
+    return {
+        "supported": supported,
+        "model": model or "unknown platform",
+        "configured": configured,
+        "active": active,
+        "config_path": str(config_path) if config_path else "",
+        "reboot_required": active in {"hid", "host"} and configured in {"hid", "host"} and active != configured,
+    }
+
+
+def set_usb_role(role: str) -> tuple[bool, str]:
+    if role not in {"hid", "host"}:
+        return False, "unsupported USB role"
+    inventory = usb_role_inventory()
+    if not inventory["supported"]:
+        return False, "USB role switching is available only on supported Raspberry Pi OTG hardware"
+    path = Path(inventory["config_path"])
+    try:
+        original = path.read_text(encoding="utf-8")
+        rendered = _render_usb_role(original, role)
+        if rendered == original:
+            return True, f"USB {'HID/OTG' if role == 'hid' else 'host'} mode is already configured"
+        backup = path.with_name(f"{path.name}.citypop.bak")
+        if not backup.exists():
+            shutil.copy2(path, backup)
+        temporary = path.with_name(f".{path.name}.citypop.tmp")
+        temporary.write_text(rendered, encoding="utf-8")
+        shutil.copymode(path, temporary)
+        temporary.replace(path)
+    except OSError as exc:
+        return False, f"could not update {path}: {exc}"
+    label = "HID/OTG device" if role == "hid" else "USB host"
+    return True, f"{label} mode configured; reboot the Pi before changing USB connections"
+
+
 @app.get("/api/hardware")
 @require_auth
 def hardware_status():
-    return jsonify(system=system_inventory(), interfaces=interface_inventory())
+    return jsonify(
+        system=system_inventory(), interfaces=interface_inventory(),
+        usb_role=usb_role_inventory(),
+    )
+
+
+@app.post("/api/hardware/usb-role")
+@require_auth
+def hardware_usb_role():
+    data = request.get_json(silent=True) or {}
+    ok, detail = set_usb_role(str(data.get("role", "")))
+    return jsonify(ok=ok, detail=detail), 200 if ok else 409
 
 
 def set_interface_mode(name: str, mode: str) -> tuple[bool, str]:

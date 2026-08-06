@@ -157,6 +157,16 @@ class WebApiTests(unittest.TestCase):
             capture_output=True, text=True, timeout=10,
         )
 
+    def test_usb_role_change_uses_hardware_role_manager(self):
+        with patch.object(citypop, "set_usb_role", return_value=(True, "reboot required")) as change:
+            response = self.client.post(
+                "/api/hardware/usb-role", headers=self.headers,
+                json={"role": "host"},
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["detail"], "reboot required")
+        change.assert_called_once_with("host")
+
     def test_poweroff_refuses_while_operation_is_running(self):
         with patch.object(citypop.runner, "snapshot", return_value={"running": {"name": "test"}}):
             response = self.client.post("/api/system/poweroff", headers=self.headers)

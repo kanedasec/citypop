@@ -60,6 +60,7 @@ The Zero 2 W has only 512 MB of RAM, so installation favors Kali/Debian binary p
 - Structured launch forms and dynamic adapter/target selectors
 - Captive-portal template selection or responsive uploaded-image display
 - Payload preflight checks, protected-route warnings, and live hardware/interface status
+- Hardware control for selecting the Pi Zero data port's next-boot HID/OTG or USB-host role
 - All-payload catalog with fully visible wrapping categories, search, impact/capability filters, and favorites
 - Card-triggered guided launch workflow and preflight for every payload
 - Persistent Citypop, Matrix, Akira, and Stealth interface aesthetics
@@ -123,6 +124,11 @@ For hardware preparation, installer behavior, updates, and account recovery, con
 - A powered OTG hub when using USB radios, SDRs, storage, or multiple adapters
 - A separate monitor-mode/injection-capable Wi-Fi adapter for Wi-Fi assessment payloads
 - A tested recovery path over SSH, USB Ethernet, or a second interface
+
+The Pi Zero 2 W has one USB OTG controller. Its data port can operate as a
+USB device for HID gadget payloads or as a USB host for attached dongles, but
+not both at once. A normal or powered hub can add host ports but cannot remove
+this controller-role limitation.
 
 ### Optional payload hardware
 
@@ -202,6 +208,15 @@ setup.
 10. End the engagement when testing is finished.
 
 Only one payload or command runs at a time. A temporary phone or radio disconnect does not stop it: reconnecting restores the running-operation state, buffered terminal output, and any pending prompt. Use **Stop** explicitly when an operation should end.
+
+The header-level **Hardware** dialog can configure the Pi Zero data port for
+its next boot. **HID / OTG** retains `dtoverlay=dwc2`, permitting USB gadget
+payloads when the data port is connected to a computer. **USB Host** selects
+`dtoverlay=dwc2,dr_mode=host`, allowing a dongle to enumerate through a proper
+OTG host adapter. The change requires a reboot and does not itself create a
+HID gadget. City Pop preserves unrelated overlay parameters and creates the
+one-time backup `/boot/firmware/config.txt.citypop.bak` before the first
+change (or the equivalent backup beside `/boot/config.txt`).
 
 Networked payloads add uniquely tagged UFW rules only for their active run.
 The runner provides temporary outbound access; listeners and AP/forwarding

@@ -665,6 +665,24 @@ dialog label input[type="checkbox"] { width: 18px; min-height: 18px; margin: 0; 
 .hardware-flags { display: flex; gap: 7px; margin-bottom: 17px; }
 .hardware-flags span { flex: 1; padding: 7px; border: 1px solid var(--edge); border-radius: var(--radius-sm); color: var(--muted); text-align: center; font-size: 9px; }
 .hardware-flags span.ok { border-color: rgb(85 230 165 / 42%); color: var(--green); }
+.usb-role-panel { margin: 16px 0 20px; padding: 13px; border: 1px solid rgb(57 231 239 / 28%); border-left: 3px solid var(--cyan); border-radius: var(--radius-sm); background: linear-gradient(135deg, rgb(57 231 239 / 7%), transparent 58%), var(--panel-soft); }
+.usb-role-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.usb-role-heading span,
+.usb-role-heading b { display: block; }
+.usb-role-heading span { color: var(--dim); font-size: 8px; letter-spacing: .14em; }
+.usb-role-heading b { margin-top: 3px; color: var(--cyan-soft); font: 700 14px var(--display); }
+.usb-role-heading em { padding: 4px 6px; border: 1px solid var(--amber); border-radius: 999px; color: var(--amber); font-size: 7px; font-style: normal; letter-spacing: .09em; }
+.usb-role-panel > p { margin: 10px 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.usb-role-map { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.usb-role-map > span { padding: 9px; border: 1px solid var(--edge); border-radius: var(--radius-sm); }
+.usb-role-map > span.selected { border-color: rgb(85 230 165 / 52%); box-shadow: inset 3px 0 var(--green); }
+.usb-role-map b,
+.usb-role-map small { display: block; }
+.usb-role-map b { color: var(--text); font-size: 9px; }
+.usb-role-map small { margin-top: 4px; color: var(--dim); font-size: 8px; line-height: 1.4; }
+.usb-role-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.usb-role-actions button { flex: 1 1 145px; min-height: 34px; padding: 6px 9px; font-size: 8px; }
+.usb-role-path { display: block; margin-top: 8px; color: var(--dim); font-size: 7px; overflow-wrap: anywhere; }
 dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display); letter-spacing: .12em; }
 .interface-row { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--edge); }
 .interface-row > div:last-of-type { text-align: right; }
@@ -682,6 +700,10 @@ dialog h3 { margin: 16px 0 6px; color: var(--dim); font: 650 10px var(--display)
 .interface-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .interface-actions button { min-height: 30px; padding: 5px 9px; font-size: 8px; }
 #hardwareStatus { min-height: 18px; margin-top: 10px; color: var(--cyan-soft); font-size: 9px; }
+
+@media (max-width: 520px) {
+  .usb-role-map { grid-template-columns: 1fr; }
+}
 
 #executionsList { max-height: 58vh; overflow: auto; }
 .execution-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--edge); }

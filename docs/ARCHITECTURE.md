@@ -55,7 +55,15 @@ the mode-`0700` `state/uploads/` directory.
 
 ### `citypop/app.py`
 
-The Flask application serves static assets, authenticates administrator sessions, exposes hardware and preflight information, manages loot/report generation, listing, preview, download, and deletion APIs, and validates authorization context before starting work.
+The Flask application serves static assets, authenticates administrator sessions, exposes hardware and preflight information, manages loot/report generation, listing, preview, download, and deletion APIs, and validates authorization context before starting work. On supported Raspberry Pi OTG hardware, the authenticated hardware API also reads and changes the data port's next-boot role between HID/OTG-capable device mode and USB host mode.
+
+USB-role changes are deliberately boot configuration, not live configfs gadget
+operations. The backend edits only an active `dtoverlay=dwc2` entry in the
+`[all]` section of `/boot/firmware/config.txt` (falling back to
+`/boot/config.txt`), preserves unrelated overlay parameters, and makes a
+one-time `.citypop.bak` copy. A reboot is required. The Zero's single OTG
+controller cannot host a USB radio while simultaneously presenting a HID
+gadget, regardless of whether a hub is attached.
 
 The systemd service launches one threaded Gunicorn worker bound only to
 `127.0.0.1:18080`. Nginx is the sole public management listener.
@@ -155,5 +163,7 @@ The runner supplies:
 - Raspberry Pi Zero 2 W: 32-bit ARM and 512 MB RAM.
 - Kali Pi-Tail: phone supplies power, network path, and primary screen/input.
 - The management interface must remain available whenever possible.
+- USB host and HID/device operation are mutually exclusive on the Pi Zero's
+  single OTG controller; role changes must remain explicit and reboot-bound.
 - Payload UI must work without LCD, joystick, desktop environment, or physical keyboard.
 - Installation should prefer system packages and binary wheels over native compilation.
