@@ -613,8 +613,26 @@ def hardware_status():
 @require_auth
 def hardware_usb_role():
     data = request.get_json(silent=True) or {}
+    if runner.snapshot().get("running"):
+        return jsonify(error="stop the running operation before changing the USB role"), 409
     ok, detail = set_usb_role(str(data.get("role", "")))
-    return jsonify(ok=ok, detail=detail), 200 if ok else 409
+    if not ok:
+        return jsonify(ok=False, detail=detail), 409
+    try:
+        reboot = subprocess.run(
+            ["sudo", "-n", "shutdown", "-r", "+0"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return jsonify(
+            error=f"{detail}; configuration was saved but reboot scheduling failed: {exc}",
+        ), 503
+    if reboot.returncode:
+        failure = (reboot.stderr or reboot.stdout or "reboot scheduling failed").strip()
+        return jsonify(
+            error=f"{detail}; configuration was saved but reboot scheduling failed: {failure}",
+        ), 503
+    return jsonify(ok=True, detail=f"{detail}; reboot scheduled now")
 
 
 def set_interface_mode(name: str, mode: str) -> tuple[bool, str]:

@@ -158,14 +158,31 @@ class WebApiTests(unittest.TestCase):
         )
 
     def test_usb_role_change_uses_hardware_role_manager(self):
-        with patch.object(citypop, "set_usb_role", return_value=(True, "reboot required")) as change:
+        reboot = subprocess.CompletedProcess([], 0, "", "")
+        with patch.object(citypop, "set_usb_role", return_value=(True, "reboot required")) as change, \
+                patch.object(citypop.runner, "snapshot", return_value={"running": None}), \
+                patch.object(citypop.subprocess, "run", return_value=reboot) as run:
             response = self.client.post(
                 "/api/hardware/usb-role", headers=self.headers,
                 json={"role": "host"},
             )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json()["detail"], "reboot required")
+        self.assertIn("reboot scheduled now", response.get_json()["detail"])
         change.assert_called_once_with("host")
+        run.assert_called_once_with(
+            ["sudo", "-n", "shutdown", "-r", "+0"],
+            capture_output=True, text=True, timeout=10,
+        )
+
+    def test_usb_role_change_refuses_while_payload_is_running(self):
+        with patch.object(citypop.runner, "snapshot", return_value={"running": {"name": "test"}}), \
+                patch.object(citypop, "set_usb_role") as change:
+            response = self.client.post(
+                "/api/hardware/usb-role", headers=self.headers,
+                json={"role": "host"},
+            )
+        self.assertEqual(response.status_code, 409)
+        change.assert_not_called()
 
     def test_poweroff_refuses_while_operation_is_running(self):
         with patch.object(citypop.runner, "snapshot", return_value={"running": {"name": "test"}}):

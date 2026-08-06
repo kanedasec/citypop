@@ -213,8 +213,10 @@ The header-level **Hardware** dialog can configure the Pi Zero data port for
 its next boot. **HID / OTG** retains `dtoverlay=dwc2`, permitting USB gadget
 payloads when the data port is connected to a computer. **USB Host** selects
 `dtoverlay=dwc2,dr_mode=host`, allowing a dongle to enumerate through a proper
-OTG host adapter. The change requires a reboot and does not itself create a
-HID gadget. City Pop preserves unrelated overlay parameters and creates the
+OTG host adapter. Confirming a role change saves the configuration and
+immediately schedules a reboot, disconnecting the web session; it does not
+itself create a HID gadget. City Pop refuses the change while a payload is
+running, preserves unrelated overlay parameters, and creates the
 one-time backup `/boot/firmware/config.txt.citypop.bak` before the first
 change (or the equivalent backup beside `/boot/config.txt`).
 

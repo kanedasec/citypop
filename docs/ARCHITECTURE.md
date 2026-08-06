@@ -61,7 +61,8 @@ USB-role changes are deliberately boot configuration, not live configfs gadget
 operations. The backend edits only an active `dtoverlay=dwc2` entry in the
 `[all]` section of `/boot/firmware/config.txt` (falling back to
 `/boot/config.txt`), preserves unrelated overlay parameters, and makes a
-one-time `.citypop.bak` copy. A reboot is required. The Zero's single OTG
+one-time `.citypop.bak` copy. A successful role change schedules an immediate
+reboot and is refused while a payload is active. The Zero's single OTG
 controller cannot host a USB radio while simultaneously presenting a HID
 gadget, regardless of whether a hub is attached.
 
