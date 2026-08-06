@@ -122,6 +122,11 @@ def log(message):
     except Exception:
         pass
 
+
+def status(message):
+    """Publish former LCD status messages in the City Pop web terminal."""
+    print(str(message).replace("\n", " · "), flush=True)
+
 # ---------------------------------------------------------------------------
 # Legacy interface fallback
 # ---------------------------------------------------------------------------
@@ -219,26 +224,26 @@ def setup_monitor_mode(iface):
 def validate_setup(iface):
     """Full pre-flight: interface exists, tools present, monitor mode."""
     if not check_interface_exists(iface):
-        draw_status(f"{iface} not found!", CLR_RED)
+        status(f"{iface} not found!")
         time.sleep(2)
         return False, iface
 
     for tool in ("aireplay-ng", "airodump-ng"):
         if tool not in run_command(f"which {tool}"):
-            draw_status(f"Missing: {tool}", CLR_RED)
+            status(f"Missing: {tool}")
             time.sleep(2)
             return False, iface
 
     # Check monitor mode capability
     if not supports_monitor(iface):
-        draw_status(f"{iface} no monitor mode!\nNeed compatible card", CLR_RED)
+        status(f"{iface} has no monitor-mode support · compatible external adapter required")
         time.sleep(3)
         return False, iface
 
-    draw_status(f"Monitor mode: {iface}...")
+    status(f"Enabling monitor mode on {iface}...")
     ok, mon = setup_monitor_mode(iface)
     if not ok:
-        draw_status(f"Monitor mode failed\non {iface}", CLR_RED)
+        status(f"Monitor-mode setup failed on {iface}")
         time.sleep(2)
     return ok, mon
 
