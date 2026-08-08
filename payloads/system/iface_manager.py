@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # @name: Interface Manager
 # @desc: Inspect a selected network interface or set its link state up or down; this does not change Wi-Fi mode or rfkill state.
-# @category: utilities
+# @category: system
 # @danger: true
 # @active: true
 # @web: true

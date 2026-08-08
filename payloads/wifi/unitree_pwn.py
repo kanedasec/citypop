@@ -476,7 +476,7 @@ def save_loot(data, prefix="unitree"):
 # Automated Kill Chain
 # ---------------------------------------------------------------------------
 
-def auto_pwn(lcd, iface):
+def auto_pwn(iface):
     """Full automated kill chain: detect → connect → recon → creds → control."""
     report = {
         "timestamp": datetime.now().isoformat(),
@@ -603,207 +603,6 @@ def auto_pwn(lcd, iface):
 
 
 # ---------------------------------------------------------------------------
-# LCD Drawing
-# ---------------------------------------------------------------------------
-
-def draw_splash(lcd, msg, sub=""):
-    w, h = lcd.width, lcd.height
-    img = Image.new("RGB", (w, h), "black")
-    d = ScaledDraw(img)
-    d.rectangle((0, 0, 127, 13), fill="#220000")
-    d.text((2, 1), "UNITREE PWN", font=FONT_BIG, fill="#FF4444")
-    d.text((10, 45), msg[:22], font=FONT, fill="#FFAA00")
-    if sub:
-        d.text((10, 60), sub[:22], font=FONT_SM, fill="#888")
-    lcd.LCD_ShowImage(img, 0, 0)
-
-
-def draw_scan(lcd, networks, cursor, scroll, iface):
-    w, h = lcd.width, lcd.height
-    img = Image.new("RGB", (w, h), "black")
-    d = ScaledDraw(img)
-
-    d.rectangle((0, 0, 127, 13), fill="#220000")
-    d.text((2, 1), "SCAN", font=FONT_BIG, fill="#FF4444")
-    found = sum(1 for n in networks if n["unitree"])
-    d.text((40, 2), f"Unitree:{found}", font=FONT_SM, fill="#FF8800" if found else "#555")
-    d.text((100, 2), iface[:6], font=FONT_SM, fill="#888")
-
-    visible = networks[scroll:scroll + 7]
-    for i, net in enumerate(visible):
-        y = 15 + i * 14
-        idx = scroll + i
-        prefix = ">" if idx == cursor else " "
-        ssid = net["ssid"][:11] or "Hidden"
-        if net["unitree"]:
-            color = "#FF4444" if idx == cursor else "#FF8800"
-        else:
-            color = "#00FF00" if idx == cursor else "#666"
-        d.text((2, y), f"{prefix}{ssid}", font=FONT, fill=color)
-        d.text((82, y), f"{net['signal']}%", font=FONT_SM, fill="#888")
-        lock = "L" if net["security"] else "O"
-        d.text((108, y), lock, font=FONT_SM,
-               fill="#FFAA00" if net["security"] else "#00FF00")
-
-    if not networks:
-        d.text((10, 35), "No networks found", font=FONT, fill="#666")
-        d.text((10, 50), "OK to scan", font=FONT_SM, fill="#888")
-
-    d.rectangle((0, 116, 127, 127), fill="#111")
-    d.text((2, 117), "OK:Scan K1:Con K2:BLE", font=FONT_SM, fill="#888")
-    lcd.LCD_ShowImage(img, 0, 0)
-
-
-def draw_recon(lcd, services, status, scroll):
-    w, h = lcd.width, lcd.height
-    img = Image.new("RGB", (w, h), "black")
-    d = ScaledDraw(img)
-
-    d.rectangle((0, 0, 127, 13), fill="#220000")
-    d.text((2, 1), "RECON", font=FONT_BIG, fill="#FF4444")
-    hosts = sum(1 for s in services if s["alive"])
-    d.text((50, 2), f"Hosts:{hosts}", font=FONT_SM, fill="#00FF00" if hosts else "#555")
-
-    lines = []
-    for svc in services:
-        lines.append({"t": f"{svc['ip']} {svc['desc'][:6]}", "c": "#FFAA00"})
-        for port, name in svc["ports"]:
-            lines.append({"t": f"  :{port} {name}", "c": "#00FF00"})
-
-    visible = lines[scroll:scroll + 7]
-    for i, ln in enumerate(visible):
-        d.text((2, 16 + i * 13), ln["t"][:22], font=FONT, fill=ln["c"])
-
-    if not services:
-        d.text((10, 30), status[:22], font=FONT, fill="#888")
-        d.text((10, 48), "Connect to robot WiFi", font=FONT_SM, fill="#666")
-        d.text((10, 60), "then OK to scan", font=FONT_SM, fill="#666")
-
-    d.rectangle((0, 116, 127, 127), fill="#111")
-    d.text((2, 117), "OK:Scan K2:Save K3:X", font=FONT_SM, fill="#888")
-    lcd.LCD_ShowImage(img, 0, 0)
-    return len(lines)
-
-
-def draw_ctrl(lcd, status, last_cmd):
-    w, h = lcd.width, lcd.height
-    img = Image.new("RGB", (w, h), "black")
-    d = ScaledDraw(img)
-
-    d.rectangle((0, 0, 127, 13), fill="#220000")
-    d.text((2, 1), "CONTROL", font=FONT_BIG, fill="#FF4444")
-    d.text((65, 2), status[:10], font=FONT_SM,
-           fill="#00FF00" if status == "Active" else "#888")
-
-    y = 17
-    d.text((4, y), f"MQTT {MQTT_BROKER_IP}:1883", font=FONT_SM, fill="#00FF00")
-    y += 10
-    d.text((4, y), f"UDP  {UDP_HIGH_IP}:8082", font=FONT_SM, fill="#888")
-    y += 10
-    d.text((4, y), f"{last_cmd[:20]}", font=FONT_SM, fill="#58a6ff")
-    y += 13
-
-    # D-pad visual
-    cx, cy = 64, 75
-    d.text((cx - 3, cy - 18), "FWD", font=FONT_SM, fill="#00FF00")
-    d.text((cx - 3, cy + 12), "BWD", font=FONT_SM, fill="#00FF00")
-    d.text((cx - 28, cy - 3), "L", font=FONT_SM, fill="#00FF00")
-    d.text((cx + 20, cy - 3), "R", font=FONT_SM, fill="#00FF00")
-    d.rectangle((cx - 5, cy - 5, cx + 5, cy + 5), fill="#333", outline="#666")
-    d.text((cx - 3, cy - 3), "OK", font=FONT_SM, fill="#FFF")
-
-    d.text((4, 98), "OK:Stand K1:Sit", font=FONT_SM, fill="#CCC")
-
-    d.rectangle((0, 116, 127, 127), fill="#440000")
-    d.text((2, 117), "K2:EMERGENCY STOP", font=FONT_SM, fill="#FF0000")
-    lcd.LCD_ShowImage(img, 0, 0)
-
-
-def draw_creds(lcd, results, status, scroll):
-    w, h = lcd.width, lcd.height
-    img = Image.new("RGB", (w, h), "black")
-    d = ScaledDraw(img)
-
-    d.rectangle((0, 0, 127, 13), fill="#220000")
-    d.text((2, 1), "CREDS", font=FONT_BIG, fill="#FF4444")
-    cracked = sum(1 for r in results if r.get("success"))
-    if cracked:
-        d.text((50, 2), f"PWNED:{cracked}", font=FONT_SM, fill="#00FF00")
-
-    d.text((2, 16), status[:22], font=FONT, fill="#FFAA00")
-
-    visible = results[scroll:scroll + 6]
-    for i, r in enumerate(visible):
-        y = 30 + i * 13
-        ip_short = r["ip"].split(".")[-1]
-        cred = f"{r['user']}:{r['pwd']}"
-        if r.get("success"):
-            d.text((2, y), f"*.{ip_short} {cred}", font=FONT, fill="#00FF00")
-        else:
-            d.text((2, y), f" .{ip_short} {cred}", font=FONT, fill="#664444")
-
-    if not results:
-        d.text((10, 40), "OK to start testing", font=FONT, fill="#666")
-        d.text((10, 55), "unitree/123 (Nanos)", font=FONT_SM, fill="#888")
-        d.text((10, 66), "pi/123 (RPi+GW)", font=FONT_SM, fill="#888")
-
-    d.rectangle((0, 116, 127, 127), fill="#111")
-    d.text((2, 117), "OK:Test K2:Save K3:X", font=FONT_SM, fill="#888")
-    lcd.LCD_ShowImage(img, 0, 0)
-    return len(results)
-
-
-def draw_autopwn(lcd, report):
-    w, h = lcd.width, lcd.height
-    img = Image.new("RGB", (w, h), "black")
-    d = ScaledDraw(img)
-
-    d.rectangle((0, 0, 127, 13), fill="#440000")
-    d.text((2, 1), "AUTO PWN", font=FONT_BIG, fill="#FF0000")
-
-    if not report:
-        d.text((10, 30), "Full automated", font=FONT, fill="#FFAA00")
-        d.text((10, 44), "kill chain:", font=FONT, fill="#FFAA00")
-        d.text((6, 58), "1. Scan Unitree WiFi", font=FONT_SM, fill="#CCC")
-        d.text((6, 68), "2. Connect (00000000)", font=FONT_SM, fill="#CCC")
-        d.text((6, 78), "3. Recon 192.168.123.*", font=FONT_SM, fill="#CCC")
-        d.text((6, 88), "4. SSH brute-force", font=FONT_SM, fill="#CCC")
-        d.text((6, 98), "5. MQTT+UDP stand cmd", font=FONT_SM, fill="#CCC")
-        d.text((6, 108), "6. Switch to gamepad", font=FONT_SM, fill="#CCC")
-    else:
-        y = 16
-        result = report.get("result", "?")
-        color = "#00FF00" if result == "success" else "#FFAA00" if result == "partial" else "#FF4444"
-        d.text((2, y), f"Result: {result}", font=FONT, fill=color)
-        y += 13
-        wifi = report.get("wifi", {})
-        if wifi:
-            d.text((2, y), f"WiFi: {wifi.get('ssid', '?')[:14]}", font=FONT_SM, fill="#00FF00")
-            y += 10
-        creds = report.get("credentials", [])
-        pwned = [c for c in creds if c.get("success")]
-        d.text((2, y), f"Hosts pwned: {len(pwned)}", font=FONT_SM, fill="#00FF00" if pwned else "#FF4444")
-        y += 10
-        for c in pwned[:3]:
-            d.text((6, y), f"{c['ip']} {c['user']}:{c['pwd']}", font=FONT_SM, fill="#00FF00")
-            y += 10
-        ctrl = report.get("control", {})
-        if ctrl.get("mqtt_sent") or ctrl.get("udp_sent"):
-            methods = []
-            if ctrl.get("mqtt_sent"):
-                methods.append("MQTT")
-            if ctrl.get("udp_sent"):
-                methods.append("UDP")
-            d.text((2, y), f"Control: {'+'.join(methods)}", font=FONT_SM, fill="#00FF00")
-        y += 12
-        d.text((2, y), f"Saved to loot/Unitree", font=FONT_SM, fill="#555")
-
-    d.rectangle((0, 116, 127, 127), fill="#440000")
-    d.text((2, 117), "OK:Start K3:Back", font=FONT_SM, fill="#FF0000")
-    lcd.LCD_ShowImage(img, 0, 0)
-
-
-# ---------------------------------------------------------------------------
 # BLE UniPwn functions (CVE-2025-35027)
 # ---------------------------------------------------------------------------
 
@@ -860,7 +659,7 @@ def ble_scan_unitree(timeout=8):
     return found
 
 
-def ble_exploit_unitree(mac, payload_cmd, lcd=None, callback=None):
+def ble_exploit_unitree(mac, payload_cmd, callback=None):
     """Execute UniPwn BLE exploit on a Unitree robot.
 
     Steps (from Bin4ry/UniPwn):
@@ -966,103 +765,6 @@ def ble_exploit_unitree(mac, payload_cmd, lcd=None, callback=None):
 
 
 # ---------------------------------------------------------------------------
-# BLE LCD Drawing
-# ---------------------------------------------------------------------------
-
-def draw_ble_scan(lcd, devices, cursor, scroll, status):
-    w, h = lcd.width, lcd.height
-    img = Image.new("RGB", (w, h), "black")
-    d = ScaledDraw(img)
-
-    d.rectangle((0, 0, 127, 13), fill="#000033")
-    d.text((2, 1), "BLE SCAN", font=FONT_BIG, fill="#0088FF")
-    d.text((65, 2), f"Found:{len(devices)}", font=FONT_SM,
-           fill="#00FF00" if devices else "#555")
-
-    if not BLE_OK:
-        d.text((10, 30), "bleak not installed", font=FONT, fill="#FF4444")
-        d.text((10, 45), "pip3 install bleak", font=FONT_SM, fill="#888")
-    elif not devices:
-        d.text((10, 30), status[:22], font=FONT, fill="#888")
-        d.text((10, 48), "OK to scan for", font=FONT_SM, fill="#666")
-        d.text((10, 58), "Go2/G1/H1/B2 robots", font=FONT_SM, fill="#666")
-        d.text((10, 72), "Needs BT adapter", font=FONT_SM, fill="#555")
-    else:
-        visible = devices[scroll:scroll + 7]
-        for i, dev in enumerate(visible):
-            y = 15 + i * 14
-            idx = scroll + i
-            prefix = ">" if idx == cursor else " "
-            name = dev["name"][:11]
-            color = "#0088FF" if idx == cursor else "#AAAAAA"
-            d.text((2, y), f"{prefix}{name}", font=FONT, fill=color)
-            d.text((82, y), f"{dev['rssi']}dB", font=FONT_SM, fill="#888")
-
-    d.rectangle((0, 116, 127, 127), fill="#111")
-    d.text((2, 117), "OK:Scan/Sel K3:Back", font=FONT_SM, fill="#888")
-    lcd.LCD_ShowImage(img, 0, 0)
-
-
-def draw_ble_pwn(lcd, target, step, payload_idx, result):
-    w, h = lcd.width, lcd.height
-    img = Image.new("RGB", (w, h), "black")
-    d = ScaledDraw(img)
-
-    d.rectangle((0, 0, 127, 13), fill="#330000")
-    d.text((2, 1), "BLE PWN", font=FONT_BIG, fill="#FF0044")
-    d.text((60, 2), "UniPwn", font=FONT_SM, fill="#FF8800")
-
-    y = 16
-    if target:
-        d.text((2, y), f"{target['name'][:16]}", font=FONT, fill="#0088FF")
-        y += 11
-        d.text((2, y), f"{target['mac']}", font=FONT_SM, fill="#888")
-        y += 12
-
-    if step == "select":
-        d.text((2, y), "Select payload:", font=FONT, fill="#FFAA00")
-        y += 12
-        for i, (name, _) in enumerate(BLE_PAYLOADS):
-            if y > 108:
-                break
-            prefix = ">" if i == payload_idx else " "
-            color = "#FF0044" if i == payload_idx else "#888"
-            d.text((2, y), f"{prefix}{name[:20]}", font=FONT_SM, fill=color)
-            y += 10
-
-        d.rectangle((0, 116, 127, 127), fill="#330000")
-        d.text((2, 117), "OK:Exploit K3:Cancel", font=FONT_SM, fill="#FF0044")
-
-    elif step == "running":
-        d.text((2, y), "Exploiting...", font=FONT, fill="#FF0044")
-        y += 14
-        if result and result.get("sn"):
-            d.text((2, y), f"SN: {result['sn'][:18]}", font=FONT_SM, fill="#00FF00")
-            y += 10
-
-    elif step == "done":
-        if result and result.get("success"):
-            d.text((2, y), "EXPLOIT SENT!", font=FONT, fill="#00FF00")
-            y += 12
-            if result.get("sn"):
-                d.text((2, y), f"SN: {result['sn'][:18]}", font=FONT_SM, fill="#00FF00")
-                y += 10
-            d.text((2, y), "Root access should", font=FONT_SM, fill="#CCC")
-            y += 10
-            d.text((2, y), "now be available", font=FONT_SM, fill="#CCC")
-        else:
-            err = result.get("error", "Unknown") if result else "No result"
-            d.text((2, y), "EXPLOIT FAILED", font=FONT, fill="#FF4444")
-            y += 12
-            d.text((2, y), err[:22], font=FONT_SM, fill="#FF8888")
-
-        d.rectangle((0, 116, 127, 127), fill="#111")
-        d.text((2, 117), "K2:Save OK:Back K3:X", font=FONT_SM, fill="#888")
-
-    lcd.LCD_ShowImage(img, 0, 0)
-
-
-# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1076,7 +778,7 @@ def main():
     if mode=="recon":
         rows=discover_services(callback=lambda m: print(m,flush=True)); path=save_loot(rows,"recon"); print(f"Saved {path}",flush=True); return 0
     if mode=="autopwn":
-        report=auto_pwn(None,iface); print(json.dumps(report,default=str),flush=True); return 0
+        report=auto_pwn(iface); print(json.dumps(report,default=str),flush=True); return 0
     if mode=="ble-scan":
         rows=ble_scan_unitree(timeout=min(60,int(sys.argv[2]) if len(sys.argv)>2 else 8)); path=save_loot(rows,"ble_scan"); print(f"Found {len(rows)} devices; saved {path}",flush=True); return 0
     print("Mode must be scan, recon, autopwn, or ble-scan",flush=True); return 2

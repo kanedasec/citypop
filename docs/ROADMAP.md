@@ -70,6 +70,7 @@ that the area is frozen or will never receive another correction.
 | 2026-08-05 | Catalog consolidation | Removed the AI category and its BirdNET, object-detection, and speech-to-text payloads; moved Network Anomaly Detector into Network, BLE Skimmer Scanner and Bluetooth Keyboard Picker into Bluetooth, and Disk Status into the new System category; removed unused AI-only runtime dependencies. |
 | 2026-08-05 | Pi compatibility hardening | Added validated physical-Ethernet bridge setup and rollback, modern esptool invocation, truthful bounded BLE GATT behavior, and disabled unvalidated SDR transmission while retaining capture/library operations; removed the impractical dual-controller USB keylogger from the Pi Zero 2 W catalog. |
 | 2026-08-06 | USB role management | Added a phone-controlled, reboot-bound Pi Zero data-port selector for HID/OTG and USB-host operation, including platform detection, boot-state reporting, parameter-preserving configuration, and a one-time recovery backup. |
+| 2026-08-06 | Catalog refinement | Moved interface management, interface listing, tool checks, process listing, and system status from Utilities into System; removed dormant Unitree LCD rendering code and converted LED Controller actions into explicit web-native lists. |
 
 ## Payload validation board
 

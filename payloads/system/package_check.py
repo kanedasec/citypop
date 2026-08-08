@@ -2,7 +2,7 @@
 # @active: true
 # @name: Tool Check
 # @desc: Report whether nmap, iw, ip, ping, whois, curl, and openssl are available on the Pi.
-# @category: utilities
+# @category: system
 # @danger: false
 # @web: true
 # @maturity: functional

@@ -2,7 +2,7 @@
 # @active: true
 # @name: List Interfaces
 # @desc: List local network interfaces and their current addresses without changing their state.
-# @category: utilities
+# @category: system
 # @danger: false
 # @web: true
 # @maturity: functional

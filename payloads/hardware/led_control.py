@@ -284,6 +284,22 @@ def _print_status():
     print("  0) Exit (restores default triggers)", flush=True)
 
 
+def _action_choices():
+    choices = [
+        {
+            "value": str(index),
+            "label": f"{pattern['name']} — {pattern['desc']}",
+        }
+        for index, pattern in enumerate(PATTERNS, start=1)
+    ]
+    choices.extend([
+        {"value": "7", "label": "Toggle ACT LED — manually switch the activity LED"},
+        {"value": "8", "label": "Toggle PWR LED — manually switch the power LED"},
+        {"value": "0", "label": "Restore and exit — restore the original LED triggers"},
+    ])
+    return choices
+
+
 def main():
     global active_pattern_idx, act_manual, pwr_manual
     global custom_on_time, custom_off_time
@@ -302,7 +318,12 @@ def main():
         while _running:
             _print_status()
             try:
-                choice = request_input("Select option [0-8]: ").strip()
+                choice = str(request_input(
+                    "Select LED action — all available patterns and controls",
+                    input_type="select",
+                    choices=_action_choices(),
+                    default="1",
+                )).strip()
             except EOFError:
                 choice = "0"
 
@@ -320,8 +341,14 @@ def main():
 
             elif choice == "6":
                 try:
-                    on_raw = request_input(f"On time seconds [{custom_on_time:.1f}]: ").strip()
-                    off_raw = request_input(f"Off time seconds [{custom_off_time:.1f}]: ").strip()
+                    on_raw = str(request_input(
+                        "Custom pattern ON time in seconds (0.05–5.0)",
+                        input_type="number", default=f"{custom_on_time:.1f}",
+                    )).strip()
+                    off_raw = str(request_input(
+                        "Custom pattern OFF time in seconds (0.05–5.0)",
+                        input_type="number", default=f"{custom_off_time:.1f}",
+                    )).strip()
                 except EOFError:
                     on_raw = off_raw = ""
                 if on_raw:

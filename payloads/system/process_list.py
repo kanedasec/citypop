@@ -2,7 +2,7 @@
 # @active: true
 # @name: Process List
 # @desc: List local processes with PID, owner, and command, sorted by current CPU usage.
-# @category: utilities
+# @category: system
 # @danger: false
 # @web: true
 # @maturity: functional

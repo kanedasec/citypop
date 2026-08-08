@@ -2,7 +2,7 @@
 # @active: true
 # @name: System Status
 # @desc: Show the Pi hostname, platform, uptime, memory, temperature, load, and network identity.
-# @category: utilities
+# @category: system
 # @danger: false
 # @web: true
 # @maturity: functional
